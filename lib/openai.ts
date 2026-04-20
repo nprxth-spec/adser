@@ -47,7 +47,7 @@ const invoiceSchema: Schema = {
         },
         amount: {
             type: SchemaType.NUMBER,
-            description: "The TOTAL amount actually charged/paid (the final amount that was debited from the card). Must include VAT, tax, and any fees. If the receipt shows both a subtotal (e.g. 20.00) and a total with VAT (e.g. 20.20), use the total (20.20), NOT the subtotal. Look for fields like 'Total', 'Amount paid', 'Total charged', 'Amount due' or similar.",
+            description: "For successful payment documents: return the TOTAL amount actually charged/paid (final amount debited), including VAT/tax/fees. For unsuccessful payment documents: return the attempted/requested amount shown on the document (e.g. total, amount due, amount attempted), not 0 unless no amount exists at all.",
         },
         currency: {
             type: SchemaType.STRING,
@@ -148,6 +148,25 @@ function pickBestAmountFromText(pdfText: string, baseAmount: number, currencyHin
 }
 
 /**
+ * For failed/unsuccessful receipts, there is often still an intended amount.
+ * Try to extract it from common labels even if no currency token is present.
+ */
+function pickFailedAmountFromText(pdfText: string): number {
+    const text = (pdfText ?? "").slice(0, 8000);
+    if (!text) return 0;
+
+    const labelPattern = /(?:amount(?:\s+(?:due|charged|to\s+pay|attempted))?|total(?:\s+amount)?|ยอด(?:ชำระ|ที่ต้องชำระ|รวม)?|จำนวนเงิน|มูลค่า)\s*[:\-]?\s*(?:US\$|USD|THB|฿|EUR|€|JPY|¥|IDR|SGD|MYR|RM)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi;
+    let match: RegExpExecArray | null;
+    const amounts: number[] = [];
+    while ((match = labelPattern.exec(text)) !== null) {
+        const num = parseAmount(match[1]);
+        if (num > 0) amounts.push(num);
+    }
+    if (!amounts.length) return 0;
+    return Math.max(...amounts);
+}
+
+/**
  * Heuristic check on the raw PDF text to decide if this invoice is
  * clearly unsuccessful. This helps correct cases where the AI might
  * mis-classify paymentSuccess.
@@ -245,7 +264,11 @@ Rules:
   * Set FALSE if the document title, header, or body contains words like "Payment Unsuccessful", "Payment Failed", "ไม่สำเร็จ", "รายการไม่สำเร็จ", "Declined", "Transaction Failed", "Could not be processed", or similar failure indicators.
   * Set TRUE if the document shows a receipt for a completed charge, contains words like "Receipt", "Paid", "Payment Successful", "ชำระเงินสำเร็จ", "Amount Charged", or an amount was actually debited.
   * When in doubt and no explicit failure indicator is present, set TRUE.
-- For "amount": use ONLY the final total amount that was actually charged/paid (the amount debited from the card). This must INCLUDE VAT, tax, and any fees. If you see both a subtotal (e.g. 20.00) and a total including VAT (e.g. 20.20), you MUST return the total (20.20), not the subtotal. Prefer fields labeled "Total", "Amount paid", "Total charged", "Amount due", or the final sum after adding tax/VAT. On Meta/Facebook Thai receipts, prefer the big US$ amount on the right (e.g. "US$2.33") instead of the smaller "ยอดรวม" subtotal line.
+- For "amount":
+  * If payment is successful, return the final amount actually charged/debited (include VAT/tax/fees).
+  * If payment is unsuccessful/failed, return the intended/attempted amount shown on the bill (e.g. Total, Amount due, Amount attempted). Do NOT return 0 unless the document truly has no amount.
+  * If you see both subtotal and total including VAT, return the total including VAT.
+  * On Meta/Facebook Thai receipts, prefer the big US$ amount on the right (e.g. "US$2.33") instead of the smaller "ยอดรวม" subtotal line.
 
 --- RECEIPT TEXT ---
 ${trimmedText}`;
@@ -308,10 +331,18 @@ ${trimmedText}`;
                 ? detected                          // heuristic is confident → use it
                 : (parsed.paymentSuccess ?? true);  // heuristic unsure → trust AI
 
+        // If failed docs come back as 0, recover from raw text by reading
+        // "amount due/total/ยอด..." style labels.
+        let adjustedAmount = finalAmount;
+        if (!paymentSuccess && adjustedAmount <= 0) {
+            const failedAmount = pickFailedAmountFromText(pdfText);
+            if (failedAmount > 0) adjustedAmount = failedAmount;
+        }
+
         return {
             date: parsed.date ?? "",
             card_last_4: parsed.card_last_4?.replace(/\D/g, "").slice(-4) ?? "",
-            amount: finalAmount,
+            amount: adjustedAmount,
             currency: parsed.currency ?? "USD",
             billed_to: normalizeBilledTo(parsed.billed_to ?? ""),
             paymentSuccess,

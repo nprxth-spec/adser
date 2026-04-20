@@ -2,6 +2,27 @@ import { GoogleGenerativeAI, Schema, SchemaType } from "@google/generative-ai";
 
 const ai = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
+const MODEL_CANDIDATES = [
+    process.env.GOOGLE_AI_MODEL,
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-1.5-flash",
+].filter((m): m is string => Boolean(m && m.trim()));
+
+function isModelNotFoundError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err ?? "");
+    return message.includes("[404 Not Found]") || message.toLowerCase().includes("no longer available");
+}
+
+function isRateLimitError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err ?? "");
+    return message.includes("[429 Too Many Requests]") || message.toLowerCase().includes("resource exhausted");
+}
+
+async function sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export interface InvoiceData {
     date: string;
     card_last_4: string;
@@ -215,15 +236,6 @@ export async function extractInvoiceData(pdfText: string): Promise<InvoiceData> 
     // Truncate to first 6000 chars — gives AI enough context to spot failure indicators
     const trimmedText = pdfText.slice(0, 6000);
 
-    const model = ai.getGenerativeModel({
-        model: "gemini-2.0-flash", // Free tier is 1,500 requests per day!
-        generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: invoiceSchema,
-            temperature: 0, // Deterministic, no hallucination
-        },
-    });
-
     const prompt = `Extract the exact payment information from this billing receipt (e.g. Facebook Ads, Meta Ads, or similar).
 
 Rules:
@@ -239,8 +251,48 @@ Rules:
 ${trimmedText}`;
 
     try {
-        const result = await model.generateContent(prompt);
-        const responseJson = result.response.text();
+        let responseJson = "";
+        let lastError: unknown;
+
+        for (const modelName of MODEL_CANDIDATES) {
+            const model = ai.getGenerativeModel({
+                model: modelName,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: invoiceSchema,
+                    temperature: 0, // Deterministic, no hallucination
+                },
+            });
+
+            // Retry small backoff when temporary quota/rate-limit happens.
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    const result = await model.generateContent(prompt);
+                    responseJson = result.response.text();
+                    lastError = undefined;
+                    break;
+                } catch (err) {
+                    lastError = err;
+                    if (isRateLimitError(err) && attempt < 2) {
+                        await sleep(500 * (attempt + 1));
+                        continue;
+                    }
+                    if (isModelNotFoundError(err)) {
+                        break;
+                    }
+                    throw err;
+                }
+            }
+
+            if (responseJson) {
+                break;
+            }
+        }
+
+        if (!responseJson) {
+            throw lastError ?? new Error("No Gemini model available");
+        }
+
         const parsed = JSON.parse(responseJson) as InvoiceData;
 
         const baseAmount = Number(parsed.amount) || 0;

@@ -11,6 +11,68 @@ function extractDriveFileId(driveLink: string): string | null {
   return m ? m[1] : null;
 }
 
+function toA1Column(column: string | null | undefined, fallback: string): string {
+  const col = String(column ?? "").trim().toUpperCase();
+  return /^[A-Z]+$/.test(col) ? col : fallback;
+}
+
+function quoteSheetName(sheetName: string): string {
+  return `'${sheetName.replace(/'/g, "''")}'`;
+}
+
+async function resolveSheetGid(
+  sheets: ReturnType<typeof google.sheets>,
+  spreadsheetId: string,
+  preferredGid: number | null | undefined,
+  preferredTitle: string | null | undefined
+): Promise<number | null> {
+  if (typeof preferredGid === "number") return preferredGid;
+  const meta = await sheets.spreadsheets.get({
+    spreadsheetId,
+    includeGridData: false,
+    fields: "sheets(properties(sheetId,title))",
+  });
+  const tabs = meta.data.sheets ?? [];
+  if (preferredTitle) {
+    const byTitle = tabs.find((s) => s.properties?.title === preferredTitle);
+    if (typeof byTitle?.properties?.sheetId === "number") return byTitle.properties.sheetId;
+  }
+  const first = tabs[0]?.properties?.sheetId;
+  return typeof first === "number" ? first : null;
+}
+
+async function findCurrentSheetRow(
+  sheets: ReturnType<typeof google.sheets>,
+  spreadsheetId: string,
+  sheetName: string | null | undefined,
+  driveLinkCol: string,
+  filenameCol: string,
+  driveLink: string | null,
+  filename: string
+): Promise<number | null> {
+  const prefix = sheetName ? `${quoteSheetName(sheetName)}!` : "";
+
+  if (driveLink) {
+    const driveColValues = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${prefix}${driveLinkCol}:${driveLinkCol}`,
+    });
+    const rows = driveColValues.data.values ?? [];
+    const idx = rows.findIndex((r) => (r?.[0] ?? "") === driveLink);
+    if (idx >= 0) return idx + 1; // 1-indexed
+  }
+
+  const filenameColValues = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${prefix}${filenameCol}:${filenameCol}`,
+  });
+  const nameRows = filenameColValues.data.values ?? [];
+  const idxByName = nameRows.findIndex((r) => (r?.[0] ?? "") === filename);
+  if (idxByName >= 0) return idxByName + 1;
+
+  return null;
+}
+
 export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> }
@@ -61,17 +123,45 @@ export async function DELETE(
     }
 
     // 2. Delete row from Google Sheets
-    if (log.sheetRow && log.sheetRow > 0) {
+    if (log.sheetRow || log.driveLink || log.filename) {
       try {
         const user = await prisma.user.findUnique({
           where: { id: userId },
-          select: { sheetId: true, sheetGid: true },
+          select: { sheetId: true, sheetGid: true, sheetName: true, sheetMapping: true },
         });
 
         if (user?.sheetId) {
           const sheets = google.sheets({ version: "v4", auth: oauth2Client });
-          // sheetRow is 1-indexed; Sheets API startIndex is 0-indexed
-          const startIndex = log.sheetRow - 1;
+          const mapping = (user.sheetMapping as Record<string, string> | null) ?? null;
+          const driveLinkCol = toA1Column(mapping?.driveLink, "G");
+          const filenameCol = toA1Column(mapping?.filename, "F");
+          const currentRow =
+            (await findCurrentSheetRow(
+              sheets,
+              user.sheetId,
+              user.sheetName,
+              driveLinkCol,
+              filenameCol,
+              log.driveLink ?? null,
+              log.filename
+            )) ?? (log.sheetRow ?? null);
+
+          if (!currentRow || currentRow <= 0) {
+            throw new Error("Could not locate matching row in Sheets");
+          }
+          const targetGid = await resolveSheetGid(
+            sheets,
+            user.sheetId,
+            user.sheetGid,
+            user.sheetName
+          );
+
+          if (targetGid == null) {
+            throw new Error("Could not resolve target sheet tab");
+          }
+
+          // Google Sheets API startIndex is 0-indexed
+          const startIndex = Math.max(0, currentRow - 1);
           await sheets.spreadsheets.batchUpdate({
             spreadsheetId: user.sheetId,
             requestBody: {
@@ -79,7 +169,7 @@ export async function DELETE(
                 {
                   deleteDimension: {
                     range: {
-                      sheetId: user.sheetGid ?? 0,
+                      sheetId: targetGid,
                       dimension: "ROWS",
                       startIndex,
                       endIndex: startIndex + 1,

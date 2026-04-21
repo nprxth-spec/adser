@@ -14,6 +14,7 @@ import {
     Sheet,
     X,
     ChevronDown,
+    Trash2,
     Zap,
     TrendingUp,
     DollarSign,
@@ -48,6 +49,8 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
     const { t } = useAppPreferences();
     const [files, setFiles] = useState<RecentUpload[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+    const [confirmId, setConfirmId] = useState<string | null>(null);
 
     useEffect(() => {
         setLoading(true);
@@ -60,13 +63,36 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
             .catch(() => setLoading(false));
     }, [refreshKey]);
 
+    const handleDelete = async (id: string) => {
+        setDeletingIds((prev) => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+        });
+        setConfirmId(null);
+        try {
+            const res = await fetch(`/api/history/${id}`, { method: "DELETE" });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(data?.error ?? t("ลบไม่สำเร็จ", "Failed to delete"));
+            setFiles((prev) => prev.filter((f) => f.id !== id));
+        } catch (err: any) {
+            window.alert(err?.message ?? t("ลบรายการไม่สำเร็จ", "Failed to delete record"));
+        } finally {
+            setDeletingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        }
+    };
+
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <h2 className="font-semibold text-slate-900">{t("ไฟล์ล่าสุด", "Recent Files")}</h2>
                 <Link
-                    href="/dashboard/history"
+                    href="/history"
                     className="text-sm text-teal-600 hover:text-teal-800 font-medium transition-colors"
                 >
                     {t("ดูทั้งหมด", "View all")} →
@@ -90,7 +116,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                 </div>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1080px] text-sm table-auto">
+                    <table className="w-full min-w-[1180px] text-sm table-auto">
                         <colgroup>
                             <col style={{ width: "150px" }} />
                             <col style={{ width: "34%" }} />
@@ -99,6 +125,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                             <col style={{ width: "120px" }} />
                             <col style={{ width: "95px" }} />
                             <col style={{ width: "80px" }} />
+                            <col style={{ width: "110px" }} />
                         </colgroup>
                         <thead>
                             <tr className="border-b border-slate-100">
@@ -110,6 +137,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                     t("จำนวนเงิน", "Amount"),
                                     t("สถานะ", "Status"),
                                     t("ไฟล์", "File"),
+                                    t("การทำงาน", "Action"),
                                 ].map((h) => (
                                     <th
                                         key={h}
@@ -126,7 +154,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                     key={log.id}
                                     className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${
                                         i % 2 === 0 ? "bg-white" : "bg-slate-50/30"
-                                    }`}
+                                    } ${deletingIds.has(log.id) ? "opacity-40" : ""}`}
                                 >
                                     {/* Processed date */}
                                     <td className="px-4 py-3 text-slate-600 whitespace-nowrap text-xs">
@@ -198,6 +226,47 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                             </a>
                                         ) : (
                                             <span className="text-slate-300">—</span>
+                                        )}
+                                    </td>
+
+                                    {/* Action */}
+                                    <td className="px-4 py-3">
+                                        {confirmId === log.id ? (
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    onClick={() => handleDelete(log.id)}
+                                                    disabled={deletingIds.has(log.id)}
+                                                    className="px-2 py-0.5 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 disabled:opacity-50 cursor-pointer inline-flex items-center gap-1"
+                                                >
+                                                    {deletingIds.has(log.id) ? (
+                                                        <>
+                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                            {t("กำลังลบ...", "Deleting...")}
+                                                        </>
+                                                    ) : (
+                                                        t("ยืนยัน", "Confirm")
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmId(null)}
+                                                    className="px-2 py-0.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 cursor-pointer"
+                                                >
+                                                    {t("ยกเลิก", "Cancel")}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setConfirmId(log.id)}
+                                                disabled={deletingIds.has(log.id)}
+                                                title={t("ลบรายการ ไฟล์ใน Drive และแถวใน Sheets", "Delete record, Drive file, and Sheets row")}
+                                                className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 cursor-pointer"
+                                            >
+                                                {deletingIds.has(log.id) ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="w-4 h-4" />
+                                                )}
+                                            </button>
                                         )}
                                     </td>
                                 </tr>

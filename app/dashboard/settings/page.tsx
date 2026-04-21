@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { Loader2, Save, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  Trash2,
+  User,
+  Paintbrush,
+  Languages,
+  Link as LinkIcon,
+  RefreshCcw,
+} from "lucide-react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 type ConnectionStatus = {
@@ -28,11 +37,13 @@ export default function SettingsPage() {
   }, [session?.user?.name]);
 
   useEffect(() => {
+    let cancelled = false;
     const loadStatus = async () => {
-      setLoadingStatus(true);
+      if (!cancelled) setLoadingStatus(true);
       try {
         const res = await fetch("/api/google/connection-status", { cache: "no-store" });
         const data = await res.json().catch(() => null);
+        if (cancelled) return;
         if (res.ok) {
           setStatus({
             connected: Boolean(data?.ok),
@@ -45,7 +56,7 @@ export default function SettingsPage() {
           });
         }
       } finally {
-        setLoadingStatus(false);
+        if (!cancelled) setLoadingStatus(false);
       }
     };
 
@@ -57,6 +68,7 @@ export default function SettingsPage() {
         ]);
         const driveData = await driveRes.json().catch(() => null);
         const integrationsData = await integrationsRes.json().catch(() => null);
+        if (cancelled) return;
         setDriveFolderId(driveData?.data?.driveFolderId ?? null);
         const activeId = integrationsData?.data?.activeProfileId ?? "";
         const profiles = integrationsData?.data?.profiles ?? [];
@@ -70,7 +82,47 @@ export default function SettingsPage() {
 
     void loadStatus();
     void loadIntegrations();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const refreshConnection = async () => {
+    setLoadingStatus(true);
+    try {
+      const [statusRes, integrationsRes, driveRes] = await Promise.all([
+        fetch("/api/google/connection-status", { cache: "no-store" }),
+        fetch("/api/integrations", { cache: "no-store" }),
+        fetch("/api/drive-folder", { cache: "no-store" }),
+      ]);
+
+      const statusData = await statusRes.json().catch(() => null);
+      const integrationsData = await integrationsRes.json().catch(() => null);
+      const driveData = await driveRes.json().catch(() => null);
+
+      if (statusRes.ok) {
+        setStatus({
+          connected: Boolean(statusData?.ok),
+          missingScopes: statusData?.data?.missingScopes ?? [],
+        });
+      } else {
+        setStatus({
+          connected: false,
+          missingScopes: statusData?.missingScopes ?? statusData?.data?.missingScopes ?? [],
+        });
+      }
+
+      setDriveFolderId(driveData?.data?.driveFolderId ?? null);
+      const activeId = integrationsData?.data?.activeProfileId ?? "";
+      const profiles = integrationsData?.data?.profiles ?? [];
+      const activeProfile = profiles.find((p: any) => p.id === activeId) ?? profiles[0] ?? null;
+      setSheetName(activeProfile?.sheetName ?? null);
+      setSheetId(activeProfile?.sheetId ?? null);
+      setNotice(t("รีเฟรชสถานะล่าสุดแล้ว", "Connection status refreshed"));
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setSavingProfile(true);
@@ -84,9 +136,9 @@ export default function SettingsPage() {
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? "Failed to save profile");
       await update();
-      setNotice("บันทึกชื่อบัญชีแล้ว");
+      setNotice(t("บันทึกชื่อบัญชีแล้ว", "Profile name saved"));
     } catch (err: any) {
-      window.alert(err?.message ?? "Failed to save profile");
+      window.alert(err?.message ?? t("บันทึกโปรไฟล์ไม่สำเร็จ", "Failed to save profile"));
     } finally {
       setSavingProfile(false);
     }
@@ -111,7 +163,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full space-y-6">
+    <div className="max-w-5xl mx-auto w-full space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">{t("ตั้งค่า", "Settings")}</h1>
         <p className="text-slate-500 text-sm mt-1">{t("จัดการบัญชี ธีม ภาษา และสถานะการเชื่อมต่อ", "Manage account, theme, language, and connection status.")}</p>
@@ -122,66 +174,98 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <section className="bg-white rounded-2xl border border-slate-100 p-5">
-        <h2 className="font-semibold text-slate-900 mb-3">{t("ตั้งค่าบัญชี", "Account Settings")}</h2>
-        <div className="space-y-3">
-          <p className="text-sm text-slate-600">{t("เข้าสู่ระบบด้วย:", "Signed in as:")} {session?.user?.email ?? "-"}</p>
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-slate-200 text-sm flex-1"
-              placeholder={t("ชื่อที่แสดง", "Display name")}
-            />
-            <button
-              type="button"
-              onClick={handleSaveProfile}
-              disabled={savingProfile}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl landing-accent-bg text-white text-sm font-medium disabled:opacity-50 cursor-pointer"
-            >
-              {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {t("บันทึกชื่อ", "Save name")}
-            </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <section className="bg-white rounded-2xl border border-slate-100 p-5 lg:col-span-3">
+          <div className="flex items-center gap-2 mb-3">
+            <User className="w-4 h-4 text-slate-500" />
+            <h2 className="font-semibold text-slate-900">{t("โปรไฟล์บัญชี", "Account profile")}</h2>
           </div>
-        </div>
-      </section>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">{t("อีเมลที่ใช้เข้าสู่ระบบ:", "Signed in as:")} {session?.user?.email ?? "-"}</p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+              <input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-200 text-sm flex-1"
+                placeholder={t("ชื่อที่แสดง", "Display name")}
+              />
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl landing-accent-bg text-white text-sm font-medium disabled:opacity-50 cursor-pointer"
+              >
+                {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {t("บันทึกชื่อ", "Save name")}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
 
-      <section className="bg-white rounded-2xl border border-slate-100 p-5">
-        <h2 className="font-semibold text-slate-900 mb-3">{t("ตั้งค่าสีธีม", "Theme")}</h2>
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <select
-            value={theme}
-            onChange={(e) => {
-              setTheme(e.target.value as "light" | "dark");
-              setNotice(t("บันทึกธีมอัตโนมัติแล้ว", "Theme saved automatically"));
-            }}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-          >
-            <option value="light">{t("สว่าง", "Light")}</option>
-            <option value="dark">{t("มืด", "Dark")}</option>
-          </select>
-        </div>
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section className="bg-white rounded-2xl border border-slate-100 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Paintbrush className="w-4 h-4 text-slate-500" />
+            <h2 className="font-semibold text-slate-900">{t("การแสดงผล", "Appearance")}</h2>
+          </div>
+          <div className="space-y-3">
+            <input
+              value={theme}
+              readOnly
+              className="hidden"
+            />
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">{t("ธีม", "Theme")}</label>
+            <select
+              value={theme}
+              onChange={(e) => {
+                setTheme(e.target.value as "light" | "dark");
+                setNotice(t("บันทึกธีมอัตโนมัติแล้ว", "Theme saved automatically"));
+              }}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+            >
+              <option value="light">{t("สว่าง", "Light")}</option>
+              <option value="dark">{t("มืด", "Dark")}</option>
+            </select>
+          </div>
+        </section>
 
-      <section className="bg-white rounded-2xl border border-slate-100 p-5">
-        <h2 className="font-semibold text-slate-900 mb-3">{t("ตั้งค่าภาษา", "Language")}</h2>
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <section className="bg-white rounded-2xl border border-slate-100 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Languages className="w-4 h-4 text-slate-500" />
+            <h2 className="font-semibold text-slate-900">{t("ภาษา", "Language")}</h2>
+          </div>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{t("ภาษาระบบ", "Application language")}</label>
           <select
             value={language}
             onChange={(e) => {
               setLanguage(e.target.value as "th" | "en");
               setNotice(e.target.value === "th" ? "บันทึกภาษาอัตโนมัติแล้ว" : "Language saved automatically");
             }}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
+            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
           >
             <option value="th">ไทย</option>
             <option value="en">English</option>
           </select>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <section className="bg-white rounded-2xl border border-slate-100 p-5">
-        <h2 className="font-semibold text-slate-900 mb-3">{t("สถานะการเชื่อมต่อ", "Connection Status")}</h2>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <LinkIcon className="w-4 h-4 text-slate-500" />
+            <h2 className="font-semibold text-slate-900">{t("สถานะการเชื่อมต่อ", "Connection status")}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={refreshConnection}
+            disabled={loadingStatus}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCcw className={`w-3.5 h-3.5 ${loadingStatus ? "animate-spin" : ""}`} />
+            {t("รีเฟรช", "Refresh")}
+          </button>
+        </div>
         {loadingStatus ? (
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 className="w-4 h-4 animate-spin" /> {t("กำลังตรวจสอบ...", "Checking...")}
@@ -213,6 +297,9 @@ export default function SettingsPage() {
 
       <section className="bg-white rounded-2xl border border-red-100 p-5">
         <h2 className="font-semibold text-red-700 mb-3">{t("ลบบัญชี", "Delete Account")}</h2>
+        <p className="text-sm text-red-600 mb-3">
+          {t("การลบบัญชีจะลบข้อมูลทั้งหมดแบบถาวร รวมถึงประวัติการประมวลผล", "Deleting your account permanently removes all associated data, including processing history.")}
+        </p>
         <button
           type="button"
           onClick={handleDeleteAccount}

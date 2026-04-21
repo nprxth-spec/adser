@@ -14,6 +14,15 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ["pdf-parse"],
+  async rewrites() {
+    return [
+      { source: "/history", destination: "/dashboard/history" },
+      { source: "/billing", destination: "/dashboard/billing" },
+      { source: "/settings", destination: "/dashboard/settings" },
+      { source: "/integrations", destination: "/dashboard/integrations" },
+      { source: "/naming", destination: "/dashboard/naming" },
+    ];
+  },
 };
 
 export default nextConfig;

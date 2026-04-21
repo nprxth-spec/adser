@@ -21,11 +21,11 @@ export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
     const navLinks = [
         { href: "/dashboard", label: t("อัปโหลด", "Upload"), icon: Upload },
-        { href: "/dashboard/history", label: t("ประวัติ", "History"), icon: History },
-        { href: "/dashboard/integrations", label: t("การเชื่อมต่อ", "Integrations"), icon: Wrench },
-        { href: "/dashboard/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },
-        { href: "/dashboard/billing", label: t("แพ็กเกจ", "Billing"), icon: CreditCard },
-        { href: "/dashboard/settings", label: t("ตั้งค่า", "Settings"), icon: Settings },
+        { href: "/history", label: t("ประวัติ", "History"), icon: History },
+        { href: "/integrations", label: t("การเชื่อมต่อ", "Integrations"), icon: Wrench },
+        { href: "/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },
+        { href: "/billing", label: t("แพ็กเกจ", "Billing"), icon: CreditCard },
+        { href: "/settings", label: t("ตั้งค่า", "Settings"), icon: Settings },
     ];
 
     // Restore collapsed state from localStorage; on small screens start collapsed

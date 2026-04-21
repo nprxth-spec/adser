@@ -57,8 +57,8 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       ],
-      success_url: `${origin}/dashboard/billing?status=success`,
-      cancel_url: `${origin}/dashboard/billing?status=cancelled`,
+      success_url: `${origin}/billing?status=success`,
+      cancel_url: `${origin}/billing?status=cancelled`,
       metadata: {
         userId: session.user.id,
       },

@@ -11,22 +11,22 @@ import {
     FileText,
     Wrench,
     ChevronRight,
-    PanelLeftClose,
-    PanelLeftOpen,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-
-const navLinks = [
-    { href: "/dashboard", label: "Upload", icon: Upload },
-    { href: "/dashboard/history", label: "History", icon: History },
-    { href: "/dashboard/integrations", label: "Integrations", icon: Wrench },
-    { href: "/dashboard/naming", label: "Filename Rules", icon: FileText },
-    { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
-];
+import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const { t } = useAppPreferences();
     const [collapsed, setCollapsed] = useState(false);
+    const navLinks = [
+        { href: "/dashboard", label: t("อัปโหลด", "Upload"), icon: Upload },
+        { href: "/dashboard/history", label: t("ประวัติ", "History"), icon: History },
+        { href: "/dashboard/integrations", label: t("การเชื่อมต่อ", "Integrations"), icon: Wrench },
+        { href: "/dashboard/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },
+        { href: "/dashboard/billing", label: t("แพ็กเกจ", "Billing"), icon: CreditCard },
+        { href: "/dashboard/settings", label: t("ตั้งค่า", "Settings"), icon: Settings },
+    ];
 
     // Restore collapsed state from localStorage; on small screens start collapsed
     useEffect(() => {
@@ -37,16 +37,23 @@ export default function Sidebar() {
             setCollapsed(true);
         }
     }, []);
-
-    const toggleCollapsed = () => {
-        setCollapsed((prev) => {
-            const next = !prev;
-            if (typeof window !== "undefined") {
-                window.localStorage.setItem("sidebar-collapsed", String(next));
-            }
-            return next;
-        });
-    };
+    
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const syncCollapsed = () => {
+            const stored = window.localStorage.getItem("sidebar-collapsed");
+            setCollapsed(stored === "true");
+        };
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === "sidebar-collapsed") syncCollapsed();
+        };
+        window.addEventListener("storage", handleStorage);
+        window.addEventListener("sidebar-collapsed-changed", syncCollapsed as EventListener);
+        return () => {
+            window.removeEventListener("storage", handleStorage);
+            window.removeEventListener("sidebar-collapsed-changed", syncCollapsed as EventListener);
+        };
+    }, []);
 
     return (
         <aside
@@ -63,7 +70,7 @@ export default function Sidebar() {
                     {!collapsed && (
                         <div className="whitespace-nowrap">
                             <p className="font-bold text-base">Files Go</p>
-                            <p className="text-xs text-slate-400">Invoices to Google Sheets</p>
+                            <p className="text-xs text-slate-400">{t("แปลงใบแจ้งหนี้เข้า Google Sheets", "Invoices to Google Sheets")}</p>
                         </div>
                     )}
                 </div>
@@ -96,27 +103,6 @@ export default function Sidebar() {
                     );
                 })}
             </nav>
-
-            {/* Toggle collapse */}
-            <div className="border-t border-slate-800">
-                <div className="p-3">
-                    <button
-                        type="button"
-                        onClick={toggleCollapsed}
-                        className={`w-full flex items-center ${
-                            collapsed ? "justify-center" : "gap-3"
-                        } px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer`}
-                        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    >
-                        {collapsed ? (
-                            <PanelLeftOpen className="w-5 h-5" />
-                        ) : (
-                            <PanelLeftClose className="w-5 h-5" />
-                        )}
-                        {!collapsed && <span>Collapse sidebar</span>}
-                    </button>
-                </div>
-            </div>
         </aside>
     );
 }

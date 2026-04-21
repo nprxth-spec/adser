@@ -5,6 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { CheckCircle2, Zap, ArrowRight } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
+import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 const stripePromise =
   typeof window !== "undefined" && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -12,6 +13,7 @@ const stripePromise =
     : Promise.resolve(null);
 
 export default function BillingCompositePage() {
+  const { t } = useAppPreferences();
   const { data: session } = useSession();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -75,6 +77,8 @@ export default function BillingCompositePage() {
     }
   };
 
+  // โหลดข้อมูลครั้งเดียวตอน mount เท่านั้น
+  // ไม่ใส่ selectedPaymentMethodId ใน deps เพราะจะทำให้ reload ทุกครั้งที่เลือก PM
   useEffect(() => {
     const loadInvoices = async () => {
       setLoadingInv(true);
@@ -92,7 +96,8 @@ export default function BillingCompositePage() {
     };
     void loadPaymentMethods();
     void loadInvoices();
-  }, [selectedPaymentMethodId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleOpenStripePortal = async () => {
     if (openingPortal) return;
@@ -174,9 +179,9 @@ export default function BillingCompositePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 sm:space-y-10 w-full px-0 sm:px-0">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-1">Billing</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-1">{t("การชำระเงิน", "Billing")}</h1>
         <p className="text-slate-600 text-base">
-          Manage your Files Go plan, payment methods, invoices, and account.
+          {t("จัดการแพ็กเกจ วิธีชำระเงิน ใบเสร็จ และบัญชีของคุณ", "Manage your Files Go plan, payment methods, invoices, and account.")}
         </p>
       </div>
 
@@ -187,7 +192,7 @@ export default function BillingCompositePage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
-                  Current plan
+                  {t("แพ็กเกจปัจจุบัน", "Current plan")}
                 </p>
                 <div className="mt-1 flex items-center gap-2">
                   {isPro ? (
@@ -201,7 +206,7 @@ export default function BillingCompositePage() {
                     <>
                       <Zap className="w-4 h-4 text-slate-400" />
                       <span className="text-base font-semibold text-slate-900">
-                        Free
+                        {t("ฟรี", "Free")}
                       </span>
                     </>
                   )}
@@ -209,10 +214,10 @@ export default function BillingCompositePage() {
               </div>
               <div className="text-right">
                 <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
-                  Credits
+                  {t("เครดิต", "Credits")}
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-slate-900">
-                  {isPro ? "Unlimited" : credits}
+                  {isPro ? t("ไม่จำกัด", "Unlimited") : credits}
                 </p>
               </div>
             </div>
@@ -227,15 +232,15 @@ export default function BillingCompositePage() {
               <div className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-slate-900">
-                    Free
+                    {t("ฟรี", "Free")}
                   </p>
                   <span className="text-sm font-medium text-slate-500">
                     $0 / month
                   </span>
                 </div>
                 <ul className="text-xs text-slate-600 space-y-1">
-                  <li>• 9,999 credits per month (resets monthly)</li>
-                  <li>• Basic invoice uploads</li>
+                  <li>{t("• เครดิต 9,999 ต่อเดือน (รีเซ็ตทุกเดือน)", "• 9,999 credits per month (resets monthly)")}</li>
+                  <li>{t("• อัปโหลดใบแจ้งหนี้พื้นฐาน", "• Basic invoice uploads")}</li>
                 </ul>
               </div>
 
@@ -269,20 +274,20 @@ export default function BillingCompositePage() {
                   </span>
                 </div>
                 <ul className="text-xs text-slate-600 space-y-1">
-                  <li>• Unlimited credits</li>
-                  <li>• Priority processing</li>
-                  <li>• Renews monthly; reverts to Free if not renewed</li>
+                  <li>{t("• เครดิตไม่จำกัด", "• Unlimited credits")}</li>
+                  <li>{t("• ประมวลผลลำดับความสำคัญสูง", "• Priority processing")}</li>
+                  <li>{t("• ต่ออายุรายเดือน และกลับเป็นฟรีถ้าไม่ต่ออายุ", "• Renews monthly; reverts to Free if not renewed")}</li>
                 </ul>
                 {!isPro && (
                   <div className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-slate-900">
-                    {loadingCheckout ? "Redirecting..." : "Choose Pro plan"}
+                    {loadingCheckout ? t("กำลังพาไป...", "Redirecting...") : t("เลือกแพ็กเกจ Pro", "Choose Pro plan")}
                     <ArrowRight className="w-3 h-3" />
                   </div>
                 )}
                 {isPro && (
                   <div className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
                     <CheckCircle2 className="w-3 h-3" />
-                    Current plan
+                    {t("แพ็กเกจปัจจุบัน", "Current plan")}
                   </div>
                 )}
               </button>
@@ -751,6 +756,5 @@ function AddCardForm({ onSuccess, onError }: AddCardFormProps) {
           {submitting ? "Saving..." : "Save card"}
         </button>
       </div>
-    </form>
-  );
+    </form>  );
 }

@@ -2,6 +2,7 @@
 
 import { SessionProvider, useSession } from "next-auth/react";
 import { useRef, useEffect } from "react";
+import { AppPreferencesProvider } from "@/components/AppPreferencesProvider";
 
 function LogLoginOnMount() {
     const { data: session, status } = useSession();
@@ -19,8 +20,10 @@ function LogLoginOnMount() {
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
         <SessionProvider>
-            <LogLoginOnMount />
-            {children}
+            <AppPreferencesProvider>
+                <LogLoginOnMount />
+                {children}
+            </AppPreferencesProvider>
         </SessionProvider>
     );
 }

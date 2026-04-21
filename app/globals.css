@@ -23,7 +23,15 @@
     padding: 0;
     min-height: 100vh;
     overflow-x: hidden;
+    background-color: #ffffff;
+    color: #0f172a;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
+}
+
+html[data-theme="dark"] body {
+  background-color: #020617;
+  color: #e2e8f0;
 }
 
 @layer utilities {

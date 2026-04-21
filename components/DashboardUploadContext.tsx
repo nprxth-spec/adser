@@ -52,7 +52,7 @@ const DashboardUploadContext = createContext<DashboardUploadContextValue | null>
 /** Memoized so that when only upload context state changes, the current page does not re-render (avoids lag when navigating away during upload). */
 const MemoizedMain = memo(function MemoizedMain({ children }: { children: React.ReactNode }) {
     return (
-        <main className="flex-1 min-h-0 overflow-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 min-h-0 overflow-auto p-3 sm:p-4 lg:p-5">
             {children}
         </main>
     );

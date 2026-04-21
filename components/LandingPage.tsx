@@ -13,8 +13,10 @@ import {
   Table,
 } from "lucide-react";
 import PublicNav from "@/components/PublicNav";
+import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 export default function LandingPage() {
+  const { t } = useAppPreferences();
   return (
     <div className="min-h-screen landing-bg">
       <PublicNav />
@@ -28,16 +30,15 @@ export default function LandingPage() {
 
         <div className="max-w-4xl mx-auto text-center relative">
           <p className="font-heading text-sm font-semibold tracking-wide text-teal-700 uppercase mb-6">
-            Powered by Gemini
+            {t("ขับเคลื่อนด้วย Gemini", "Powered by Gemini")}
           </p>
           <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-bold text-neutral-900 leading-[1.1] tracking-tight mb-6">
-            Facebook Ads invoices
+            {t("ใบแจ้งหนี้ Facebook Ads", "Facebook Ads invoices")}
             <br />
-            <span className="text-teal-600">into Google Sheets</span>
+            <span className="text-teal-600">{t("สู่ Google Sheets อัตโนมัติ", "into Google Sheets")}</span>
           </h1>
           <p className="text-lg sm:text-xl text-neutral-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Upload a PDF. We extract date, card, and amount, save the file to your Drive,
-            and add a row to your Sheet. No manual copy‑paste.
+            {t("อัปโหลด PDF แล้วระบบจะดึงวันที่ บัตร และยอดเงิน บันทึกไฟล์เข้า Drive และเพิ่มแถวลงชีตอัตโนมัติ ไม่ต้องคัดลอกเอง", "Upload a PDF. We extract date, card, and amount, save the file to your Drive, and add a row to your Sheet. No manual copy‑paste.")}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
@@ -50,24 +51,24 @@ export default function LandingPage() {
                 <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              Sign in with Google — free
+              {t("เข้าสู่ระบบด้วย Google — ฟรี", "Sign in with Google — free")}
             </button>
             <Link
               href="/how-it-works"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border-2 border-neutral-200 text-neutral-700 font-semibold hover:border-teal-300 hover:text-teal-700 transition-colors"
             >
-              How it works <ArrowRight className="w-4 h-4" />
+              {t("วิธีการทำงาน", "How it works")} <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
           <ul className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-neutral-500">
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-teal-500 shrink-0" /> No credit card
+              <CheckCircle2 className="w-4 h-4 text-teal-500 shrink-0" /> {t("ไม่ต้องใช้บัตรเครดิต", "No credit card")}
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-teal-500 shrink-0" /> 10 invoices/month free
+              <CheckCircle2 className="w-4 h-4 text-teal-500 shrink-0" /> {t("ฟรี 10 ใบแจ้งหนี้/เดือน", "10 invoices/month free")}
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-teal-500 shrink-0" /> Set up in a minute
+              <CheckCircle2 className="w-4 h-4 text-teal-500 shrink-0" /> {t("ตั้งค่าเสร็จใน 1 นาที", "Set up in a minute")}
             </li>
           </ul>
         </div>

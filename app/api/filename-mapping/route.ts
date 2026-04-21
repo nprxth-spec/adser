@@ -26,19 +26,24 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const mapping = body?.mapping as Record<string, string> | null | undefined;
 
-  if (!mapping || typeof mapping !== "object") {
+  if (!mapping || typeof mapping !== "object" || Array.isArray(mapping)) {
+    return NextResponse.json({ error: "Invalid mapping payload" }, { status: 400 });
+  }
+
+  const MAX_RULES = 100;
+  if (Object.keys(mapping).length > MAX_RULES) {
     return NextResponse.json(
-      { error: "Invalid mapping payload" },
+      { error: `Too many mapping rules. Maximum is ${MAX_RULES}.` },
       { status: 400 }
     );
   }
 
-  // Basic normalization: keep only non-empty 4+ digit keys with non-empty prefixes.
   const cleaned: Record<string, string> = {};
   for (const [rawKey, rawVal] of Object.entries(mapping)) {
-    const key = String(rawKey).trim();
-    const val = String(rawVal).trim();
+    const key = String(rawKey).trim().slice(0, 10);
+    const val = String(rawVal).trim().slice(0, 100);
     if (!key || !val) continue;
+    if (!/^\d+$/.test(key)) continue;
     cleaned[key] = val;
   }
 
@@ -49,11 +54,10 @@ export async function POST(request: Request) {
   await createAuditLog(
     session.user.id,
     "config_naming",
-    "แก้ไขกฎชื่อไฟล์ (last 4 digits → prefix)",
+    "Edit filename rules (last 4 digits -> prefix)",
     { ruleCount: Object.keys(cleaned).length },
     getClientIp(request)
   );
 
   return NextResponse.json({ success: true });
 }
-

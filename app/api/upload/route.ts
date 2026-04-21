@@ -1,43 +1,111 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { extractInvoiceData } from "@/lib/openai";
+import { extractInvoiceData, InvoiceData } from "@/lib/openai";
 import { syncToGoogle } from "@/lib/google";
 import { prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { ensureFreeCreditsReset } from "@/lib/credits";
 
-// Disable Next.js body parser to handle raw FormData
 export const runtime = "nodejs";
 
+// Cache pdf-parse at module level — avoid re-importing on every request
+let _pdfParse: ((buffer: Buffer) => Promise<{ text: string }>) | null = null;
+async function getPdfParse() {
+    if (_pdfParse) return _pdfParse;
+    const pdfModule: any = await import("pdf-parse");
+    const fn =
+        typeof pdfModule === "function" ? pdfModule :
+        typeof pdfModule.default === "function" ? pdfModule.default : null;
+    if (!fn) throw new Error("pdf-parse did not export a compatible parser function");
+    _pdfParse = fn;
+    return fn;
+}
+
+// ── Filename template types ────────────────────────────────────────────────────
+type TemplateItem =
+    | { type: "field"; key: string; id: string }
+    | { type: "literal"; value: string; id: string };
+
+/**
+ * Build filename from a user-defined template.
+ * `stem`  = original filename WITHOUT extension (sanitized)
+ * `ext`   = extension including dot, e.g. ".pdf"
+ */
+function applyFilenameTemplate(
+    template: TemplateItem[],
+    stem: string,
+    ext: string,
+    cardPrefix: string | null,
+    data: InvoiceData,
+): string {
+    const fields: Record<string, string> = {
+        card_prefix:      cardPrefix ?? "",
+        original_filename: stem,
+        billed_to:        data.billed_to ?? "",
+        date:             data.date ?? "",
+        amount:           data.amount != null ? String(data.amount) : "",
+        currency:         data.currency ?? "",
+        payment_method:   data.payment_method ?? "",
+        invoice_number:   data.invoice_number ?? "",
+        reference_number: data.reference_number ?? "",
+        transaction_id:   data.transaction_id ?? "",
+        account_id:       data.account_id ?? "",
+    };
+
+    let result = "";
+    for (const token of template) {
+        if (token.type === "field") {
+            result += fields[token.key] ?? "";
+        } else {
+            result += token.value;
+        }
+    }
+    const trimmed = result.trim().replace(/[<>:"\\|?*\x00-\x1f]/g, "_");
+    return (trimmed || stem) + ext;
+}
+
+/**
+ * Legacy filename builder — used when no template is configured.
+ * Produces: [prefix ][stem][ (billed_to)][ext]
+ */
+function buildFilenameLegacy(
+    sanitizedOriginal: string,
+    cardPrefix: string | null,
+    billedTo: string | undefined,
+): string {
+    let filename = sanitizedOriginal;
+    if (cardPrefix) filename = `${cardPrefix} - ${filename}`;
+    const trimmed = (billedTo ?? "").trim();
+    if (trimmed) {
+        const dot = filename.lastIndexOf(".");
+        filename = dot > 0
+            ? `${filename.slice(0, dot)} (${trimmed})${filename.slice(dot)}`
+            : `${filename} (${trimmed})`;
+    }
+    return filename;
+}
+
 export async function POST(request: Request) {
-    // 1. Auth check
+    // 1. Auth
     const session = await auth();
     if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     const userId = session.user.id;
 
-    // 2. Load user and apply plan logic
+    // 2. Load user
     const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
-            plan: true,
-            credits: true,
-            sheetId: true,
-            sheetName: true,
-            sheetMapping: true,
-            filenameMapping: true,
-            driveFolderId: true,
+            plan: true, credits: true, sheetId: true, sheetName: true,
+            sheetMapping: true, filenameMapping: true, filenameTemplate: true, driveFolderId: true,
         },
     });
-
     if (!user) {
         return NextResponse.json({ error: "User not found." }, { status: 401 });
     }
 
     const isPro = user.plan === "pro";
-
     if (!isPro) {
         const creditsAfterReset = await ensureFreeCreditsReset(userId);
         if (creditsAfterReset <= 0) {
@@ -56,7 +124,7 @@ export async function POST(request: Request) {
         );
     }
 
-    // 3. Parse multipart form
+    // 3. Parse form
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const sheetId = (formData.get("sheetId") as string) || user.sheetId || "";
@@ -65,8 +133,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Basic server-side validation to avoid abuse
-    const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+    // 4. Validate file
+    const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
     const contentType = (file as any).type as string | undefined;
     const size = (file as any).size as number | undefined;
 
@@ -77,11 +145,10 @@ export async function POST(request: Request) {
         );
     }
 
-    if (
-        contentType &&
-        contentType !== "application/pdf" &&
-        !file.name.toLowerCase().endsWith(".pdf")
-    ) {
+    const isPdf =
+        contentType === "application/pdf" ||
+        (!contentType && file.name.toLowerCase().endsWith(".pdf"));
+    if (!isPdf) {
         return NextResponse.json(
             { error: "Invalid file type. Only PDF invoices are allowed." },
             { status: 400 }
@@ -90,18 +157,17 @@ export async function POST(request: Request) {
 
     if (!sheetId) {
         return NextResponse.json(
-            {
-                error:
-                    "No Google Sheet ID configured. Please set it in Integrations settings.",
-            },
+            { error: "No Google Sheet ID configured. Please set it in Integrations settings." },
             { status: 400 }
         );
     }
 
     const originalFilename = file.name;
-    let filename = originalFilename;
+    // Sanitize: strip characters that cause problems in Drive / Sheets
+    const sanitizedOriginal = originalFilename.replace(/[<>:"\\|?*\x00-\x1f]/g, "_");
+    let filename = sanitizedOriginal;
 
-    // Prevent duplicate successful uploads (match by original name; log may store transformed filename)
+    // 5. Duplicate check (use DB-level lock via unique constraint awareness)
     const existingLog = await prisma.processingLog.findFirst({
         where: {
             userId,
@@ -113,7 +179,6 @@ export async function POST(request: Request) {
         },
         select: { id: true },
     });
-
     if (existingLog) {
         return NextResponse.json(
             { error: `File "${originalFilename}" has already been processed.` },
@@ -124,85 +189,61 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    let invoiceData;
+    let invoiceData: InvoiceData;
     let driveLink = "";
     let sheetRow = 0;
     let status = "success";
 
     try {
-        // For pdf-parse 1.x: default export is a callable function
-        const pdfModule: any = await import("pdf-parse");
-        const pdfParse =
-            typeof pdfModule === "function"
-                ? pdfModule
-                : typeof pdfModule.default === "function"
-                ? pdfModule.default
-                : null;
-
-        if (!pdfParse) {
-            throw new Error("pdf-parse did not export a compatible parser function");
-        }
-
+        // 6. Parse PDF
+        const pdfParse = await getPdfParse();
         const textResult = await pdfParse(buffer);
         const pdfText = textResult.text;
 
-        // 5. AI extraction
+        // 7. AI extraction
         invoiceData = await extractInvoiceData(pdfText);
 
-        // 6. Determine filename using optional mapping based on last 4 digits
-        filename = originalFilename;
+        // 8. Build filename
         const last4 = invoiceData.card_last_4;
-        const billedTo = invoiceData.billed_to as string | undefined;
         const mapping = (user as any).filenameMapping as Record<string, string> | null | undefined;
-        if (last4 && mapping && typeof mapping === "object" && mapping[last4]) {
-            filename = `${mapping[last4]} ${originalFilename}`;
+        const cardPrefix = (last4 && mapping && typeof mapping === "object" && mapping[last4])
+            ? mapping[last4]
+            : null;
+
+        const template = (user as any).filenameTemplate as TemplateItem[] | null | undefined;
+
+        if (template && Array.isArray(template) && template.length > 0) {
+            // Custom template
+            const dotIdx = sanitizedOriginal.lastIndexOf(".");
+            const stem = dotIdx > 0 ? sanitizedOriginal.slice(0, dotIdx) : sanitizedOriginal;
+            const ext  = dotIdx > 0 ? sanitizedOriginal.slice(dotIdx) : "";
+            filename = applyFilenameTemplate(template, stem, ext, cardPrefix, invoiceData);
+        } else {
+            // Legacy behavior
+            filename = buildFilenameLegacy(sanitizedOriginal, cardPrefix, invoiceData.billed_to);
         }
 
-        // 6.1 Append billed_to after filename, before extension if available
-        if (billedTo && billedTo.trim().length > 0) {
-            const trimmed = billedTo.trim();
-            const dotIndex = filename.lastIndexOf(".");
-            if (dotIndex > 0) {
-                const base = filename.slice(0, dotIndex);
-                const ext = filename.slice(dotIndex);
-                filename = `${base} (${trimmed})${ext}`;
-            } else {
-                filename = `${filename} (${trimmed})`;
-            }
-        }
-
-        // 7. Sync to Google Drive + Sheets
+        // 9. Sync to Google
         const syncResult = await syncToGoogle(
-            invoiceData,
-            buffer,
-            filename,
-            accessToken,
-            sheetId,
-            user.sheetName,
-            user.sheetMapping,
-            user.driveFolderId ?? null
+            invoiceData, buffer, filename, accessToken,
+            sheetId, user.sheetName, user.sheetMapping, user.driveFolderId ?? null
         );
         driveLink = syncResult.driveLink;
         sheetRow = syncResult.sheetRow;
     } catch (err: any) {
         console.error("Processing error:", err);
         status = "error";
-        // Log the failure without crashing
         await prisma.processingLog.create({
-            data: {
-                userId,
-                filename: originalFilename,
-                originalFilename,
-                status: "error",
-            },
+            data: { userId, filename: sanitizedOriginal, originalFilename, status: "error" },
         });
-        return NextResponse.json(
-            { error: "Processing failed: " + err.message },
-            { status: 500 }
-        );
+        const safeMessage =
+            err.message?.includes("Google") || err.message?.includes("Sheet") || err.message?.includes("Drive")
+                ? "Failed to sync to Google services. Please check your integration settings."
+                : "Processing failed. Please try again or contact support.";
+        return NextResponse.json({ error: safeMessage }, { status: 500 });
     }
 
-    // 8. Deduct credit (free plan only) and log
+    // 10. Deduct credit + log
     await prisma.$transaction(async (tx) => {
         if (!isPro) {
             await tx.user.update({
@@ -212,28 +253,19 @@ export async function POST(request: Request) {
         }
         await tx.processingLog.create({
             data: {
-                userId,
-                filename,
-                originalFilename,
+                userId, filename, originalFilename,
                 invoiceDate: invoiceData?.date,
                 cardLast4: invoiceData?.card_last_4,
                 amount: invoiceData?.amount,
                 currency: invoiceData?.currency,
-                driveLink,
-                sheetRow,
-                status,
+                driveLink, sheetRow, status,
             },
         });
     });
 
-    // 8. Return result
+    // 11. Return
     return NextResponse.json({
         success: true,
-        data: {
-            filename,
-            ...invoiceData,
-            driveLink,
-            sheetRow,
-        },
+        data: { filename, ...invoiceData, driveLink, sheetRow },
     });
 }

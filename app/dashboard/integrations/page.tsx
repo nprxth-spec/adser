@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Save, CheckCircle2, Loader2, ExternalLink, Plus, Copy } from "lucide-react";
+import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 const colOptions = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 const defaultMapping = {
@@ -16,9 +17,10 @@ const defaultMapping = {
     driveLink: "J",
 };
 
-// ... Wait, I can only replace a contiguous block. I better use multi_replace_file_content or just two calls. Let's cancel this and use multi_replace_file_content.
+
 
 export default function IntegrationsPage() {
+    const { t } = useAppPreferences();
     const { data: session, update } = useSession();
     const user = session?.user as any;
     
@@ -27,6 +29,7 @@ export default function IntegrationsPage() {
         name: string;
         sheetId: string;
         sheetName: string | null;
+        sheetGid: number | null;        // numeric tab GID สำหรับลิงก์ตรงแท็บ
         sheetMapping: typeof defaultMapping | null;
     };
 
@@ -37,6 +40,7 @@ export default function IntegrationsPage() {
 
     const [sheetId, setSheetId] = useState("");
     const [sheetName, setSheetName] = useState<string>("");
+    const [sheetGid, setSheetGid] = useState<number | null>(null);
     const [sheetMapping, setSheetMapping] = useState<typeof defaultMapping>(defaultMapping);
     
     const [sheets, setSheets] = useState<{ id: string; name: string }[]>([]);
@@ -72,12 +76,14 @@ export default function IntegrationsPage() {
                         name: "Default",
                         sheetId: user?.sheetId ?? "",
                         sheetName: user?.sheetName ?? "",
+                        sheetGid: null,
                         sheetMapping: (user?.sheetMapping as typeof defaultMapping | null) ?? defaultMapping,
                     };
                     setProfiles([initial]);
                     setActiveProfileId(initial.id);
                     setSheetId(initial.sheetId);
                     setSheetName(initial.sheetName || "");
+                    setSheetGid(null);
                     setSheetMapping(initial.sheetMapping || defaultMapping);
                 } else {
                     setProfiles(serverProfiles);
@@ -86,6 +92,7 @@ export default function IntegrationsPage() {
                     const p = serverProfiles.find(p => p.id === useId) ?? serverProfiles[0];
                     setSheetId(p.sheetId || "");
                     setSheetName(p.sheetName || "");
+                    setSheetGid(p.sheetGid ?? null);
                     setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
                 }
             } catch (err: any) {
@@ -156,6 +163,10 @@ export default function IntegrationsPage() {
                     const existingTab = loadedTabs.find((t: any) => t.title === sheetName);
                     if (!existingTab) {
                         setSheetName(loadedTabs[0].title);
+                        setSheetGid(loadedTabs[0].id ?? null);
+                    } else {
+                        // รีเฟรช GID ให้ตรงกับ tab ที่เลือกอยู่
+                        setSheetGid(existingTab.id ?? null);
                     }
                 }
             } catch (err: any) {
@@ -172,6 +183,7 @@ export default function IntegrationsPage() {
         if (!p) return;
         setSheetId(p.sheetId || "");
         setSheetName(p.sheetName || "");
+        setSheetGid(p.sheetGid ?? null);
         setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
     };
 
@@ -181,6 +193,7 @@ export default function IntegrationsPage() {
         if (!p) return;
         setSheetId(p.sheetId || "");
         setSheetName(p.sheetName || "");
+        setSheetGid(p.sheetGid ?? null);
         setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
     };
 
@@ -200,6 +213,7 @@ export default function IntegrationsPage() {
             name: mode === "duplicate" && activeProfile ? `${activeProfile.name} copy` : `Profile ${profiles.length + 1}`,
             sheetId: base.sheetId || "",
             sheetName: base.sheetName || "",
+            sheetGid: (base as SheetProfile).sheetGid ?? null,
             sheetMapping: (base.sheetMapping as typeof defaultMapping | null) || defaultMapping,
         };
 
@@ -217,7 +231,7 @@ export default function IntegrationsPage() {
             // Update active profile in local state before sending
             const updatedProfiles = profiles.map(p =>
                 p.id === activeProfileId
-                    ? { ...p, sheetId, sheetName, sheetMapping }
+                    ? { ...p, sheetId, sheetName, sheetGid, sheetMapping }
                     : p
             );
             setProfiles(updatedProfiles);
@@ -245,8 +259,8 @@ export default function IntegrationsPage() {
     return (
         <div className="max-w-3xl mx-auto pb-12 w-full min-w-0">
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-slate-900 mb-1">Integrations</h1>
-                <p className="text-slate-500">Connect Google Sheets to receive invoice data.</p>
+                <h1 className="text-2xl font-bold text-slate-900 mb-1">{t("การเชื่อมต่อ", "Integrations")}</h1>
+                <p className="text-slate-500">{t("เชื่อมต่อ Google Sheets เพื่อรับข้อมูลใบแจ้งหนี้", "Connect Google Sheets to receive invoice data.")}</p>
             </div>
 
             <div className="bg-white rounded-3xl border border-slate-100 shadow-lg shadow-slate-200/60 p-6 space-y-6">
@@ -255,7 +269,7 @@ export default function IntegrationsPage() {
                         <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold">
                             ✓
                         </span>
-                        <span>Google Sheets connection and column mapping saved successfully</span>
+                        <span>{t("บันทึกการเชื่อมต่อ Google Sheets และการแมปคอลัมน์สำเร็จ", "Google Sheets connection and column mapping saved successfully")}</span>
                     </div>
                 )}
                 <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
@@ -268,8 +282,8 @@ export default function IntegrationsPage() {
                         </svg>
                     </div>
                     <div>
-                        <p className="font-semibold text-slate-900">Google Sheets Connection</p>
-                        <p className="text-sm text-slate-400">Append invoice rows automatically into your chosen sheet.</p>
+                        <p className="font-semibold text-slate-900">{t("การเชื่อมต่อ Google Sheets", "Google Sheets Connection")}</p>
+                        <p className="text-sm text-slate-400">{t("เพิ่มแถวใบแจ้งหนี้อัตโนมัติลงชีตที่เลือก", "Append invoice rows automatically into your chosen sheet.")}</p>
                     </div>
                 </div>
 
@@ -278,7 +292,7 @@ export default function IntegrationsPage() {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div className="flex-1 space-y-2" ref={profileMenuRef}>
                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                                Active profile
+                                {t("โปรไฟล์ที่ใช้งาน", "Active profile")}
                             </label>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
                                 <div className="relative min-w-[160px]">
@@ -288,7 +302,7 @@ export default function IntegrationsPage() {
                                         className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 flex items-center justify-between cursor-pointer hover:bg-slate-50"
                                     >
                                         <span className="truncate">
-                                            {profiles.find((p) => p.id === activeProfileId)?.name ?? "Select profile"}
+                                            {profiles.find((p) => p.id === activeProfileId)?.name ?? t("เลือกโปรไฟล์", "Select profile")}
                                         </span>
                                     </button>
                                     {profileMenuOpen && (
@@ -322,7 +336,7 @@ export default function IntegrationsPage() {
                                             setProfiles(nextProfiles);
                                         }}
                                         className="mt-2 sm:mt-0 w-full max-w-xs px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                        placeholder="Profile name"
+                                        placeholder={t("ชื่อโปรไฟล์", "Profile name")}
                                     />
                                 )}
                             </div>
@@ -333,14 +347,14 @@ export default function IntegrationsPage() {
                                 onClick={() => handleCreateProfile("blank")}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
                             >
-                                <Plus className="w-3.5 h-3.5" /> New blank
+                                <Plus className="w-3.5 h-3.5" /> {t("สร้างใหม่", "New blank")}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleCreateProfile("duplicate")}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
                             >
-                                <Copy className="w-3.5 h-3.5" /> Duplicate
+                                <Copy className="w-3.5 h-3.5" /> {t("คัดลอก", "Duplicate")}
                             </button>
                             {activeProfile && (
                                 <button
@@ -357,7 +371,7 @@ export default function IntegrationsPage() {
                                     }}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                                 >
-                                    Delete
+                                    {t("ลบ", "Delete")}
                                 </button>
                             )}
                         </div>
@@ -442,6 +456,7 @@ export default function IntegrationsPage() {
                                                 type="button"
                                                 onClick={() => {
                                                     setSheetName(t.title);
+                                                    setSheetGid(t.id ?? null);
                                                     setTabMenuOpen(false);
                                                 }}
                                                 className={`w-full px-4 py-2 text-left hover:bg-slate-50 cursor-pointer ${

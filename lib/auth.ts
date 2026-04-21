@@ -1,5 +1,4 @@
-// lib/auth.ts — full server-side auth with Prisma adapter
-// DO NOT import this in middleware.ts (not Edge-compatible)
+// lib/auth.ts
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -9,8 +8,6 @@ import { authConfig } from "@/auth.config";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
-  // JWT strategy: session token is a JWT, readable by Edge middleware
-  // without needing database access
   session: { strategy: "jwt" },
   providers: [
     GoogleProvider({
@@ -22,9 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             "openid",
             "email",
             "profile",
-            // Read all Drive files the user can access
             "https://www.googleapis.com/auth/drive.readonly",
-            // Create/update files in Drive (needed for upload)
             "https://www.googleapis.com/auth/drive.file",
             "https://www.googleapis.com/auth/spreadsheets",
           ].join(" "),
@@ -35,11 +30,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    // jwt callback runs when token is created/updated
     async jwt({ token, user, account }) {
       if (account && user) {
-        // New sign-in (first time or re-login) — save Google tokens to JWT and to DB
-        // Important: on re-login with more scopes, we must overwrite DB so API calls use the new token
         token.userId = user.id;
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
@@ -57,59 +49,68 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             data: accountData as any,
           });
         }
+        (token as any)._lastDbSync = Date.now();
       }
 
-      // On subsequent calls, fetch fresh credits, sheetId, and access_token if missing
+      // DB query only when token near expiry OR stale > 60s
+      const TOKEN_SYNC_MS = 60 * 1000;
       if (token.userId) {
         let currentAccessToken = token.accessToken as string | undefined;
         let expiresAt = token.expiresAt as number | undefined;
 
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.userId as string },
-          select: {
-            credits: true,
-            plan: true,
-            sheetId: true,
-            sheetName: true,
-            sheetMapping: true,
-            filenameMapping: true,
-            sheetProfiles: true,
-            activeSheetProfileId: true,
-            driveFolderId: true,
-            accounts: {
-              where: { provider: "google" },
-              select: { access_token: true, refresh_token: true, expires_at: true },
+        const lastDbSync = (token as any)._lastDbSync as number | undefined;
+        const tokenIsExpiring = expiresAt ? Date.now() > expiresAt - 5 * 60 * 1000 : true;
+        const syncIsStale = !lastDbSync || Date.now() - lastDbSync > TOKEN_SYNC_MS;
+        const needsDbSync = tokenIsExpiring || syncIsStale;
+
+        let dbUser: any = null;
+        if (needsDbSync) {
+          dbUser = await prisma.user.findUnique({
+            where: { id: token.userId as string },
+            select: {
+              credits: true,
+              plan: true,
+              sheetId: true,
+              sheetName: true,
+              sheetGid: true,
+              sheetMapping: true,
+              filenameMapping: true,
+              sheetProfiles: true,
+              activeSheetProfileId: true,
+              driveFolderId: true,
+              accounts: {
+                where: { provider: "google" },
+                select: { access_token: true, refresh_token: true, expires_at: true },
+              },
             },
-          },
-        });
+          });
+        }
 
         if (dbUser) {
           token.credits = dbUser.credits;
           (token as any).plan = dbUser.plan;
           token.sheetId = dbUser.sheetId;
           token.sheetName = dbUser.sheetName;
+          (token as any).sheetGid = dbUser.sheetGid;
           token.sheetMapping = dbUser.sheetMapping;
           token.filenameMapping = dbUser.filenameMapping;
           (token as any).sheetProfiles = dbUser.sheetProfiles;
           (token as any).activeSheetProfileId = dbUser.activeSheetProfileId;
           (token as any).driveFolderId = dbUser.driveFolderId;
-
-          const dbAccount = dbUser.accounts[0];
+          const dbAccount = dbUser.accounts?.[0];
           if (dbAccount) {
-            // Use DB tokens (now updated on re-login so they match the latest consent)
             currentAccessToken = dbAccount.access_token || currentAccessToken;
             token.refreshToken = dbAccount.refresh_token || token.refreshToken;
             expiresAt = dbAccount.expires_at ? dbAccount.expires_at * 1000 : expiresAt;
           }
+          (token as any)._lastDbSync = Date.now();
         }
 
-        // Check if token is expired (or expires in the next 5 minutes)
         if (currentAccessToken && expiresAt && Date.now() > expiresAt - 5 * 60 * 1000) {
           try {
             const refreshToken = token.refreshToken as string;
             if (refreshToken) {
-              const url = "https://oauth2.googleapis.com/token";
-              const response = await fetch(url, {
+              const response = await fetch("https://oauth2.googleapis.com/token", {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 method: "POST",
                 body: new URLSearchParams({
@@ -119,13 +120,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   refresh_token: refreshToken,
                 }),
               });
-
               const tokens = await response.json();
               if (response.ok) {
                 currentAccessToken = tokens.access_token;
                 expiresAt = Date.now() + tokens.expires_in * 1000;
-
-                // Save new token to DB
                 await prisma.account.updateMany({
                   where: { userId: token.userId as string, provider: "google" },
                   data: {
@@ -152,7 +150,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return token;
     },
-    // session callback shapes what useSession() returns
     async session({ session, token }) {
       if (token) {
         session.user.id = token.userId as string;
@@ -161,6 +158,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).plan = (token as any).plan;
         (session.user as any).sheetId = token.sheetId;
         (session.user as any).sheetName = token.sheetName;
+        (session.user as any).sheetGid = (token as any).sheetGid ?? null;
         (session.user as any).sheetMapping = token.sheetMapping;
         (session.user as any).filenameMapping = token.filenameMapping;
         (session.user as any).sheetProfiles = (token as any).sheetProfiles;

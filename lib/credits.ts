@@ -23,7 +23,8 @@ export async function ensureFreeCreditsReset(userId: string): Promise<number> {
   const needReset =
     !lastReset ||
     lastReset.getUTCFullYear() < now.getUTCFullYear() ||
-    lastReset.getUTCMonth() < now.getUTCMonth();
+    (lastReset.getUTCFullYear() === now.getUTCFullYear() &&
+      lastReset.getUTCMonth() < now.getUTCMonth());
 
   if (!needReset) {
     return user.credits;

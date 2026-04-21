@@ -29,8 +29,13 @@ export interface InvoiceData {
     amount: number;
     currency: string;
     billed_to: string;
-    /** true = payment successful (write amount to column G); false = payment failed/unsuccessful (write amount to column H). */
+    /** true = payment successful; false = payment failed/unsuccessful. */
     paymentSuccess: boolean;
+    payment_method?: string;
+    invoice_number?: string;
+    reference_number?: string;
+    transaction_id?: string;
+    account_id?: string;
 }
 
 // Define the exact JSON schema Gemini must return
@@ -55,11 +60,31 @@ const invoiceSchema: Schema = {
         },
         billed_to: {
             type: SchemaType.STRING,
-            description: "The name of the person or company the invoice is billed to (ใบเรียกเก็บเงินสำหรับ / Billed To). Return ONLY the name; omit any timezone prefix such as GMT+7, +12, GMT+12, etc.",
+            description: "The name of the person or company the invoice is billed to (Billed To). Return ONLY the name; omit any timezone prefix such as GMT+7, +12, GMT+12, etc.",
         },
         paymentSuccess: {
             type: SchemaType.BOOLEAN,
             description: "True if this receipt/invoice is for a successful payment (amount was charged). False if it is for a failed/unsuccessful payment (e.g. payment declined, unpaid, or explicitly marked as failed).",
+        },
+        payment_method: {
+            type: SchemaType.STRING,
+            description: "Payment method used (e.g., 'Visa', 'MasterCard', 'Visa *5991'). Return empty string if not present.",
+        },
+        invoice_number: {
+            type: SchemaType.STRING,
+            description: "Invoice number only (e.g., Invoice No., Billing No., Tax Invoice No.). Do not return reference number here. Return empty string if not present.",
+        },
+        reference_number: {
+            type: SchemaType.STRING,
+            description: "Reference number only (e.g., Reference No., Ref, Reference ID). Do not return invoice number here. Return empty string if not present.",
+        },
+        transaction_id: {
+            type: SchemaType.STRING,
+            description: "Transaction ID or payment ID shown on the document. Return empty string if not present.",
+        },
+        account_id: {
+            type: SchemaType.STRING,
+            description: "Account ID (e.g., Facebook/Meta Ad Account ID). Return empty string if not present.",
         },
     },
     required: ["date", "card_last_4", "amount", "currency", "billed_to", "paymentSuccess"],
@@ -68,7 +93,6 @@ const invoiceSchema: Schema = {
 /** Strip timezone prefix (e.g. GMT+12, +7) from Billed To so we keep only the name. */
 function normalizeBilledTo(raw: string): string {
     const s = (raw ?? "").trim();
-    // Remove leading: optional "GMT", optional +/-, 1–2 digits, optional space
     return s.replace(/^\s*(?:GMT\s*)?[+-]?\d{1,2}\s*/i, "").trim();
 }
 
@@ -78,14 +102,8 @@ function parseAmount(raw: string): number {
     return Number.isNaN(n) ? 0 : n;
 }
 
-/**
- * If the receipt has "ยอดรวม: X USD" and "ภาษีมูลค่าเพิ่ม: US$Y", return X + Y (final total).
- * Otherwise returns 0 (not found).
- */
 function subtotalPlusVatFromText(text: string): number {
-    // ยอดรวม: 2.12 USD | ยอดรวม : 2.12 | Subtotal: 2.12 USD
     const subtotalMatch = text.match(/(?:ยอดรวม|Subtotal|subtotal)\s*:?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)\s*(?:USD|US\$|THB|฿)?/i);
-    // ภาษีมูลค่าเพิ่ม: US$0.21 (อัตรา: 10%) | VAT: 0.21 | ภาษีมูลค่าเพิ่ม US$0.21
     const vatMatch = text.match(/(?:ภาษีมูลค่าเพิ่ม|VAT|tax)\s*:?\s*(?:US\$|USD|THB|฿)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i);
     const subtotal = subtotalMatch ? parseAmount(subtotalMatch[1]) : 0;
     const vat = vatMatch ? parseAmount(vatMatch[1]) : 0;
@@ -93,32 +111,13 @@ function subtotalPlusVatFromText(text: string): number {
     return 0;
 }
 
-/**
- * Prefer the FINAL total: either the big displayed amount (e.g. US$2.33) or
- * ยอดรวม + ภาษีมูลค่าเพิ่ม when both are present in the text.
- */
 function pickBestAmountFromText(pdfText: string, baseAmount: number, currencyHint?: string): number {
     const text = (pdfText ?? "").slice(0, 8000);
     if (!text) return baseAmount;
 
-    // Strategy 1: ยอดรวม + ภาษีมูลค่าเพิ่ม = total (e.g. 2.12 + 0.21 = 2.33)
     const subtotalPlusVat = subtotalPlusVatFromText(text);
 
-    // Strategy 2: find all currency amounts and take the largest (the "big" total like US$2.33)
-    const currencyTokens = [
-        "USD",
-        "US\\$",
-        "THB",
-        "฿",
-        "EUR",
-        "€",
-        "JPY",
-        "¥",
-        "IDR",
-        "SGD",
-        "MYR",
-        "RM",
-    ];
+    const currencyTokens = ["USD","US\\$","THB","฿","EUR","€","JPY","¥","IDR","SGD","MYR","RM"];
     const hint = (currencyHint || "").toUpperCase();
     const filteredTokens = hint
         ? currencyTokens.filter((t) => t.replace(/\\W/g, "") === hint || t.toUpperCase() === hint)
@@ -138,19 +137,13 @@ function pickBestAmountFromText(pdfText: string, baseAmount: number, currencyHin
     collect(pattern2);
     const maxSingleAmount = amounts.length ? Math.max(...amounts) : 0;
 
-    // Best candidate = largest of: (subtotal+VAT), (big single amount), (AI base)
     const candidates = [baseAmount, subtotalPlusVat, maxSingleAmount].filter((n) => n > 0);
     if (!candidates.length) return baseAmount;
     let best = Math.max(...candidates);
-    // Avoid wild OCR numbers: cap at 5x base if base was set
     if (baseAmount > 0 && best > baseAmount * 5) best = baseAmount;
     return best;
 }
 
-/**
- * For failed/unsuccessful receipts, there is often still an intended amount.
- * Try to extract it from common labels even if no currency token is present.
- */
 function pickFailedAmountFromText(pdfText: string): number {
     const text = (pdfText ?? "").slice(0, 8000);
     if (!text) return 0;
@@ -166,109 +159,82 @@ function pickFailedAmountFromText(pdfText: string): number {
     return Math.max(...amounts);
 }
 
-/**
- * Heuristic check on the raw PDF text to decide if this invoice is
- * clearly unsuccessful. This helps correct cases where the AI might
- * mis-classify paymentSuccess.
- *
- * Strategy:
- * - If we see strong failure keywords (TH/EN) → treat as failed.
- * - If we see explicit success words but no failure keywords → treat as success.
- * - Otherwise → return null and let the AI's paymentSuccess stand.
- */
-function detectPaymentSuccessFromText(pdfText: string): boolean | null {
-    const text = (pdfText ?? "").toLowerCase();
-    if (!text) return null;
+function extractCardLast4Fallback(pdfText: string): string {
+    const text = (pdfText ?? "").slice(0, 12000);
+    if (!text) return "";
 
-    // Normalize some Thai characters that often get weird in OCR (optional, lightweight)
-    const norm = text.normalize("NFC");
+    const patterns = [
+        /(?:\*|x{2,}|•{2,})\s*(\d{4})/i,
+        /(?:ending\s*(?:in|with)|last\s*4|card\s*(?:ending|last\s*4)?|ลงท้าย)\D{0,20}(\d{4})/i,
+        /(?:mastercard|visa|amex|jcb|unionpay)\D{0,20}(\d{4})/i,
+    ];
+    for (const p of patterns) {
+        const m = text.match(p);
+        if (m?.[1]) return m[1];
+    }
+    return "";
+}
+
+function detectPaymentSuccessFromText(pdfText: string): boolean | null {
+    if (!pdfText) return null;
+
+    const normalize = (t: string) =>
+        t.toLowerCase()
+            .normalize("NFC")
+            .replace(/\u0e4d\u0e32/g, "\u0e33");
+
+    const textNorm = normalize(pdfText);
+    const textNoSpace = textNorm.replace(/\s+/g, "");
+
+    if (textNoSpace.includes("ชำระแล้ว")) return true;
 
     const failedKeywords = [
-        // ภาษาไทย
-        "ไม่สำเร็จ",
-        "ไม่ส\u0e33เร็จ",
-        "ไม่ ส\u0e33เร็จ",
-        "รายการไม่สำเร็จ",
-        "ดำเนินการไม่สำเร็จ",
-        "ชำระเงินไม่ได้",
-        "ชำระเงินไม่สำเร็จ",
-        "ยกเลิกรายการ",
-        "ไม่สามารถชำระเงิน",
-        // ภาษาอังกฤษ
-        "unsuccessful",
-        "payment unsuccessful",
-        "failed payment",
-        "payment failed",
-        "declined",
-        "wasn't completed",
-        "was not completed",
-        "not completed",
-        "transaction failed",
-        "charge failed",
-        "could not be processed",
-        "could not be completed",
-        "payment could not",
-        "insufficient funds",
-        "transaction declined",
-        "your payment did not go through",
+        "ไม่สำเร็จ","ไม่ส\u0e33เร็จ","paymentunsuccessful","failedpayment",
+        "paymentfailed","declined","wasnotcompleted","wasn'tcompleted",
+        "transactionfailed","chargefailed","couldnotbeprocessed",
+        "couldnotbecompleted","insufficientfunds","yourpaymentdidnotgothrough","unsuccessful",
     ];
-
     for (const k of failedKeywords) {
-        if (norm.includes(k.toLowerCase())) {
-            return false;
-        }
+        if (textNoSpace.includes(k.toLowerCase())) return false;
     }
 
     const successKeywords = [
-        // ภาษาไทย
-        "ชำระเงินสำเร็จ",
-        "ทำรายการสำเร็จ",
-        "ชำระเงินแล้ว",
-        "ชำระ แล้ว",
-        "ดำเนินการสำเร็จ",
-        "รายการสำเร็จ",
-        "ชำระเรียบร้อย",
-        // ภาษาอังกฤษ
-        "successful payment",
-        "payment successful",
-        "payment completed",
-        "payment received",
-        "payment has been received",
-        "thank you for your payment",
-        "transaction complete",
-        "transaction successful",
-        "charged successfully",
-        "amount charged",
-        "paid",
+        "ชำระเงินสำเร็จ","ทำรายการสำเร็จ","ชำระเงินแล้ว","ดำเนินการสำเร็จ",
+        "รายการสำเร็จ","ชำระเรียบร้อย","successful payment","payment successful",
+        "payment completed","payment received","payment has been received",
+        "thank you for your payment","transaction complete","transaction successful",
+        "charged successfully","amount charged",
     ];
-
     for (const k of successKeywords) {
-        if (norm.includes(k.toLowerCase())) {
-            return true;
-        }
+        if (textNoSpace.includes(k.toLowerCase())) return true;
     }
 
     return null;
 }
 
 export async function extractInvoiceData(pdfText: string): Promise<InvoiceData> {
-    // Truncate to first 6000 chars — gives AI enough context to spot failure indicators
     const trimmedText = pdfText.slice(0, 6000);
 
     const prompt = `Extract the exact payment information from this billing receipt (e.g. Facebook Ads, Meta Ads, or similar).
 
 Rules:
 - If a value is truly missing, return an empty string or 0.
-- For "billed_to": return ONLY the person or company name. If the PDF shows a timezone prefix (e.g. "GMT+12", "+7", "GMT+7") before the name, omit it and return just the name (e.g. "Yanto Rahim" not "GMT+12 Yanto Rahim").
+- For "billed_to": return ONLY the person or company name. If the PDF shows a timezone prefix (e.g. "GMT+12", "+7", "GMT+7") before the name, omit it and return just the name.
 - For "paymentSuccess":
   * Set FALSE if the document title, header, or body contains words like "Payment Unsuccessful", "Payment Failed", "ไม่สำเร็จ", "รายการไม่สำเร็จ", "Declined", "Transaction Failed", "Could not be processed", or similar failure indicators.
   * Set TRUE if the document shows a receipt for a completed charge, contains words like "Receipt", "Paid", "Payment Successful", "ชำระเงินสำเร็จ", "Amount Charged", or an amount was actually debited.
   * When in doubt and no explicit failure indicator is present, set TRUE.
 - For "amount":
   * If payment is successful, return the final amount actually charged/debited (include VAT/tax/fees).
-  * If payment is unsuccessful/failed, return the intended/attempted amount shown on the bill (e.g. Total, Amount due, Amount attempted). Do NOT return 0 unless the document truly has no amount.
+  * If payment is unsuccessful/failed, return the intended/attempted amount shown on the bill. Do NOT return 0 unless the document truly has no amount.
   * If you see both subtotal and total including VAT, return the total including VAT.
-  * On Meta/Facebook Thai receipts, prefer the big US$ amount on the right (e.g. "US$2.33") instead of the smaller "ยอดรวม" subtotal line.
+  * On Meta/Facebook Thai receipts, prefer the big US$ amount on the right instead of the smaller subtotal line.
+- For "payment_method": extract the card brand/type (e.g. "Visa", "MasterCard", "Visa *5991"). Return empty string if not found.
+- For "invoice_number": extract only invoice number (e.g. Invoice No., Billing No., Tax Invoice No.). Do NOT copy reference number into this field.
+- For "reference_number": extract only reference number (e.g. Reference No., Ref, Reference ID). Do NOT copy invoice number into this field.
+- If both invoice number and reference number exist, return both separately.
+- For "transaction_id": extract the transaction or payment ID. Return empty string if not found.
+- For "account_id": extract the account ID (e.g. Facebook Ad Account ID). Return empty string if not found.
 
 --- RECEIPT TEXT ---
 ${trimmedText}`;
@@ -283,11 +249,10 @@ ${trimmedText}`;
                 generationConfig: {
                     responseMimeType: "application/json",
                     responseSchema: invoiceSchema,
-                    temperature: 0, // Deterministic, no hallucination
+                    temperature: 0,
                 },
             });
 
-            // Retry small backoff when temporary quota/rate-limit happens.
             for (let attempt = 0; attempt < 3; attempt++) {
                 try {
                     const result = await model.generateContent(prompt);
@@ -300,52 +265,57 @@ ${trimmedText}`;
                         await sleep(500 * (attempt + 1));
                         continue;
                     }
-                    if (isModelNotFoundError(err)) {
-                        break;
-                    }
+                    if (isModelNotFoundError(err)) break;
                     throw err;
                 }
             }
 
-            if (responseJson) {
-                break;
-            }
+            if (responseJson) break;
         }
 
         if (!responseJson) {
             throw lastError ?? new Error("No Gemini model available");
         }
 
-        const parsed = JSON.parse(responseJson) as InvoiceData;
+        const parsed = JSON.parse(responseJson) as InvoiceData & {
+            cardLast4?: string;
+            card_last4?: string;
+        };
 
         const baseAmount = Number(parsed.amount) || 0;
         const finalAmount = pickBestAmountFromText(pdfText, baseAmount, parsed.currency);
 
-        // Payment status — three-way logic:
-        // 1. If heuristic finds a clear keyword (true/false) → use it as override.
-        // 2. If heuristic is inconclusive (null) → trust the AI's paymentSuccess.
-        // This prevents the old bug where unclear docs always defaulted to "success".
         const detected = detectPaymentSuccessFromText(pdfText);
         const paymentSuccess =
             detected !== null
-                ? detected                          // heuristic is confident → use it
-                : (parsed.paymentSuccess ?? true);  // heuristic unsure → trust AI
+                ? detected
+                : (parsed.paymentSuccess ?? true);
 
-        // If failed docs come back as 0, recover from raw text by reading
-        // "amount due/total/ยอด..." style labels.
         let adjustedAmount = finalAmount;
         if (!paymentSuccess && adjustedAmount <= 0) {
             const failedAmount = pickFailedAmountFromText(pdfText);
             if (failedAmount > 0) adjustedAmount = failedAmount;
         }
 
+        const rawLast4 =
+            parsed.card_last_4 ??
+            parsed.cardLast4 ??
+            parsed.card_last4 ??
+            extractCardLast4Fallback(pdfText);
+        const normalizedLast4 = String(rawLast4 ?? "").replace(/\D/g, "").slice(-4);
+
         return {
             date: parsed.date ?? "",
-            card_last_4: parsed.card_last_4?.replace(/\D/g, "").slice(-4) ?? "",
+            card_last_4: normalizedLast4,
             amount: adjustedAmount,
             currency: parsed.currency ?? "USD",
             billed_to: normalizeBilledTo(parsed.billed_to ?? ""),
             paymentSuccess,
+            payment_method: (parsed.payment_method ?? "").trim() || undefined,
+            invoice_number: (parsed.invoice_number ?? "").trim() || undefined,
+            reference_number: (parsed.reference_number ?? "").trim() || undefined,
+            transaction_id: (parsed.transaction_id ?? "").trim() || undefined,
+            account_id: (parsed.account_id ?? "").trim() || undefined,
         };
     } catch (err) {
         console.error("Gemini Extraction Error:", err);

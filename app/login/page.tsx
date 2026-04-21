@@ -2,8 +2,10 @@
 
 import { signIn } from "next-auth/react";
 import { Zap, Shield, FileText } from "lucide-react";
+import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 export default function LoginPage() {
+    const { t } = useAppPreferences();
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 flex items-center justify-center p-6">
             {/* Background orbs */}
@@ -25,9 +27,9 @@ export default function LoginPage() {
 
                     {/* Heading */}
                     <div className="text-center mb-8">
-                        <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
+                        <h1 className="text-2xl font-bold text-white mb-2">{t("ยินดีต้อนรับกลับ", "Welcome back")}</h1>
                         <p className="text-slate-400 text-sm">
-                            Sign in to start automating your invoice workflow
+                            {t("เข้าสู่ระบบเพื่อเริ่มทำงานใบแจ้งหนี้อัตโนมัติ", "Sign in to start automating your invoice workflow")}
                         </p>
                     </div>
 
@@ -54,7 +56,7 @@ export default function LoginPage() {
                                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                             />
                         </svg>
-                        Continue with Google
+                        {t("ดำเนินการต่อด้วย Google", "Continue with Google")}
                     </button>
 
                     {/* Divider */}
@@ -64,7 +66,7 @@ export default function LoginPage() {
                         </div>
                         <div className="relative flex justify-center">
                             <span className="px-3 text-xs text-slate-500 bg-transparent">
-                                What we access
+                                {t("สิทธิ์ที่เราเข้าถึง", "What we access")}
                             </span>
                         </div>
                     </div>
@@ -75,12 +77,12 @@ export default function LoginPage() {
                             {
                                 icon: FileText,
                                 title: "Google Drive",
-                                desc: "Upload invoices to a dedicated folder in your Drive.",
+                                desc: t("อัปโหลดใบแจ้งหนี้ไปยังโฟลเดอร์เฉพาะใน Drive ของคุณ", "Upload invoices to a dedicated folder in your Drive."),
                             },
                             {
                                 icon: Shield,
                                 title: "Google Sheets",
-                                desc: "Append extracted data rows to your spreadsheet.",
+                                desc: t("เพิ่มแถวข้อมูลที่ดึงแล้วลงในสเปรดชีตของคุณ", "Append extracted data rows to your spreadsheet."),
                             },
                         ].map(({ icon: Icon, title, desc }) => (
                             <div
@@ -100,15 +102,15 @@ export default function LoginPage() {
 
                     {/* Privacy notice */}
                     <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed">
-                        By continuing, you agree to our{" "}
+                        {t("เมื่อดำเนินการต่อ เท่ากับคุณยอมรับ", "By continuing, you agree to our")}{" "}
                         <a href="#" className="text-teal-500 hover:underline">
-                            Terms of Service
+                            {t("ข้อกำหนดการใช้งาน", "Terms of Service")}
                         </a>{" "}
-                        and{" "}
+                        {t("และ", "and")}{" "}
                         <a href="#" className="text-teal-500 hover:underline">
-                            Privacy Policy
+                            {t("นโยบายความเป็นส่วนตัว", "Privacy Policy")}
                         </a>
-                        . We only access Drive and Sheets files created by Files Go.
+                        {t("เราเข้าถึงเฉพาะไฟล์ Drive และ Sheets ที่สร้างโดย Files Go เท่านั้น", ". We only access Drive and Sheets files created by Files Go.")}
                     </p>
                 </div>
             </div>

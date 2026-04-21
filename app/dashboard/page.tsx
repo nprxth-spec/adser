@@ -14,17 +14,205 @@ import {
     Sheet,
     X,
     ChevronDown,
+    Zap,
+    TrendingUp,
+    DollarSign,
+    ExternalLink,
 } from "lucide-react";
 import { useDashboardUpload, type UploadStage } from "@/components/DashboardUploadContext";
+import Link from "next/link";
+import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
-const stages: { key: UploadStage; label: string; icon: any }[] = [
-    { key: "uploading", label: "Uploading", icon: CloudUpload },
-    { key: "extracting", label: "AI Extracting", icon: Sparkles },
-    { key: "drive", label: "Saving to Drive", icon: HardDrive },
-    { key: "sheets", label: "Updating Sheet", icon: Sheet },
+const stages: { key: UploadStage; icon: any }[] = [
+    { key: "uploading", icon: CloudUpload },
+    { key: "extracting", icon: Sparkles },
+    { key: "drive", icon: HardDrive },
+    { key: "sheets", icon: Sheet },
 ];
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface RecentUpload {
+    id: string;
+    filename: string;
+    invoiceDate: string | null;
+    cardLast4: string | null;
+    amount: number | null;
+    currency: string | null;
+    driveLink: string | null;
+    status: string;
+    createdAt: string;
+}
+
+// ─── Recent Uploads Panel (table style — same as history page) ───────────────
+function RecentUploads({ refreshKey }: { refreshKey: number }) {
+    const { t } = useAppPreferences();
+    const [files, setFiles] = useState<RecentUpload[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        fetch("/api/history?limit=10")
+            .then((r) => r.json())
+            .then((data) => {
+                setFiles(data.logs ?? []);
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
+    }, [refreshKey]);
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <h2 className="font-semibold text-slate-900">{t("ไฟล์ล่าสุด", "Recent Files")}</h2>
+                <Link
+                    href="/dashboard/history"
+                    className="text-sm text-teal-600 hover:text-teal-800 font-medium transition-colors"
+                >
+                    {t("ดูทั้งหมด", "View all")} →
+                </Link>
+            </div>
+
+            {/* Body */}
+            {loading ? (
+                <div className="flex items-center justify-center py-16">
+                    <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
+                </div>
+            ) : files.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                        <FileText className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <p className="text-slate-500 text-sm font-medium">{t("ยังไม่มีไฟล์ที่ประมวลผล", "No files processed yet")}</p>
+                    <p className="text-slate-400 text-xs mt-1">
+                        {t("อัปโหลดใบแจ้งหนี้ PDF ไฟล์แรกเพื่อเริ่มต้น", "Drop your first PDF invoice to get started.")}
+                    </p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[1080px] text-sm table-auto">
+                        <colgroup>
+                            <col style={{ width: "150px" }} />
+                            <col style={{ width: "34%" }} />
+                            <col style={{ width: "120px" }} />
+                            <col style={{ width: "95px" }} />
+                            <col style={{ width: "120px" }} />
+                            <col style={{ width: "95px" }} />
+                            <col style={{ width: "80px" }} />
+                        </colgroup>
+                        <thead>
+                            <tr className="border-b border-slate-100">
+                                {[
+                                    t("วันที่", "Date"),
+                                    t("ชื่อไฟล์", "Filename"),
+                                    t("วันที่เรียกเก็บ", "Invoice Date"),
+                                    t("บัตร", "Card"),
+                                    t("จำนวนเงิน", "Amount"),
+                                    t("สถานะ", "Status"),
+                                    t("ไฟล์", "File"),
+                                ].map((h) => (
+                                    <th
+                                        key={h}
+                                        className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap"
+                                    >
+                                        {h}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {files.map((log, i) => (
+                                <tr
+                                    key={log.id}
+                                    className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${
+                                        i % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                                    }`}
+                                >
+                                    {/* Processed date */}
+                                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap text-xs">
+                                        {new Date(log.createdAt).toLocaleString(undefined, {
+                                            dateStyle: "short",
+                                            timeStyle: "short",
+                                        })}
+                                    </td>
+
+                                    {/* Filename */}
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-teal-50 flex items-center justify-center shrink-0">
+                                                <FileText className="w-3 h-3 text-teal-500" />
+                                            </div>
+                                            <span
+                                                className="font-medium text-slate-800 block max-w-[380px] truncate text-xs"
+                                                title={log.filename}
+                                            >
+                                                {log.filename}
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    {/* Invoice Date */}
+                                    <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">
+                                        {log.invoiceDate ?? <span className="text-slate-300">—</span>}
+                                    </td>
+
+                                    {/* Card */}
+                                    <td className="px-4 py-3 text-slate-600 font-mono text-xs whitespace-nowrap">
+                                        {log.cardLast4 ? log.cardLast4 : <span className="text-slate-300">—</span>}
+                                    </td>
+
+                                    {/* Amount */}
+                                    <td className="px-4 py-3 text-slate-800 font-semibold text-xs whitespace-nowrap">
+                                        {log.amount != null ? (
+                                            <>
+                                                <span className="text-slate-400 font-normal mr-1">{log.currency}</span>
+                                                {log.amount.toLocaleString()}
+                                            </>
+                                        ) : (
+                                            <span className="text-slate-300">—</span>
+                                        )}
+                                    </td>
+
+                                    {/* Status */}
+                                    <td className="px-4 py-3">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                            log.status === "success"
+                                                ? "bg-green-50 text-green-700"
+                                                : "bg-red-50 text-red-600"
+                                        }`}>
+                                            {log.status === "error" && <AlertCircle className="w-3 h-3" />}
+                                            {log.status}
+                                        </span>
+                                    </td>
+
+                                    {/* Drive link */}
+                                    <td className="px-4 py-3">
+                                        {log.driveLink ? (
+                                            <a
+                                                href={log.driveLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 text-teal-600 hover:text-teal-800 font-medium text-xs transition-colors"
+                                            >
+                                                {t("เปิด", "View")} <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                        ) : (
+                                            <span className="text-slate-300">—</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Dashboard Page ──────────────────────────────────────────────────────
 export default function DashboardPage() {
+    const { t } = useAppPreferences();
     const { data: session } = useSession();
     const upload = useDashboardUpload();
     const {
@@ -45,7 +233,19 @@ export default function DashboardPage() {
         currentFile,
     } = upload;
 
-    // Drive folder selection (local state; upload progress lives in context)
+    const [refreshKey, setRefreshKey] = useState(0);
+
+
+    // Bump refreshKey when a batch finishes (results change from 0 → N)
+    const prevResultsLen = useRef(0);
+    useEffect(() => {
+        if (results.length > 0 && results.length !== prevResultsLen.current) {
+            setRefreshKey((k) => k + 1);
+        }
+        prevResultsLen.current = results.length;
+    }, [results.length]);
+
+    // Drive folder selection
     const [driveFolderId, setDriveFolderId] = useState("");
     const [driveFolderMode, setDriveFolderMode] = useState<"auto" | "custom">("auto");
     const [modeInitialized, setModeInitialized] = useState(false);
@@ -53,7 +253,10 @@ export default function DashboardPage() {
     const modeMenuRef = useRef<HTMLDivElement | null>(null);
     const [folderError, setFolderError] = useState("");
     const [driveFolderLabel, setDriveFolderLabel] = useState("");
-    const [spreadsheetTitle, setSpreadsheetTitle] = useState<string | null>(null); // ชื่อไฟล์สเปรดชีต
+    const [spreadsheetTitle, setSpreadsheetTitle] = useState<string | null>(null);
+    const [effectiveSheetId, setEffectiveSheetId] = useState<string>("");
+    const [effectiveSheetName, setEffectiveSheetName] = useState<string>("");
+    const [effectiveSheetGid, setEffectiveSheetGid] = useState<number | null>(null);
 
     const PICKER_ROOT_FOLDER_ID = "11-naB49cPhno_HpKcTbrmYPhNz_R8oJk";
 
@@ -69,71 +272,110 @@ export default function DashboardPage() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [modeMenuOpen]);
 
-    // Initialize folder ID and mode from session / API once on mount,
-    // and resolve a human-readable label for the folder if present.
+    // ── helpers: localStorage cache สำหรับ folder label ──────────────────────
+    const getFolderLabelCache = (id: string) => {
+        try { return localStorage.getItem(`drive-folder-label:${id}`) ?? ""; } catch { return ""; }
+    };
+    const setFolderLabelCache = (id: string, label: string) => {
+        try { localStorage.setItem(`drive-folder-label:${id}`, label); } catch { /* ignore */ }
+    };
+    const clearFolderLabelCache = (id: string) => {
+        try { localStorage.removeItem(`drive-folder-label:${id}`); } catch { /* ignore */ }
+    };
+
+    // ── Initialize folder ID, mode, และ label จาก session / API ─────────────
     useEffect(() => {
         if (modeInitialized && (driveFolderId ? driveFolderLabel !== "" : true)) return;
         const load = async () => {
             let id = driveFolderId;
 
-            // 1) Try from session
             if (!id) {
                 const initial = (session?.user as any)?.driveFolderId as string | undefined;
-                if (initial) {
-                    id = initial;
-                }
+                if (initial) id = initial;
             }
 
-            // 2) Fallback to API if still empty
             if (!id) {
                 try {
                     const res = await fetch("/api/drive-folder");
                     const data = await res.json();
-                    if (res.ok && data?.data?.driveFolderId) {
-                        id = data.data.driveFolderId as string;
-                    }
-                } catch {
-                    // ignore
-                }
+                    if (res.ok && data?.data?.driveFolderId) id = data.data.driveFolderId as string;
+                } catch { /* ignore */ }
             }
 
-            if (id && !driveFolderId) {
-                setDriveFolderId(id);
-            }
+            if (id && !driveFolderId) setDriveFolderId(id);
 
-            // Decide initial mode once
             if (!modeInitialized) {
                 setDriveFolderMode(id ? "custom" : "auto");
                 setModeInitialized(true);
             }
 
-            // If we have an id but no label yet, try to resolve its path from Drive
             if (id && !driveFolderLabel) {
+                // 1) ลอง localStorage ก่อน — แสดงทันที ไม่ต้องรอ API
+                const cached = getFolderLabelCache(id);
+                if (cached) {
+                    setDriveFolderLabel(cached);
+                    return; // ไม่ต้อง fetch ใหม่
+                }
+
+                // 2) ไม่มี cache → fetch จาก API แล้ว cache ไว้
                 try {
                     const res = await fetch(`/api/drive/folder-meta?id=${encodeURIComponent(id)}`);
                     const data = await res.json();
                     if (res.ok && data?.data) {
-                        setDriveFolderLabel(
-                            (data.data.path as string) ||
-                            (data.data.name as string) ||
-                            id
-                        );
+                        const label = (data.data.path as string) || (data.data.name as string) || id;
+                        setDriveFolderLabel(label);
+                        setFolderLabelCache(id, label);
                     }
-                } catch {
-                    // ignore, we'll just fall back to showing the raw ID
-                }
+                } catch { /* ignore */ }
             }
         };
         void load();
     }, [session, modeInitialized, driveFolderId, driveFolderLabel]);
 
-    // Load spreadsheet file name (ชื่อไฟล์) when user has sheetId
+    // Resolve current sheet destination from active integrations profile (fallback to session fields)
     useEffect(() => {
-        const sheetId = (session?.user as any)?.sheetId as string | undefined;
-        if (!sheetId) {
-            setSpreadsheetTitle(null);
-            return;
-        }
+        let cancelled = false;
+        const loadSheetDestination = async () => {
+            const sessionSheetId = ((session?.user as any)?.sheetId as string | undefined) ?? "";
+            const sessionSheetName = ((session?.user as any)?.sheetName as string | undefined) ?? "";
+            const sessionSheetGid = ((session?.user as any)?.sheetGid as number | null | undefined) ?? null;
+
+            setEffectiveSheetId(sessionSheetId);
+            setEffectiveSheetName(sessionSheetName);
+            setEffectiveSheetGid(sessionSheetGid);
+
+            try {
+                const res = await fetch("/api/integrations", { method: "GET" });
+                const data = await res.json();
+                if (!res.ok || cancelled) return;
+                const profiles = Array.isArray(data?.data?.profiles) ? data.data.profiles : [];
+                const activeProfileId = (data?.data?.activeProfileId as string | null | undefined) ?? null;
+                const activeProfile =
+                    profiles.find((p: any) => p?.id === activeProfileId) ??
+                    profiles[0] ??
+                    null;
+
+                if (!activeProfile) return;
+                setEffectiveSheetId(String(activeProfile.sheetId ?? ""));
+                setEffectiveSheetName(String(activeProfile.sheetName ?? ""));
+                setEffectiveSheetGid(
+                    typeof activeProfile.sheetGid === "number" ? activeProfile.sheetGid : null
+                );
+            } catch {
+                // Keep session-based fallback
+            }
+        };
+
+        void loadSheetDestination();
+        return () => {
+            cancelled = true;
+        };
+    }, [session?.user]);
+
+    // Load spreadsheet title
+    useEffect(() => {
+        const sheetId = effectiveSheetId || undefined;
+        if (!sheetId) { setSpreadsheetTitle(null); return; }
         let cancelled = false;
         (async () => {
             try {
@@ -149,7 +391,7 @@ export default function DashboardPage() {
             }
         })();
         return () => { cancelled = true; };
-    }, [session?.user ? (session.user as any).sheetId : null]);
+    }, [effectiveSheetId]);
 
     const loadGoogleApiScript = () =>
         new Promise<void>((resolve, reject) => {
@@ -157,34 +399,19 @@ export default function DashboardPage() {
 
             const onReady = () => {
                 const gapi = (window as any).gapi;
-                if (!gapi || !gapi.load) {
-                    reject(new Error("gapi not available"));
-                    return;
-                }
-                gapi.load("picker", {
-                    callback: () => {
-                        resolve();
-                    },
-                });
+                if (!gapi || !gapi.load) { reject(new Error("gapi not available")); return; }
+                gapi.load("picker", { callback: () => resolve() });
             };
 
             if ((window as any).gapi && (window as any).google && (window as any).google.picker) {
-                // Script & picker already loaded
-                resolve();
-                return;
+                resolve(); return;
             }
-
-            if ((window as any).gapi) {
-                onReady();
-                return;
-            }
+            if ((window as any).gapi) { onReady(); return; }
 
             const existing = document.querySelector<HTMLScriptElement>("script[data-google-api='true']");
             if (existing) {
                 existing.addEventListener("load", onReady);
-                existing.addEventListener("error", () =>
-                    reject(new Error("Failed to load Google API script"))
-                );
+                existing.addEventListener("error", () => reject(new Error("Failed to load Google API script")));
                 return;
             }
 
@@ -205,12 +432,8 @@ export default function DashboardPage() {
             const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
             let accessToken = (session as any)?.accessToken as string | undefined;
 
-            if (!apiKey) {
-                setFolderError("Missing NEXT_PUBLIC_GOOGLE_API_KEY in environment.");
-                return;
-            }
+            if (!apiKey) { setFolderError("Missing NEXT_PUBLIC_GOOGLE_API_KEY in environment."); return; }
 
-            // If accessToken not on session (some environments), fetch from API
             if (!accessToken) {
                 const res = await fetch("/api/google/access-token");
                 const data = await res.json();
@@ -239,47 +462,52 @@ export default function DashboardPage() {
                 .setOAuthToken(accessToken)
                 .setDeveloperKey(apiKey)
                 .setCallback((data: any) => {
-                    if (data.action === googleObj.picker.Action.PICKED && data.docs && data.docs.length > 0) {
+                    if (data.action === googleObj.picker.Action.PICKED && data.docs?.length > 0) {
                         const picked = data.docs[0];
-                        if (picked && picked.id) {
+                        if (picked?.id) {
                             setDriveFolderId(picked.id);
                             setDriveFolderMode("custom");
-                            const leafName = picked.name || picked.id;
+                            // แสดงชื่อโฟลเดอร์ทันทีจาก picker (ไม่ต้องรอ API)
+                            const leafName: string = picked.name || picked.id;
                             setDriveFolderLabel(leafName);
 
-                            // Persist selection immediately so it survives refresh
+                            // ── เริ่ม meta fetch ทันที (ไม่รอ save) ──────────────────
+                            const metaParams = new URLSearchParams({ id: picked.id, leafName });
+                            if (picked.parentId) metaParams.set("parentId", picked.parentId);
+                            const metaPromise = fetch(`/api/drive/folder-meta?${metaParams}`)
+                                .then((r) => (r.ok ? r.json() : null))
+                                .catch(() => null);
+
                             (async () => {
                                 try {
+                                    // save + session update ไปพร้อมๆ กับที่ meta กำลัง fetch
                                     const res = await fetch("/api/drive-folder", {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json" },
                                         body: JSON.stringify({ driveFolderId: picked.id }),
                                     });
-                                    const data = await res.json();
+                                    const resData = await res.json();
                                     if (!res.ok) {
-                                        setFolderError(data.error ?? "Failed to save folder");
+                                        setFolderError(resData.error ?? "Failed to save folder");
                                     } else {
                                         await requestSessionUpdate();
-                                        // Refresh human-readable path after saving
-                                        try {
-                                            const metaRes = await fetch(
-                                                `/api/drive/folder-meta?id=${encodeURIComponent(picked.id)}`
-                                            );
-                                            const metaData = await metaRes.json();
-                                            if (metaRes.ok && metaData?.data) {
-                                                setDriveFolderLabel(
-                                                    (metaData.data.path as string) ||
-                                                    (metaData.data.name as string) ||
-                                                    leafName
-                                                );
-                                            }
-                                        } catch {
-                                            // ignore, keep fallback label
-                                        }
                                     }
                                 } catch (err: any) {
                                     setFolderError(err.message ?? "Failed to save folder");
                                 }
+
+                                // รับผล meta (มักจะ resolve แล้วตอนนี้)
+                                try {
+                                    const metaData = await metaPromise;
+                                    if (metaData?.data) {
+                                        const label =
+                                            (metaData.data.path as string) ||
+                                            (metaData.data.name as string) ||
+                                            leafName;
+                                        setDriveFolderLabel(label);
+                                        setFolderLabelCache(picked.id, label);
+                                    }
+                                } catch { /* ignore */ }
                             })();
                         }
                     }
@@ -292,365 +520,404 @@ export default function DashboardPage() {
         }
     };
 
-
-
-    // Warn before leaving/reloading during upload so state isn’t lost
+    // Warn before leaving during upload
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isProcessing) {
-                e.preventDefault();
-            }
+            if (isProcessing) e.preventDefault();
         };
         window.addEventListener("beforeunload", handleBeforeUnload);
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     }, [isProcessing]);
 
     return (
-        <div className="max-w-4xl mx-auto w-full min-w-0">
-            {duplicateAlertFilename && (
-                <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
-                    <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
-                    <p className="flex-1 text-sm font-medium">
-                        ไฟล์ <span className="font-semibold">{duplicateAlertFilename}</span> ซ้ำแล้ว — ประมวลผลไปแล้ว ไม่มีการอัปโหลดซ้ำ
-                    </p>
-                    <button
-                        type="button"
-                        onClick={dismissDuplicateAlert}
-                        className="shrink-0 rounded-lg p-1.5 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"
-                        aria-label="ปิด"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
-            <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Batch Upload Invoices</h1>
-                    <p className="text-slate-500">
-                        Drop multiple Facebook Ads PDF invoices to extract and sync automatically.
-                    </p>
-                </div>
-                {(stage === "done" || results.length > 0) && (
-                    <button
-                        onClick={resetState}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-white rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                    >
-                        <X className="w-4 h-4" /> Clear & Upload More
-                    </button>
-                )}
-            </div>
+        <div className="max-w-7xl mx-auto w-full space-y-6">
 
-            {/* Drive folder selector */}
-            <div className="mb-6 bg-white rounded-3xl border border-slate-100 shadow-lg shadow-slate-200/60 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex-1 space-y-3">
-                    <p className="text-sm font-semibold text-slate-800 mb-1">Drive destination</p>
-                    <p className="text-xs text-slate-400 mb-1">
-                        Choose whether to let the app create a monthly folder automatically, or always upload into a specific folder you pick from Google Drive.
-                    </p>
-                    <div className="mt-1 relative inline-block" ref={modeMenuRef}>
+                {/* ── Duplicate Alert ── */}
+                {duplicateAlertFilename && (
+                    <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+                        <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+                        <p className="flex-1 text-sm font-medium">
+                            ไฟล์ <span className="font-semibold">{duplicateAlertFilename}</span> ซ้ำแล้ว — ประมวลผลไปแล้ว ไม่มีการอัปโหลดซ้ำ
+                        </p>
                         <button
                             type="button"
-                            onClick={() => setModeMenuOpen((v) => !v)}
-                            className="w-full sm:w-80 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 flex items-center justify-between hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent shadow-sm cursor-pointer"
+                            onClick={dismissDuplicateAlert}
+                            className="shrink-0 rounded-lg p-1.5 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"
+                            aria-label={t("ปิด", "Close")}
                         >
-                            <span>
-                                {driveFolderMode === "auto"
-                                    ? "Automatic folder — FB_Invoices_YYYY-MM"
-                                    : "Custom folder — use Pick from Drive"}
-                            </span>
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                            <X className="w-4 h-4" />
                         </button>
-                        {modeMenuOpen && (
-                            <div className="absolute z-20 mt-2 w-full sm:w-80 rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 py-1 text-xs text-slate-700">
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        setModeMenuOpen(false);
-                                        setDriveFolderMode("auto");
-                                        setFolderError("");
-                                        try {
-                                            await fetch("/api/drive-folder", {
-                                                method: "POST",
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({ driveFolderId: null }),
-                                            });
-                                            setDriveFolderId("");
-                                            setDriveFolderLabel("");
-                                            await requestSessionUpdate();
-                                        } catch {
-                                            // ignore
-                                        }
-                                    }}
-                                    className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${
-                                        driveFolderMode === "auto" ? "bg-slate-50" : ""
-                                    }`}
-                                >
-                                    <span className="font-semibold">Automatic folder</span>{" "}
-                                    <span className="text-slate-500">— FB_Invoices_YYYY-MM</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setModeMenuOpen(false);
-                                        setDriveFolderMode("custom");
-                                        setFolderError("");
-                                    }}
-                                    className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${
-                                        driveFolderMode === "custom" ? "bg-slate-50" : ""
-                                    }`}
-                                >
-                                    <span className="font-semibold">Custom folder</span>{" "}
-                                    <span className="text-slate-500">— use Pick from Drive</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                    <div className="mt-2 space-y-1">
-                        {folderError && (
-                            <>
-                                <p className="text-xs text-red-600">
-                                    {folderError}
-                                </p>
-                                <p className="text-xs text-amber-700 mt-1">
-                                    ถ้าเห็น 403 หรือไม่มีสิทธิ์จาก Google อาจเป็นเพราะตอนล็อกอินไม่ได้กดอนุญาตสิทธิ์ Drive/Sheets — กรุณา{" "}
-                                    <button
-                                        type="button"
-                                        onClick={() => signOut({ callbackUrl: "/login" })}
-                                        className="underline font-medium hover:text-amber-900 cursor-pointer"
-                                    >
-                                        ออกจากระบบแล้วล็อกอินใหม่
-                                    </button>
-                                    {" "}แล้วกดอนุญาตทุกสิทธิ์ที่แอปขอ
-                                </p>
-                            </>
-                        )}
-                        <p className="text-xs text-slate-500">
-                            Current target folder:&nbsp;
-                            {driveFolderMode === "auto" ? (
-                                <span className="font-medium text-slate-700">
-                                    Automatic — <code className="px-1 rounded bg-slate-100">FB_Invoices_YYYY-MM</code>
-                                </span>
-                            ) : driveFolderId ? (
-                                <a
-                                    href={`https://drive.google.com/drive/folders/${driveFolderId}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-medium text-teal-600 hover:text-teal-800 underline"
-                                >
-                                    {driveFolderLabel || driveFolderId}
-                                </a>
-                            ) : (
-                                <span className="text-slate-400">Not set</span>
-                            )}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                            Current target sheet:&nbsp;
-                            <span className="font-medium text-slate-700">
-                                {(session?.user as any)?.sheetId ? (
-                                    <>
-                                        {/* ชื่อไฟล์ = ชื่อสเปรดชีต (เอกสาร), ชื่อชีต = ชื่อแท็บ */}
-                                        {spreadsheetTitle !== null ? spreadsheetTitle || "—" : "…"}
-                                        {" > "}
-                                        <a
-                                            href={`https://docs.google.com/spreadsheets/d/${(session?.user as any).sheetId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-teal-600 hover:text-teal-800 underline"
-                                        >
-                                            {(session?.user as any)?.sheetName ?? (session?.user as any).sheetId}
-                                        </a>
-                                    </>
-                                ) : (
-                                    "Not set"
-                                )}
-                            </span>
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <button
-                        type="button"
-                        onClick={handleOpenDrivePicker}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                        disabled={driveFolderMode !== "custom"}
-                    >
-                        <HardDrive className="w-4 h-4" />
-                        Pick from Drive
-                    </button>
-                </div>
-            </div>
-
-            {/* Drop Zone */}
-            <div
-                {...getRootProps()}
-                className={`relative rounded-2xl border-2 border-dashed p-12 text-center cursor-pointer transition-all duration-200 mb-8 ${isDragActive
-                        ? "border-teal-500 bg-teal-50"
-                        : stage === "done"
-                            ? "border-green-400 bg-green-50"
-                            : "border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50/30"
-                    }`}
-            >
-                <input {...getInputProps()} />
-
-                {stage === "idle" && (
-                    <div>
-                        <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                            <Upload className="w-8 h-8 text-teal-500" />
-                        </div>
-                        <p className="text-lg font-semibold text-slate-700 mb-1">
-                            {isDragActive ? "Drop PDFs here…" : "Drag & drop your invoice PDFs"}
-                        </p>
-                        <p className="text-sm text-slate-400 mb-4">
-                            Select or drop multiple files at once
-                        </p>
-                        <span className="inline-block px-3 py-1 rounded-full bg-slate-100 text-xs text-slate-500">
-                            PDF only
-                        </span>
                     </div>
                 )}
 
-                {isProcessing && currentFile && (
+                {/* ── Dashboard Header ── */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <div className="flex items-center justify-center mb-4">
-                            <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto relative">
-                                <FileText className="w-8 h-8 text-teal-500" />
-                                <div className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full landing-accent-bg flex items-center justify-center text-white text-[10px] font-bold">
-                                    {currentIndex + 1}/{queue.length}
-                                </div>
-                            </div>
-                        </div>
-                        <p className="font-medium text-slate-700 text-sm mb-1 truncate max-w-xs mx-auto">
-                            Processing: {currentFile.name}
-                        </p>
-                        <p className="text-slate-400 text-xs mt-2 flex items-center justify-center gap-2">
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            {stages.find(s => s.key === stage)?.label || "Working..."}
+                        <h1 className="text-2xl font-bold text-slate-900">{t("อัปโหลด", "Upload")}</h1>
+                        <p className="text-slate-500 text-sm mt-0.5">
+                            {t("ติดตามการประมวลผลใบแจ้งหนี้ของคุณ", "Monitor your invoice processing pipeline")}
                         </p>
                     </div>
-                )}
-
-                {stage === "done" && (
-                    <div>
-                        <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                            <CheckCircle2 className="w-7 h-7 text-green-600" />
-                        </div>
-                        <p className="font-semibold text-green-700 text-lg mb-1">Batch Complete!</p>
-                        <p className="text-slate-500 text-sm">
-                            Processed {results.length} file{results.length > 1 ? "s" : ""}
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            {/* Batch Complete Modal */}
-            {showBatchComplete && (
-                <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
-                                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                            </div>
-                            <div>
-                                <p className="text-base font-semibold text-slate-900">Batch Complete!</p>
-                                <p className="text-xs text-slate-500">
-                                    Processed {results.length} file{results.length > 1 ? "s" : ""}. See the details in Processing Results.
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-2">
+                    <div className="flex items-center gap-2">
+                        {(stage === "done" || results.length > 0) && (
                             <button
-                                type="button"
-                                onClick={acknowledgeBatchComplete}
-                                className="px-4 py-2 rounded-xl landing-accent-bg text-white text-sm font-medium hover:opacity-95 cursor-pointer"
+                                onClick={resetState}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-white rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
                             >
-                                OK
+                                <X className="w-4 h-4" /> {t("ล้าง", "Clear")}
                             </button>
-                        </div>
+                        )}
                     </div>
                 </div>
-            )}
 
-            {/* Results List */}
-            {results.length > 0 && (
-                <div className="space-y-4">
-                    <h2 className="text-lg font-bold text-slate-800">Processing Results</h2>
-                    <div className="grid grid-cols-1 gap-4">
-                        {results.map((res, idx) => {
-                            if ('error' in res) {
-                                // Error Result
-                                return (
-                                    <div key={idx} className="bg-red-50 border border-red-100 rounded-2xl p-5 flex items-start gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                                            <AlertCircle className="w-5 h-5 text-red-600" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-red-900 truncate mb-1">
-                                                {res.filename}
-                                            </p>
-                                            <p className="text-xs text-red-600">{res.error}</p>
+
+                {/* ── Row 1: Drive destination (left) + Drop Zone (right) ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+                    {/* Drive destination */}
+                    <div className="bg-white rounded-xl border border-slate-200 p-4">
+                            <p className="text-sm font-semibold text-slate-800 mb-1">{t("ปลายทาง Drive", "Drive destination")}</p>
+                            <p className="text-xs text-slate-400 mb-3">
+                                {t("เลือกโฟลเดอร์รายเดือนอัตโนมัติ หรือเลือกโฟลเดอร์เองใน Drive", "Choose automatic monthly folder or a custom Drive folder.")}
+                            </p>
+
+                            <div className="flex gap-2">
+                                <div className="relative flex-1 min-w-0" ref={modeMenuRef}>
+                                    <button
+                                    type="button"
+                                    onClick={() => setModeMenuOpen((v) => !v)}
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 flex items-center justify-between hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm cursor-pointer"
+                                >
+                                    <span>
+                                        {driveFolderMode === "auto"
+                                            ? t("อัตโนมัติ — FB_Invoices_YYYY-MM", "Automatic — FB_Invoices_YYYY-MM")
+                                            : t("โฟลเดอร์กำหนดเอง", "Custom folder")}
+                                    </span>
+                                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                </button>
+                                {modeMenuOpen && (
+                                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg py-1 text-xs text-slate-700">
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setModeMenuOpen(false);
+                                                setDriveFolderMode("auto");
+                                                setFolderError("");
+                                                try {
+                                                    await fetch("/api/drive-folder", {
+                                                        method: "POST",
+                                                        headers: { "Content-Type": "application/json" },
+                                                        body: JSON.stringify({ driveFolderId: null }),
+                                                    });
+                                                    if (driveFolderId) clearFolderLabelCache(driveFolderId);
+                                                    setDriveFolderId("");
+                                                    setDriveFolderLabel("");
+                                                    await requestSessionUpdate();
+                                                } catch { /* ignore */ }
+                                            }}
+                                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${driveFolderMode === "auto" ? "bg-slate-50" : ""}`}
+                                        >
+                                            <span className="font-semibold">{t("อัตโนมัติ", "Automatic")}</span>{" "}
+                                            <span className="text-slate-500">— FB_Invoices_YYYY-MM</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setModeMenuOpen(false); setDriveFolderMode("custom"); setFolderError(""); }}
+                                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${driveFolderMode === "custom" ? "bg-slate-50" : ""}`}
+                                        >
+                                            <span className="font-semibold">{t("โฟลเดอร์กำหนดเอง", "Custom folder")}</span>{" "}
+                                            <span className="text-slate-500">— {t("เลือกจาก Drive", "pick from Drive")}</span>
+                                        </button>
+                                    </div>
+                                )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleOpenDrivePicker}
+                                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed h-[34px]"
+                                    disabled={driveFolderMode !== "custom"}
+                                >
+                                    <HardDrive className="w-3.5 h-3.5" />
+                                    {t("เลือกจาก Drive", "Pick from Drive")}
+                                </button>
+                            </div>
+
+                            {/* Error */}
+                            {folderError && (
+                                <div className="mt-2 space-y-1">
+                                    <p className="text-xs text-red-600">{folderError}</p>
+                                    <p className="text-xs text-amber-700">
+                                        ถ้าเห็น 403 อาจต้อง{" "}
+                                        <button
+                                            type="button"
+                                            onClick={() => signOut({ callbackUrl: "/login" })}
+                                            className="underline font-medium hover:text-amber-900 cursor-pointer"
+                                        >
+                                            ออกจากระบบแล้วล็อกอินใหม่
+                                        </button>
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Sync destination — styled like receiptflow-ai */}
+                            <div className="mt-3 rounded-lg bg-slate-50 border border-slate-100 px-3.5 py-2.5 space-y-1.5">
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{t("ปลายทางซิงก์", "Sync destination")}</p>
+
+                                {/* Drive folder row */}
+                                <div className="flex flex-wrap items-center gap-1 text-xs">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src="https://img.icons8.com/color/20/folder-invoices--v1.png"
+                                        alt="Google Drive folder"
+                                        width={16}
+                                        height={16}
+                                        className="flex-shrink-0"
+                                    />
+                                    {driveFolderMode === "auto" ? (
+                                        <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+                                            FB_Invoices_YYYY-MM
+                                        </span>
+                                    ) : driveFolderId ? (
+                                        (() => {
+                                            const segs = driveFolderLabel
+                                                ? driveFolderLabel.split(" / ")
+                                                : [driveFolderId];
+                                            return segs.map((seg, i, arr) => (
+                                                <span key={i} className="flex items-center gap-1">
+                                                    <a
+                                                        href={i === arr.length - 1
+                                                            ? `https://drive.google.com/drive/folders/${driveFolderId}`
+                                                            : undefined}
+                                                        target={i === arr.length - 1 ? "_blank" : undefined}
+                                                        rel="noopener noreferrer"
+                                                        className={`px-1.5 py-0.5 rounded ${
+                                                            i === arr.length - 1
+                                                                ? "bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition-colors"
+                                                                : "text-slate-400"
+                                                        }`}
+                                                    >
+                                                        {seg}
+                                                    </a>
+                                                    {i < arr.length - 1 && (
+                                                        <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    )}
+                                                </span>
+                                            ));
+                                        })()
+                                    ) : (
+                                        <span className="text-slate-400 italic">{t("ยังไม่ตั้งค่า — เลือกโฟลเดอร์ด้านบน", "Not set — pick a folder above")}</span>
+                                    )}
+                                </div>
+
+                                {/* Google Sheet row */}
+                                <div className="flex flex-wrap items-center gap-1 text-xs">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src="https://img.icons8.com/color/20/google-sheets.png"
+                                        alt="Google Sheets"
+                                        width={16}
+                                        height={16}
+                                        className="flex-shrink-0"
+                                    />
+                                    {effectiveSheetId ? (
+                                        <>
+                                            {spreadsheetTitle !== null && spreadsheetTitle !== "" && (
+                                                <span className="px-1.5 py-0.5 rounded text-slate-400">
+                                                    {spreadsheetTitle}
+                                                </span>
+                                            )}
+                                            {spreadsheetTitle !== null && spreadsheetTitle !== "" && effectiveSheetName && (
+                                                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            )}
+                                            {effectiveSheetName && (() => {
+                                                const spreadsheetId = effectiveSheetId;
+                                                const gid = effectiveSheetGid;
+                                                const sheetUrl = gid != null
+                                                    ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${gid}`
+                                                    : `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+                                                return (
+                                                    <a
+                                                        href={sheetUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium hover:bg-green-200 transition-colors"
+                                                    >
+                                                        {effectiveSheetName}
+                                                    </a>
+                                                );
+                                            })()}
+                                            {spreadsheetTitle === null && (
+                                                <span className="text-slate-400">Loading…</span>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <span className="text-slate-400 italic">{t("ยังไม่ตั้งค่า — ไปตั้งค่าใน Integrations", "Not set — configure in Integrations")}</span>
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
+
+                    {/* Drop Zone + Results */}
+                    <div className="flex flex-col gap-4 h-full">
+                        <div
+                            {...getRootProps()}
+                            className={`flex-1 flex flex-col items-center justify-center min-h-[220px] relative rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200 ${
+                                isDragActive
+                                    ? "border-teal-500 bg-teal-50"
+                                    : stage === "done"
+                                    ? "border-green-400 bg-green-50"
+                                    : "border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50/30"
+                            }`}
+                        >
+                            <input {...getInputProps()} />
+
+                            {stage === "idle" && (
+                                <div>
+                                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mx-auto mb-3">
+                                        <Upload className="w-6 h-6 text-teal-500" />
+                                    </div>
+                                    <p className="text-sm font-semibold text-slate-700 mb-1">
+                                        {isDragActive ? t("วางไฟล์ PDF ที่นี่…", "Drop PDFs here…") : t("ลากและวางไฟล์ใบแจ้งหนี้ PDF", "Drag & drop invoice PDFs")}
+                                    </p>
+                                    <p className="text-xs text-slate-400 mb-3">
+                                        Select or drop multiple files at once
+                                    </p>
+                                    <span className="inline-block px-3 py-1 rounded-full bg-slate-100 text-xs text-slate-500">
+                                        {t("เฉพาะ PDF", "PDF only")}
+                                    </span>
+                                </div>
+                            )}
+
+                            {isProcessing && currentFile && (
+                                <div>
+                                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mx-auto mb-3 relative">
+                                        <FileText className="w-6 h-6 text-teal-500" />
+                                        <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full landing-accent-bg flex items-center justify-center text-white text-[9px] font-bold">
+                                            {currentIndex + 1}/{queue.length}
                                         </div>
                                     </div>
-                                );
-                            }
-
-                            // Success Result
-                            return (
-                                <div key={idx} className="bg-white border text-left border-slate-100 rounded-2xl p-5 shadow-sm hover:border-slate-200 transition-colors">
-                                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-4">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center shrink-0">
-                                                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                            </div>
-                                            <div className="min-w-0 pr-4">
-                                                <p className="text-sm font-semibold text-slate-900 truncate" title={res.filename}>
-                                                    {res.filename}
-                                                </p>
-                                                <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-                                                    Processed successfully
-                                                </p>
-                                            </div>
-                                        </div>
-                                        
-                                        {res.driveLink && (
-                                            <a
-                                                href={res.driveLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal-100 bg-teal-50 text-teal-600 text-xs font-semibold hover:bg-teal-100 transition-colors"
-                                            >
-                                                <HardDrive className="w-3.5 h-3.5" /> Drive
-                                            </a>
-                                        )}
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                                        <div className="bg-slate-50 rounded-xl p-3">
-                                            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Date</p>
-                                            <p className="text-sm font-semibold text-slate-700">{res.date}</p>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-xl p-3">
-                                            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Billed To</p>
-                                            <p className="text-sm font-semibold text-slate-700 truncate" title={res.billed_to}>{res.billed_to}</p>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-xl p-3">
-                                            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Card</p>
-                                            <p className="text-sm font-semibold text-slate-700">•••• {res.card_last_4}</p>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-xl p-3">
-                                            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Amount</p>
-                                            <p className="text-sm font-semibold text-slate-700">{res.amount?.toLocaleString()}</p>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-xl p-3">
-                                            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Currency</p>
-                                            <p className="text-sm font-semibold text-slate-700">{res.currency}</p>
-                                        </div>
+                                    <p className="font-medium text-slate-700 text-xs mb-1 truncate max-w-[180px] mx-auto">
+                                        {currentFile.name}
+                                    </p>
+                                    <p className="text-slate-400 text-xs mt-1 flex items-center justify-center gap-1.5">
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        <span>
+                                            {{
+                                                uploading: t("กำลังอัปโหลด", "Uploading"),
+                                                extracting: t("AI กำลังดึงข้อมูล", "AI Extracting"),
+                                                drive: t("กำลังบันทึกไปยัง Drive", "Saving to Drive"),
+                                                sheets: t("กำลังอัปเดต Sheet", "Updating Sheet"),
+                                            }[stage as "uploading" | "extracting" | "drive" | "sheets"] || t("กำลังทำงาน...", "Working...")}
+                                            <span className="font-semibold text-teal-600 ml-1">
+                                                {stage === "uploading" ? 25 : stage === "extracting" ? 60 : stage === "drive" ? 85 : stage === "sheets" ? 95 : stage === "done" ? 100 : 0}%
+                                            </span>
+                                        </span>
+                                    </p>
+                                    {/* Fake Progress Bar */}
+                                    <div className="w-full max-w-[160px] mx-auto mt-2.5 h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                        <div 
+                                            className="h-full bg-teal-500 rounded-full transition-all duration-700 ease-out" 
+                                            style={{ 
+                                                width: `${stage === "uploading" ? 25 : stage === "extracting" ? 60 : stage === "drive" ? 85 : stage === "sheets" ? 95 : stage === "done" ? 100 : 0}%` 
+                                            }}
+                                        />
                                     </div>
                                 </div>
-                            );
-                        })}
+                            )}
+
+                            {stage === "done" && (
+                                <div>
+                                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
+                                        <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                    </div>
+                                    <p className="font-semibold text-green-700 mb-1">{t("เสร็จสิ้นทั้งชุด!", "Batch Complete!")}</p>
+                                    <p className="text-slate-500 text-xs">
+                                        {t(`ประมวลผลแล้ว ${results.length} ไฟล์`, `Processed ${results.length} file${results.length > 1 ? "s" : ""}`)}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Results List (compact) */}
+                        {results.length > 0 && (
+                            <div className="space-y-2">
+                                <h3 className="text-sm font-semibold text-slate-700">{t("ผลการประมวลผล", "Processing Results")}</h3>
+                                {results.map((res, idx) => {
+                                    if ("error" in res) {
+                                        return (
+                                            <div key={idx} className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start gap-3">
+                                                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-semibold text-red-900 truncate">{res.filename}</p>
+                                                    <p className="text-xs text-red-600 mt-0.5">{res.error}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div key={idx} className="bg-white border border-slate-100 rounded-xl p-3 flex items-center gap-3 shadow-sm">
+                                            <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+                                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-semibold text-slate-900 truncate">{res.filename}</p>
+                                                <p className="text-xs text-slate-500">
+                                                    {res.amount?.toLocaleString()} {res.currency} · {res.date}
+                                                </p>
+                                            </div>
+                                            {res.driveLink && (
+                                                <a
+                                                    href={res.driveLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border border-teal-100 bg-teal-50 text-teal-600 text-xs font-semibold hover:bg-teal-100"
+                                                >
+                                                    <HardDrive className="w-3 h-3" /> Drive
+                                                </a>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
-        </div>
+
+                {/* ── Row 2: Recent Files (full width) ── */}
+                <RecentUploads refreshKey={refreshKey} />
+
+                {/* ── Batch Complete Modal ── */}
+                {showBatchComplete && (
+                    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40">
+                        <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                </div>
+                                <div>
+                                    <p className="text-base font-semibold text-slate-900">{t("เสร็จสิ้นทั้งชุด!", "Batch Complete!")}</p>
+                                    <p className="text-xs text-slate-500">
+                                        {t(`ประมวลผลแล้ว ${results.length} ไฟล์ ดูรายละเอียดด้านล่าง`, `Processed ${results.length} file${results.length > 1 ? "s" : ""}. See the details below.`)}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={acknowledgeBatchComplete}
+                                    className="px-4 py-2 rounded-xl landing-accent-bg text-white text-sm font-medium hover:opacity-95 cursor-pointer"
+                                >
+                                    {t("ตกลง", "OK")}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
     );
 }

@@ -48,8 +48,10 @@ model User {
   lastCreditsReset   DateTime? // last time free-plan credits were reset to 9999
   sheetId            String?
   sheetName          String?
+  sheetGid           Int?     // numeric GID ของ sheet tab สำหรับลิงก์ตรงแท็บ
   sheetMapping       Json?
   filenameMapping    Json?
+  filenameTemplate   Json?
   sheetProfiles      Json?
   activeSheetProfileId String?
   driveFolderId      String?

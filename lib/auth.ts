@@ -78,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               sheetProfiles: true,
               activeSheetProfileId: true,
               driveFolderId: true,
+              driveFolderMode: true,
               accounts: {
                 where: { provider: "google" },
                 select: { access_token: true, refresh_token: true, expires_at: true },
@@ -97,6 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (token as any).sheetProfiles = dbUser.sheetProfiles;
           (token as any).activeSheetProfileId = dbUser.activeSheetProfileId;
           (token as any).driveFolderId = dbUser.driveFolderId;
+          (token as any).driveFolderMode = dbUser.driveFolderMode ?? "auto";
           const dbAccount = dbUser.accounts?.[0];
           if (dbAccount) {
             currentAccessToken = dbAccount.access_token || currentAccessToken;
@@ -164,6 +166,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).sheetProfiles = (token as any).sheetProfiles;
         (session.user as any).activeSheetProfileId = (token as any).activeSheetProfileId;
         (session.user as any).driveFolderId = (token as any).driveFolderId;
+        (session.user as any).driveFolderMode = (token as any).driveFolderMode ?? "auto";
       }
       return session;
     },

@@ -316,7 +316,7 @@ export default function DashboardPage() {
 
     // Drive folder selection
     const [driveFolderId, setDriveFolderId] = useState("");
-    const [driveFolderMode, setDriveFolderMode] = useState<"auto" | "custom">("auto");
+    const [driveFolderMode, setDriveFolderMode] = useState<"auto" | "custom" | "date-subfolder">("auto");
     const [modeInitialized, setModeInitialized] = useState(false);
     const [modeMenuOpen, setModeMenuOpen] = useState(false);
     const modeMenuRef = useRef<HTMLDivElement | null>(null);
@@ -357,24 +357,33 @@ export default function DashboardPage() {
         if (modeInitialized && (driveFolderId ? driveFolderLabel !== "" : true)) return;
         const load = async () => {
             let id = driveFolderId;
+            let mode: "auto" | "custom" | "date-subfolder" | null = null;
 
-            if (!id) {
-                const initial = (session?.user as any)?.driveFolderId as string | undefined;
-                if (initial) id = initial;
+            const sessionFolderId = (session?.user as any)?.driveFolderId as string | undefined;
+            const sessionFolderMode = (session?.user as any)?.driveFolderMode as string | undefined;
+            if (sessionFolderId) id = sessionFolderId;
+            if (sessionFolderMode === "auto" || sessionFolderMode === "custom" || sessionFolderMode === "date-subfolder") {
+                mode = sessionFolderMode;
             }
 
-            if (!id) {
+            if (!id || !mode) {
                 try {
                     const res = await fetch("/api/drive-folder");
                     const data = await res.json();
-                    if (res.ok && data?.data?.driveFolderId) id = data.data.driveFolderId as string;
+                    if (res.ok) {
+                        if (data?.data?.driveFolderId) id = data.data.driveFolderId as string;
+                        const apiMode = data?.data?.driveFolderMode as string | undefined;
+                        if (apiMode === "auto" || apiMode === "custom" || apiMode === "date-subfolder") {
+                            mode = apiMode;
+                        }
+                    }
                 } catch { /* ignore */ }
             }
 
             if (id && !driveFolderId) setDriveFolderId(id);
 
             if (!modeInitialized) {
-                setDriveFolderMode(id ? "custom" : "auto");
+                setDriveFolderMode(mode ?? (id ? "custom" : "auto"));
                 setModeInitialized(true);
             }
 
@@ -534,8 +543,10 @@ export default function DashboardPage() {
                     if (data.action === googleObj.picker.Action.PICKED && data.docs?.length > 0) {
                         const picked = data.docs[0];
                         if (picked?.id) {
+                            // คงโหมดเดิมไว้ถ้าเป็น date-subfolder ไม่อัปเดตเป็น custom
+                            const pickedMode = driveFolderMode === "date-subfolder" ? "date-subfolder" : "custom";
                             setDriveFolderId(picked.id);
-                            setDriveFolderMode("custom");
+                            setDriveFolderMode(pickedMode);
                             // แสดงชื่อโฟลเดอร์ทันทีจาก picker (ไม่ต้องรอ API)
                             const leafName: string = picked.name || picked.id;
                             setDriveFolderLabel(leafName);
@@ -553,7 +564,7 @@ export default function DashboardPage() {
                                     const res = await fetch("/api/drive-folder", {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ driveFolderId: picked.id }),
+                                        body: JSON.stringify({ driveFolderId: picked.id, driveFolderMode: pickedMode }),
                                     });
                                     const resData = await res.json();
                                     if (!res.ok) {
@@ -660,6 +671,8 @@ export default function DashboardPage() {
                                     <span>
                                         {driveFolderMode === "auto"
                                             ? t("อัตโนมัติ — FB_Invoices_YYYY-MM", "Automatic — FB_Invoices_YYYY-MM")
+                                            : driveFolderMode === "date-subfolder"
+                                            ? t("สร้างโฟลเดอร์ตามวันที่ใบเสร็จ", "Auto subfolder by receipt date")
                                             : t("โฟลเดอร์กำหนดเอง", "Custom folder")}
                                     </span>
                                     <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -676,7 +689,7 @@ export default function DashboardPage() {
                                                     await fetch("/api/drive-folder", {
                                                         method: "POST",
                                                         headers: { "Content-Type": "application/json" },
-                                                        body: JSON.stringify({ driveFolderId: null }),
+                                                        body: JSON.stringify({ driveFolderId: null, driveFolderMode: "auto" }),
                                                     });
                                                     if (driveFolderId) clearFolderLabelCache(driveFolderId);
                                                     setDriveFolderId("");
@@ -691,11 +704,47 @@ export default function DashboardPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => { setModeMenuOpen(false); setDriveFolderMode("custom"); setFolderError(""); }}
+                                            onClick={async () => {
+                                                setModeMenuOpen(false);
+                                                setDriveFolderMode("custom");
+                                                setFolderError("");
+                                                if (driveFolderId) {
+                                                    try {
+                                                        await fetch("/api/drive-folder", {
+                                                            method: "POST",
+                                                            headers: { "Content-Type": "application/json" },
+                                                            body: JSON.stringify({ driveFolderId, driveFolderMode: "custom" }),
+                                                        });
+                                                        await requestSessionUpdate();
+                                                    } catch { /* ignore */ }
+                                                }
+                                            }}
                                             className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${driveFolderMode === "custom" ? "bg-slate-50" : ""}`}
                                         >
                                             <span className="font-semibold">{t("โฟลเดอร์กำหนดเอง", "Custom folder")}</span>{" "}
                                             <span className="text-slate-500">— {t("เลือกจาก Drive", "pick from Drive")}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setModeMenuOpen(false);
+                                                setDriveFolderMode("date-subfolder");
+                                                setFolderError("");
+                                                if (driveFolderId) {
+                                                    try {
+                                                        await fetch("/api/drive-folder", {
+                                                            method: "POST",
+                                                            headers: { "Content-Type": "application/json" },
+                                                            body: JSON.stringify({ driveFolderId, driveFolderMode: "date-subfolder" }),
+                                                        });
+                                                        await requestSessionUpdate();
+                                                    } catch { /* ignore */ }
+                                                }
+                                            }}
+                                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${driveFolderMode === "date-subfolder" ? "bg-slate-50" : ""}`}
+                                        >
+                                            <span className="font-semibold">{t("สร้างโฟลเดอร์ตามวันที่ใบเสร็จ", "Auto subfolder by receipt date")}</span>{" "}
+                                            <span className="text-slate-500">— {t("DD/MM/YYYY ภายในโฟลเดอร์ที่เลือก", "DD/MM/YYYY inside picked folder")}</span>
                                         </button>
                                     </div>
                                 )}
@@ -704,7 +753,7 @@ export default function DashboardPage() {
                                     type="button"
                                     onClick={handleOpenDrivePicker}
                                     className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed h-[34px]"
-                                    disabled={driveFolderMode !== "custom"}
+                                    disabled={driveFolderMode !== "custom" && driveFolderMode !== "date-subfolder"}
                                 >
                                     <HardDrive className="w-3.5 h-3.5" />
                                     {t("เลือกจาก Drive", "Pick from Drive")}
@@ -746,6 +795,36 @@ export default function DashboardPage() {
                                         <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
                                             FB_Invoices_YYYY-MM
                                         </span>
+                                    ) : driveFolderMode === "date-subfolder" && driveFolderId ? (
+                                        (() => {
+                                            const segs = driveFolderLabel
+                                                ? driveFolderLabel.split(" / ")
+                                                : [driveFolderId];
+                                            return (
+                                                <span className="flex flex-wrap items-center gap-1">
+                                                    {segs.map((seg, i, arr) => (
+                                                        <span key={i} className="flex items-center gap-1">
+                                                            <span className={`px-1.5 py-0.5 rounded ${i === arr.length - 1 ? "bg-blue-100 text-blue-700 font-medium" : "text-slate-400"}`}>
+                                                                {seg}
+                                                            </span>
+                                                            {i < arr.length - 1 && (
+                                                                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                </svg>
+                                                            )}
+                                                        </span>
+                                                    ))}
+                                                    <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                    <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-medium italic">
+                                                        {t("DD/MM/YYYY (วันที่ใบเสร็จ)", "DD/MM/YYYY (receipt date)")}
+                                                    </span>
+                                                </span>
+                                            );
+                                        })()
+                                    ) : driveFolderMode === "date-subfolder" && !driveFolderId ? (
+                                        <span className="text-slate-400 italic">{t("ยังไม่ตั้งค่า — เลือกโฟลเดอร์หลักด้านบน", "Not set — pick a parent folder above")}</span>
                                     ) : driveFolderId ? (
                                         (() => {
                                             const segs = driveFolderLabel

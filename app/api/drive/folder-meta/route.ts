@@ -5,7 +5,6 @@ import { google } from "googleapis";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 
 const CACHE_REVALIDATE_SECONDS = 600; // 10 นาที
-// หยุดที่ root folder ของ picker — ไม่ต้อง traverse ขึ้นไปถึง My Drive
 const PICKER_ROOT_FOLDER_ID = "11-naB49cPhno_HpKcTbrmYPhNz_R8oJk";
 
 /**
@@ -47,7 +46,6 @@ async function fetchFolderMeta(
     const name: string = res.data.name || currentId;
     names.unshift(name);
 
-    // หยุดที่ root ของ picker — ไม่ต้อง traverse ขึ้นไปอีก
     if (currentId === PICKER_ROOT_FOLDER_ID) break;
 
     const parents: string[] | undefined = res.data.parents;

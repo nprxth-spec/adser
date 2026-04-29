@@ -55,6 +55,7 @@ model User {
   sheetProfiles      Json?
   activeSheetProfileId String?
   driveFolderId      String?
+  driveFolderMode    String    @default("auto") // "auto" | "custom" | "date-subfolder"
   accounts           Account[]
   sessions           Session[]
   logs               ProcessingLog[]

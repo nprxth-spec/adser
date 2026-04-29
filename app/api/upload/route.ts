@@ -98,7 +98,8 @@ export async function POST(request: Request) {
         where: { id: userId },
         select: {
             plan: true, credits: true, sheetId: true, sheetName: true,
-            sheetMapping: true, filenameMapping: true, filenameTemplate: true, driveFolderId: true,
+            sheetMapping: true, filenameMapping: true, filenameTemplate: true,
+            driveFolderId: true, driveFolderMode: true,
         },
     });
     if (!user) {
@@ -226,7 +227,9 @@ export async function POST(request: Request) {
         // 9. Sync to Google
         const syncResult = await syncToGoogle(
             invoiceData, buffer, filename, accessToken,
-            sheetId, user.sheetName, user.sheetMapping, user.driveFolderId ?? null
+            sheetId, user.sheetName, user.sheetMapping,
+            user.driveFolderId ?? null,
+            (user as any).driveFolderMode ?? "auto"
         );
         driveLink = syncResult.driveLink;
         sheetRow = syncResult.sheetRow;

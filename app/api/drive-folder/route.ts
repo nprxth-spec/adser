@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog, getClientIp } from "@/lib/audit-log";
 
+const VALID_MODES = ["auto", "custom", "date-subfolder"] as const;
+type DriveMode = (typeof VALID_MODES)[number];
+
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -12,10 +15,15 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { driveFolderId: true },
+    select: { driveFolderId: true, driveFolderMode: true },
   });
 
-  return NextResponse.json({ data: { driveFolderId: user?.driveFolderId ?? null } });
+  return NextResponse.json({
+    data: {
+      driveFolderId: user?.driveFolderId ?? null,
+      driveFolderMode: user?.driveFolderMode ?? "auto",
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -30,6 +38,14 @@ export async function POST(request: Request) {
     typeof driveFolderIdRaw === "string" && driveFolderIdRaw.trim().length > 0
       ? driveFolderIdRaw.trim()
       : null;
+
+  const modeRaw = (body as any)?.driveFolderMode as string | undefined;
+  const driveFolderMode: DriveMode =
+    typeof modeRaw === "string" && VALID_MODES.includes(modeRaw as DriveMode)
+      ? (modeRaw as DriveMode)
+      : driveFolderId
+        ? "custom"
+        : "auto";
 
   try {
     const user = await prisma.user.findUnique({
@@ -46,19 +62,24 @@ export async function POST(request: Request) {
 
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { driveFolderId },
+      data: { driveFolderId, driveFolderMode },
     });
+
     await createAuditLog(
       session.user.id,
       "config_drive",
-      driveFolderId ? "ตั้งค่าโฟลเดอร์ Drive ปลายทาง" : "ล้างโฟลเดอร์ Drive (ใช้โหมดอัตโนมัติ)",
-      driveFolderId ? { driveFolderId } : undefined,
+      driveFolderMode === "auto"
+        ? "ล้างโฟลเดอร์ Drive (ใช้โหมดอัตโนมัติ)"
+        : driveFolderMode === "date-subfolder"
+          ? "ตั้งค่าโฟลเดอร์ Drive แบบสร้างตามวันที่"
+          : "ตั้งค่าโฟลเดอร์ Drive ปลายทาง",
+      { driveFolderId, driveFolderMode },
       getClientIp(request)
     );
 
     revalidateTag(`user-folder-${session.user.id}`, "max");
 
-    return NextResponse.json({ success: true, data: { driveFolderId } });
+    return NextResponse.json({ success: true, data: { driveFolderId, driveFolderMode } });
   } catch (err: any) {
     console.error("Failed to update driveFolderId:", err);
     return NextResponse.json(
@@ -67,4 +88,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

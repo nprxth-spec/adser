@@ -45,6 +45,53 @@ async function getOrCreateFolder(
     return createRes.data.id!;
 }
 
+async function getOrCreateDateSubfolder(
+    drive: ReturnType<typeof google.drive>,
+    parentFolderId: string,
+    invoiceDate: string
+): Promise<string> {
+    // Convert YYYY-MM-DD → DD/MM/YYYY for the folder name
+    const safeDate = (invoiceDate ?? "").replace(/[^0-9-]/g, "");
+    let folderName: string;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(safeDate)) {
+        const [y, m, d] = safeDate.split("-");
+        folderName = `${d}/${m}/${y}`;
+    } else {
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, "0");
+        const mm = String(today.getMonth() + 1).padStart(2, "0");
+        const yyyy = today.getFullYear();
+        folderName = `${dd}/${mm}/${yyyy}`;
+    }
+
+    const escapedParent = escapeDriveQuery(parentFolderId);
+    const searchRes = await drive.files.list({
+        q: [
+            `name='${escapeDriveQuery(folderName)}'`,
+            "mimeType='application/vnd.google-apps.folder'",
+            "trashed=false",
+            `'${escapedParent}' in parents`,
+        ].join(" and "),
+        fields: "files(id, name)",
+        spaces: "drive",
+    });
+
+    if (searchRes.data.files && searchRes.data.files.length > 0) {
+        return searchRes.data.files[0].id!;
+    }
+
+    const createRes = await drive.files.create({
+        requestBody: {
+            name: folderName,
+            mimeType: "application/vnd.google-apps.folder",
+            parents: [parentFolderId],
+        },
+        fields: "id",
+    });
+
+    return createRes.data.id!;
+}
+
 async function getOrCreateFailedSubfolder(
     drive: ReturnType<typeof google.drive>,
     parentFolderId: string
@@ -142,16 +189,22 @@ export async function syncToGoogle(
     sheetId: string,
     sheetName: string | null = null,
     sheetMapping: any | null = null,
-    driveFolderId: string | null = null
+    driveFolderId: string | null = null,
+    driveFolderMode: string = "auto"
 ): Promise<SyncResult> {
     const auth = getOAuth2Client(accessToken);
     const drive = google.drive({ version: "v3", auth });
     const sheets = google.sheets({ version: "v4", auth });
 
     // 1. Determine target Drive folder
-    const baseFolderId = driveFolderId && driveFolderId.trim().length > 0
-        ? driveFolderId
-        : await getOrCreateFolder(drive, data.date);
+    let baseFolderId: string;
+    if (driveFolderMode === "date-subfolder" && driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = await getOrCreateDateSubfolder(drive, driveFolderId, data.date);
+    } else if (driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = driveFolderId;
+    } else {
+        baseFolderId = await getOrCreateFolder(drive, data.date);
+    }
 
     const folderId = data.paymentSuccess
         ? baseFolderId

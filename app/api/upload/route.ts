@@ -182,7 +182,12 @@ export async function POST(request: Request) {
     });
     if (existingLog) {
         return NextResponse.json(
-            { error: `File "${originalFilename}" has already been processed.` },
+            {
+                code: "DUPLICATE_FILE",
+                error: `File "${originalFilename}" has already been processed.`,
+                errorTh: `มีไฟล์ซ้ำ: ไฟล์ "${originalFilename}" ถูกประมวลผลไปแล้ว`,
+                errorEn: `Duplicate file: File "${originalFilename}" has already been processed.`,
+            },
             { status: 409 }
         );
     }

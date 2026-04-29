@@ -62,7 +62,7 @@ export default function Sidebar() {
             } h-screen bg-slate-900 text-white flex flex-col shrink-0 sticky top-0 overflow-x-hidden transition-[width] duration-200`}
         >
             {/* Logo */}
-            <div className="px-4 py-4 border-b border-slate-800 flex items-center">
+            <div className="h-14 sm:h-16 px-4 border-b border-slate-800 flex items-center">
                 <div className="flex items-center gap-3 overflow-hidden">
                     <div className="w-9 h-9 rounded-xl landing-accent-bg flex items-center justify-center shadow-lg shadow-teal-900/30">
                         <Zap className="w-5 h-5 text-white" />
@@ -84,6 +84,7 @@ export default function Sidebar() {
                         <Link
                             key={href}
                             href={href}
+                            prefetch={true}
                             className={`flex items-center ${
                                 collapsed ? "justify-center" : "gap-3"
                             } px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${

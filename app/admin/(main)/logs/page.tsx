@@ -171,24 +171,25 @@ export default async function AdminLogsPage({
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="min-w-full table-auto text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-2 font-medium text-slate-600 w-12">#</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">Processed</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">User</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">Filename</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">Status</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">Invoice Date</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">Amount</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">Drive</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">Actions</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 w-12 whitespace-nowrap">#</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Processed</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">User</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Name</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Filename</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Status</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Invoice Date</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Amount</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Drive</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((log, i) => (
                 <tr key={log.id} className="border-b border-slate-100">
-                  <td className="px-4 py-2 text-slate-500 tabular-nums">
+                  <td className="px-4 py-2 text-slate-500 tabular-nums whitespace-nowrap">
                     {(page - 1) * pageSize + i + 1}
                   </td>
                   <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
@@ -197,13 +198,16 @@ export default async function AdminLogsPage({
                       timeStyle: "short",
                     })}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 whitespace-nowrap">
                     <span className="text-slate-700">{log.user?.email ?? log.userId}</span>
                   </td>
-                  <td className="px-4 py-2 text-slate-700 truncate max-w-[200px]" title={log.filename}>
+                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                    {log.user?.name ?? "—"}
+                  </td>
+                  <td className="px-4 py-2 text-slate-700 whitespace-nowrap" title={log.filename}>
                     {log.filename}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 whitespace-nowrap">
                     <span
                       className={
                         log.status === "success"
@@ -214,11 +218,11 @@ export default async function AdminLogsPage({
                       {log.status}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-slate-600">{log.invoiceDate ?? "—"}</td>
-                  <td className="px-4 py-2 text-slate-600">
+                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">{log.invoiceDate ?? "—"}</td>
+                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
                     {log.amount != null ? `${log.amount} ${log.currency ?? ""}` : "—"}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 whitespace-nowrap">
                     {log.driveLink ? (
                       <a
                         href={log.driveLink}
@@ -232,7 +236,7 @@ export default async function AdminLogsPage({
                       "—"
                     )}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 whitespace-nowrap">
                     <LogRowActionsClient logId={log.id} />
                   </td>
                 </tr>

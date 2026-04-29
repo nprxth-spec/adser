@@ -72,7 +72,7 @@ export default function AdminDeleteUserButton({
     <button
       type="button"
       onClick={() => setConfirming(true)}
-      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-red-200 bg-red-50 text-red-700 text-xs font-medium hover:bg-red-100"
+      className="inline-flex h-6 items-center gap-1 rounded border border-red-200 bg-red-50 px-2 text-[11px] font-medium text-red-700 hover:bg-red-100"
       title="ลบ user และข้อมูลทั้งหมด"
     >
       <Trash2 className="w-3.5 h-3.5" />

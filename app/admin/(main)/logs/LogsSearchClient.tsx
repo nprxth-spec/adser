@@ -4,7 +4,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { RotateCw } from "lucide-react";
 
-export function LogsSearchClient({ basePath }: { basePath: string }) {
+export function LogsSearchClient({
+  basePath,
+  placeholder = "Search by user, filename, or Drive link",
+}: {
+  basePath: string;
+  placeholder?: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -40,7 +46,7 @@ export function LogsSearchClient({ basePath }: { basePath: string }) {
       <div className="flex-1 flex items-center gap-2">
         <input
           type="text"
-          placeholder="Search by user, filename, or Drive link"
+          placeholder={placeholder}
           value={value}
           onChange={(e) => {
             const next = e.target.value;

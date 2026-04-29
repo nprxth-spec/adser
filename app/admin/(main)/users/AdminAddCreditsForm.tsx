@@ -41,19 +41,19 @@ export default function AdminAddCreditsForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 flex-wrap">
+    <form onSubmit={handleSubmit} className="flex items-center gap-1">
       <input
         type="number"
         min={1}
         max={9999}
         value={amount}
         onChange={(e) => setAmount(parseInt(e.target.value, 10) || 1)}
-        className="w-16 px-2 py-1 rounded border border-slate-200 text-slate-800 text-xs"
+        className="h-6 w-16 rounded border border-slate-200 px-2 text-[11px] text-slate-800"
       />
       <button
         type="submit"
         disabled={loading}
-        className="px-2 py-1 rounded bg-teal-600 text-white text-xs font-medium hover:bg-teal-700 disabled:opacity-50"
+        className="inline-flex h-6 items-center rounded bg-teal-600 px-2 text-[11px] font-medium text-white hover:bg-teal-700 disabled:opacity-50"
       >
         {loading ? "..." : "Add"}
       </button>

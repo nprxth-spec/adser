@@ -13,11 +13,13 @@ export function UserFilterClient({
   currentUserId,
   basePath,
   currentRange,
+  showDeleteButton = true,
 }: {
   users: UserOption[];
   currentUserId?: string;
   basePath: string;
   currentRange: string;
+  showDeleteButton?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,14 +83,16 @@ export function UserFilterClient({
           </option>
         ))}
       </select>
-      <button
-        type="button"
-        onClick={handleDeleteLogs}
-        disabled={!currentUserId || isPending}
-        className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-      >
-        {isPending ? "Deleting..." : "Delete logs for user"}
-      </button>
+      {showDeleteButton && (
+        <button
+          type="button"
+          onClick={handleDeleteLogs}
+          disabled={!currentUserId || isPending}
+          className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {isPending ? "Deleting..." : "Delete logs for user"}
+        </button>
+      )}
     </div>
   );
 }

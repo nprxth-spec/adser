@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import LogsRangeSelect from "../logs/LogsRangeSelect";
+import { LogsSearchClient } from "../logs/LogsSearchClient";
+import { UserFilterClient } from "../logs/UserFilterClient";
 
 const PAGE_SIZE = 50;
 
@@ -50,10 +52,12 @@ function getDateRange(range: DateRangePreset): { from: Date; to: Date } {
   return { from, to };
 }
 
-function buildQuery(page?: number, range?: string): string {
+function buildQuery(opts: { page?: number; range?: string; userId?: string; q?: string }): string {
   const q = new URLSearchParams();
-  if (page && page > 1) q.set("page", String(page));
-  if (range && range !== "all") q.set("range", range);
+  if (opts.page && opts.page > 1) q.set("page", String(opts.page));
+  if (opts.range && opts.range !== "all") q.set("range", opts.range);
+  if (opts.userId) q.set("userId", opts.userId);
+  if (opts.q) q.set("q", opts.q);
   const s = q.toString();
   return s ? `?${s}` : "";
 }
@@ -69,14 +73,16 @@ const AUDIT_TYPE_LABELS: Record<string, string> = {
 export default async function AdminAuditLogsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; range?: string }>;
+  searchParams: Promise<{ page?: string; range?: string; userId?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const range = (params.range ?? "all") as DateRangePreset | "all";
+  const userId = params.userId ?? "";
+  const query = (params.q ?? "").trim();
   const skip = (page - 1) * PAGE_SIZE;
 
-  const where: { createdAt?: { gte: Date; lte: Date } } = {};
+  const where: any = {};
   const validPresets: DateRangePreset[] = [
     "today",
     "yesterday",
@@ -90,10 +96,30 @@ export default async function AdminAuditLogsPage({
     where.createdAt = { gte: from, lte: to };
   }
 
+  if (userId) {
+    where.userId = userId;
+  }
+
+  if (query) {
+    where.OR = [
+      { type: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+      { ip: { contains: query, mode: "insensitive" } },
+      {
+        user: {
+          OR: [
+            { email: { contains: query, mode: "insensitive" } },
+            { name: { contains: query, mode: "insensitive" } },
+          ],
+        },
+      },
+    ];
+  }
+
   const rangeLabel =
     range === "all" ? "All time" : range === "today" ? "Today" : range === "yesterday" ? "Yesterday" : range === "this_week" ? "This week" : range === "this_month" ? "This month" : range === "last_month" ? "Last month" : range === "this_year" ? "This year" : "All time";
 
-  const [auditLogs, auditTotal] = await Promise.all([
+  const [auditLogs, auditTotal, usersForFilter] = await Promise.all([
     prisma.auditLog.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -104,14 +130,37 @@ export default async function AdminAuditLogsPage({
       },
     }),
     prisma.auditLog.count({ where }),
+    prisma.user.findMany({
+      where: { auditLogs: { some: {} } },
+      select: { id: true, email: true, name: true },
+      orderBy: { email: "asc" },
+    }),
   ]);
   const auditTotalPages = Math.ceil(auditTotal / PAGE_SIZE) || 1;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-xl font-bold text-slate-900">การล็อกอิน / แก้ไข config</h1>
-        <LogsRangeSelect basePath="/admin/audit-logs" currentRange={range} dateLabel="Date:" />
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h1 className="text-xl font-bold text-slate-900">การล็อกอิน / แก้ไข config</h1>
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            <LogsRangeSelect basePath="/admin/audit-logs" currentRange={range} dateLabel="Date:" />
+            <UserFilterClient
+              users={usersForFilter.map((u) => ({
+                id: u.id,
+                label: u.email ?? u.name ?? u.id,
+              }))}
+              currentUserId={userId || undefined}
+              basePath="/admin/audit-logs"
+              currentRange={range}
+              showDeleteButton={false}
+            />
+          </div>
+        </div>
+        <LogsSearchClient
+          basePath="/admin/audit-logs"
+          placeholder="Search by user, type, description, or IP"
+        />
       </div>
 
       <p className="text-sm text-slate-500">{auditTotal} รายการในระยะนี้</p>
@@ -168,7 +217,7 @@ export default async function AdminAuditLogsPage({
             <div className="flex gap-2">
               {page > 1 && (
                 <Link
-                  href={`/admin/audit-logs${buildQuery(page - 1, range)}`}
+                  href={`/admin/audit-logs${buildQuery({ page: page - 1, range, userId: userId || undefined, q: query || undefined })}`}
                   className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
                 >
                   <ChevronLeft className="w-4 h-4" /> Previous
@@ -176,7 +225,7 @@ export default async function AdminAuditLogsPage({
               )}
               {page < auditTotalPages && (
                 <Link
-                  href={`/admin/audit-logs${buildQuery(page + 1, range)}`}
+                  href={`/admin/audit-logs${buildQuery({ page: page + 1, range, userId: userId || undefined, q: query || undefined })}`}
                   className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
                 >
                   Next <ChevronRight className="w-4 h-4" />

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useDropzone } from "react-dropzone";
 import { useSession } from "next-auth/react";
+import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 export type UploadStage = "idle" | "uploading" | "extracting" | "drive" | "sheets" | "done" | "error";
 
@@ -60,6 +61,7 @@ const MemoizedMain = memo(function MemoizedMain({ children }: { children: React.
 
 export function DashboardUploadProvider({ children }: { children: React.ReactNode }) {
     const { data: session, update } = useSession();
+    const { language } = useAppPreferences();
 
     const [queue, setQueue] = useState<File[]>([]);
     const [currentIndex, setCurrentIndex] = useState(-1);
@@ -116,13 +118,29 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                 setTimeout(() => setStage("sheets"), 4000);
 
                 const res = await fetch("/api/upload", { method: "POST", body: formData });
-                const data = await res.json();
+                const raw = await res.text();
+                let data: any = null;
+                try {
+                    data = raw ? JSON.parse(raw) : null;
+                } catch {
+                    data = null;
+                }
 
                 if (!res.ok) {
                     if (res.status === 409) {
                         setDuplicateAlertFilename(file.name);
                     }
-                    throw new Error(data.error ?? "Processing failed");
+                    const useThai = language === "th";
+                    const localizedError = useThai ? data?.errorTh : data?.errorEn;
+                    const fallback =
+                        raw && raw.length < 200
+                            ? raw
+                            : `Upload failed (${res.status})`;
+                    throw new Error(localizedError ?? data?.error ?? fallback);
+                }
+
+                if (!data?.data) {
+                    throw new Error("Upload response is not valid JSON data");
                 }
 
                 const newResult = data.data as InvoiceResult;

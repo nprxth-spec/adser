@@ -1,7 +1,10 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI, Schema, SchemaType } from "@google/generative-ai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const ai = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+const GEMINI_MODEL_CANDIDATES = [
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+].filter((m): m is string => Boolean(m && m.trim()));
 
 export interface InvoiceData {
     date: string;
@@ -19,52 +22,51 @@ export interface InvoiceData {
 }
 
 // Define the exact JSON schema model must return
-const invoiceSchema = {
-    type: "object",
-    additionalProperties: false,
+const invoiceSchema: Schema = {
+    type: SchemaType.OBJECT,
     properties: {
         date: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "Invoice date or Billing Date in YYYY-MM-DD format",
         },
         card_last_4: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "Exactly the last 4 digits of the payment card (e.g., '1234' from 'MasterCard *1234' or 'Visa *1234')",
         },
         amount: {
-            type: "number",
+            type: SchemaType.NUMBER,
             description: "For successful payment documents: return the TOTAL amount actually charged/paid (final amount debited), including VAT/tax/fees. For unsuccessful payment documents: return the attempted/requested amount shown on the document (e.g. total, amount due, amount attempted), not 0 unless no amount exists at all.",
         },
         currency: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "3-letter currency code (e.g., USD or THB)",
         },
         billed_to: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "The name of the person or company the invoice is billed to (Billed To). Return ONLY the name; omit any timezone prefix such as GMT+7, +12, GMT+12, etc.",
         },
         paymentSuccess: {
-            type: "boolean",
+            type: SchemaType.BOOLEAN,
             description: "True if this receipt/invoice is for a successful payment (amount was charged). False if it is for a failed/unsuccessful payment (e.g. payment declined, unpaid, or explicitly marked as failed).",
         },
         payment_method: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "Payment method used (e.g., 'Visa', 'MasterCard', 'Visa *5991'). Return empty string if not present.",
         },
         invoice_number: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "Invoice number only (e.g., Invoice No., Billing No., Tax Invoice No.). Do not return reference number here. Return empty string if not present.",
         },
         reference_number: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "Reference number only (e.g., Reference No., Ref, Reference ID). Do not return invoice number here. Return empty string if not present.",
         },
         transaction_id: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "Transaction ID or payment ID shown on the document. Return empty string if not present.",
         },
         account_id: {
-            type: "string",
+            type: SchemaType.STRING,
             description: "Account ID (e.g., Facebook/Meta Ad Account ID). Return empty string if not present.",
         },
     },
@@ -81,7 +83,7 @@ const invoiceSchema = {
         "transaction_id",
         "account_id",
     ],
-} as const;
+};
 
 /** Strip timezone prefix (e.g. GMT+12, +7) from Billed To so we keep only the name. */
 function normalizeBilledTo(raw: string): string {
@@ -123,33 +125,128 @@ function paidAmountFromText(text: string): number {
     return values.length ? Math.max(...values) : 0;
 }
 
+type CurrencyToken =
+    | "USD"
+    | "US$"
+    | "THB"
+    | "฿"
+    | "EUR"
+    | "€"
+    | "JPY"
+    | "¥"
+    | "IDR"
+    | "SGD"
+    | "MYR"
+    | "RM";
+
+function detectPrimaryCurrencyToken(text: string): CurrencyToken | null {
+    const t = (text ?? "").toUpperCase();
+    if (t.includes("US$") || t.includes("USD")) return "USD";
+    if ((text ?? "").includes("฿") || t.includes("THB")) return "THB";
+    if ((text ?? "").includes("€") || t.includes("EUR")) return "EUR";
+    if ((text ?? "").includes("¥") || t.includes("JPY")) return "JPY";
+    if (t.includes("IDR")) return "IDR";
+    if (t.includes("SGD")) return "SGD";
+    if (t.includes("MYR") || t.includes("RM")) return "MYR";
+    return null;
+}
+
+function buildCurrencyRegexGroup(primary: CurrencyToken | null): string {
+    const allTokens = ["USD","US\\$","THB","฿","EUR","€","JPY","¥","IDR","SGD","MYR","RM"];
+    if (!primary) return allTokens.join("|");
+    // Put primary currency first to help matching (even though regex order doesn't change results,
+    // we use it for scoring).
+    const primaryGroup =
+        primary === "USD" ? ["USD", "US\\$"] :
+        primary === "THB" ? ["THB", "฿"] :
+        primary === "EUR" ? ["EUR", "€"] :
+        primary === "JPY" ? ["JPY", "¥"] :
+        primary === "MYR" ? ["MYR", "RM"] :
+        [primary];
+    const rest = allTokens.filter((t) => !primaryGroup.includes(t));
+    return [...primaryGroup, ...rest].join("|");
+}
+
+function scoreAmountLine(line: string): number {
+    const l = (line ?? "").toLowerCase();
+    let score = 0;
+
+    // Strong "this is the final paid total" signals
+    if (/(amount\s*charged|charged\s*amount|amount\s*paid|total\s*paid|paid\s*amount|final\s*amount|grand\s*total)/i.test(line)) score += 50;
+    if (/(ยอดชำระแล้ว|ชำระแล้ว|ยอดที่ชำระ|ยอดสุทธิ|ยอดรวมสุทธิ|รวมทั้งสิ้น)/i.test(line)) score += 50;
+    if (/\btotal\b/i.test(line)) score += 20;
+
+    // Weaker hints
+    if (/(receipt|paid|payment\s*received|payment\s*completed)/i.test(line)) score += 10;
+
+    // Penalize non-final numbers
+    if (/(subtotal|vat|tax|ภาษี|ค่าธรรมเนียม|fee)/i.test(line)) score -= 20;
+    if (/(rate|exchange|fx|conversion|converted|อัตราแลกเปลี่ยน)/i.test(line)) score -= 25;
+
+    return score;
+}
+
+function bestAmountByLineScoring(pdfText: string, currencyHint?: string): number {
+    const text = (pdfText ?? "").slice(0, 12000);
+    if (!text) return 0;
+
+    const primary = detectPrimaryCurrencyToken(text) ?? ((currencyHint || "").toUpperCase() as CurrencyToken);
+    const tokenGroup = buildCurrencyRegexGroup(primary || null);
+
+    const patterns = [
+        new RegExp(`(?:${tokenGroup})\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)`, "gi"),
+        new RegExp(`([0-9][0-9,]*(?:\\.[0-9]{1,2})?)\\s*(?:${tokenGroup})`, "gi"),
+    ];
+
+    const lines = text.split(/\r?\n/).slice(0, 300); // keep it bounded
+    let bestScore = -Infinity;
+    let bestAmount = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const window = [
+            lines[i - 1] ?? "",
+            lines[i] ?? "",
+            lines[i + 1] ?? "",
+        ].join("  ");
+
+        const baseScore = scoreAmountLine(window);
+
+        const amounts: number[] = [];
+        for (const p of patterns) {
+            p.lastIndex = 0;
+            let m: RegExpExecArray | null;
+            while ((m = p.exec(window)) !== null) {
+                const num = parseAmount(m[1]);
+                // Filter out obviously-wrong magnitudes for invoices (IDs, account numbers, etc.)
+                if (num > 0 && num < 10_000_000) amounts.push(num);
+            }
+        }
+        if (!amounts.length) continue;
+
+        const candidate = Math.max(...amounts);
+        const candidateScore = baseScore + (candidate >= 1 ? 1 : 0);
+
+        if (candidateScore > bestScore) {
+            bestScore = candidateScore;
+            bestAmount = candidate;
+        }
+    }
+
+    return bestAmount;
+}
+
 function pickBestAmountFromText(pdfText: string, baseAmount: number, currencyHint?: string): number {
     const text = (pdfText ?? "").slice(0, 8000);
     if (!text) return baseAmount;
 
+    const lineScored = bestAmountByLineScoring(pdfText, currencyHint);
     const paidAmount = paidAmountFromText(text);
     const subtotalPlusVat = subtotalPlusVatFromText(text);
 
-    const currencyTokens = ["USD","US\\$","THB","฿","EUR","€","JPY","¥","IDR","SGD","MYR","RM"];
-    // Use full token list to avoid missing symbol variants (e.g. "US$" when hint is "USD")
-    const tokenGroup = currencyTokens.join("|");
-    const pattern1 = new RegExp(`(?:${tokenGroup})\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)`, "gi");
-    const pattern2 = new RegExp(`([0-9][0-9,]*(?:\\.[0-9]{1,2})?)\\s*(?:${tokenGroup})`, "gi");
-    const amounts: number[] = [];
-    const collect = (regex: RegExp) => {
-        let match: RegExpExecArray | null;
-        while ((match = regex.exec(text)) !== null) {
-            const num = parseAmount(match[1]);
-            if (num > 0) amounts.push(num);
-        }
-    };
-    collect(pattern1);
-    collect(pattern2);
-    const maxSingleAmount = amounts.length ? Math.max(...amounts) : 0;
-
-    const candidates = [paidAmount, subtotalPlusVat, baseAmount, maxSingleAmount].filter((n) => n > 0);
+    const candidates = [lineScored, paidAmount, subtotalPlusVat, baseAmount].filter((n) => n > 0);
     if (!candidates.length) return baseAmount;
-    let best = paidAmount > 0 ? paidAmount : Math.max(...candidates);
+    // Prefer line-scored total; then paidAmount; otherwise max of remaining.
+    let best = lineScored > 0 ? lineScored : (paidAmount > 0 ? paidAmount : Math.max(...candidates));
     if (baseAmount > 0 && best > baseAmount * 5) best = baseAmount;
     return best;
 }
@@ -250,29 +347,30 @@ Rules:
 ${trimmedText}`;
 
     try {
-        const completion = await openai.chat.completions.create({
-            model: OPENAI_MODEL,
-            temperature: 0,
-            response_format: {
-                type: "json_schema",
-                json_schema: {
-                    name: "invoice_data",
-                    strict: true,
-                    schema: invoiceSchema,
-                },
-            },
-            messages: [
-                {
-                    role: "system",
-                    content:
-                        "You extract structured invoice data. Return strictly valid JSON only that matches the schema.",
-                },
-                { role: "user", content: prompt },
-            ],
-        });
+        let responseJson = "";
+        let lastError: unknown;
 
-        const responseJson = completion.choices?.[0]?.message?.content ?? "";
-        if (!responseJson) throw new Error("OpenAI returned empty response");
+        for (const modelName of GEMINI_MODEL_CANDIDATES) {
+            try {
+                const model = ai.getGenerativeModel({
+                    model: modelName,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: invoiceSchema,
+                        temperature: 0,
+                    },
+                });
+                const result = await model.generateContent(prompt);
+                responseJson = result.response.text();
+                if (responseJson) break;
+            } catch (err) {
+                lastError = err;
+            }
+        }
+
+        if (!responseJson) {
+            throw lastError ?? new Error("No Gemini Lite model available");
+        }
 
         const parsed = JSON.parse(responseJson) as InvoiceData & {
             cardLast4?: string;
@@ -315,7 +413,7 @@ ${trimmedText}`;
             account_id: (parsed.account_id ?? "").trim() || undefined,
         };
     } catch (err) {
-        console.error("OpenAI Extraction Error:", err);
+        console.error("Gemini Extraction Error:", err);
         throw err;
     }
 }

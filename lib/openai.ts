@@ -87,9 +87,17 @@ const invoiceSchema: Schema = {
 
 /** Strip timezone prefix (e.g. GMT+12, +7) from Billed To so we keep only the name. */
 function normalizeBilledTo(raw: string): string {
-    const s = (raw ?? "").trim();
+    const s = (raw ?? "")
+        .normalize("NFC")
+        .replace(/\u0e4d\u0e32/g, "\u0e33")
+        .trim();
     return s
         .replace(/^\s*(?:GMT\s*)?[+-]?\d{1,2}\s*/i, "")
+        .replace(/^\s*(?:ใบเสร็จ\s*)?(?:สำหรับ|สําหรับ)\s*/i, "")
+        .replace(/^\s*bill(?:ed)?\s*to\s*/i, "")
+        .replace(/^\s*customer(?:\s*name)?\s*/i, "")
+        .replace(/^\s*recipient\s*/i, "")
+        .replace(/^\s*[+\-＋﹣−]?\d{1,2}\s*/, "")
         .replace(/^[\s:|,;.-]+/, "")
         .replace(/[\s:|,;.-]+$/, "")
         .replace(/\s{2,}/g, " ")
@@ -103,9 +111,14 @@ function isLikelyNotPersonOrCompany(line: string): boolean {
     if (t.length < 2) return true;
     // Common non-name labels / noise.
     if (/(invoice|receipt|tax|total|subtotal|amount|vat|reference|transaction|account|date|payment|method|currency)/i.test(t)) return true;
+    if (/(id\s*บัญชี|account\s*id|บัญชี\s*id|เลขที่บัญชี|account\s*number|เลขที่อ้างอิง|ref(?:erence)?\s*(?:no|number|id)?)/i.test(t)) return true;
     if (/(ที่อยู่|โทร|อีเมล|ภาษี|เลขประจำตัวผู้เสียภาษี|ใบกำกับ|ใบเสร็จ|ยอดรวม|ยอดชำระ)/i.test(t)) return true;
     // Looks like long id/hash/account number.
     if (/[A-Z0-9]{10,}/i.test(t) && !/\s/.test(t)) return true;
+    // Mostly digits/symbols with too few letters -> likely not a person/company name.
+    const letters = (t.match(/[A-Za-z\u0E00-\u0E7F]/g) || []).length;
+    const digits = (t.match(/\d/g) || []).length;
+    if (digits >= 6 && letters <= 2) return true;
     return false;
 }
 
@@ -122,7 +135,18 @@ function billedToFromText(pdfText: string): string {
     const labelRegex =
         /^(?:bill(?:ed)?\s*to|customer(?:\s*name)?|recipient|ใบเสร็จ(?:\s*สำหรับ)?|เรียกเก็บ(?:\s*ถึง)?|ลูกค้า)\s*[:\-]?\s*(.*)$/i;
 
-    const candidates: string[] = [];
+    const candidates: Array<{ value: string; score: number }> = [];
+
+    const scoreBilledToCandidate = (value: string, isInline: boolean): number => {
+        let score = isInline ? 30 : 10;
+        const letters = (value.match(/[A-Za-z\u0E00-\u0E7F]/g) || []).length;
+        const digits = (value.match(/\d/g) || []).length;
+        if (letters > 0) score += Math.min(letters, 20);
+        if (digits > 0) score -= Math.min(digits * 2, 20);
+        if (/[A-Za-z\u0E00-\u0E7F].*[A-Za-z\u0E00-\u0E7F]/.test(value)) score += 10;
+        if (/^(?:id|account|ref|reference)\b/i.test(value)) score -= 30;
+        return score;
+    };
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -131,7 +155,10 @@ function billedToFromText(pdfText: string): string {
 
         const inlineValue = normalizeBilledTo(m[1] ?? "");
         if (inlineValue && !isLikelyNotPersonOrCompany(inlineValue)) {
-            candidates.push(inlineValue);
+            candidates.push({
+                value: inlineValue,
+                score: scoreBilledToCandidate(inlineValue, true),
+            });
         }
 
         // Often the value is on next line(s), not same line as label.
@@ -140,15 +167,16 @@ function billedToFromText(pdfText: string): string {
             if (!candidate) continue;
             if (labelRegex.test(candidate)) continue;
             if (isLikelyNotPersonOrCompany(candidate)) continue;
-            candidates.push(candidate);
+            candidates.push({
+                value: candidate,
+                score: scoreBilledToCandidate(candidate, false),
+            });
             break;
         }
     }
 
-    // Prefer longest reasonable candidate (company names often longer than person nicknames).
-    const unique = [...new Set(candidates)];
-    unique.sort((a, b) => b.length - a.length);
-    return unique[0] ?? "";
+    const best = candidates.sort((a, b) => b.score - a.score)[0];
+    return best?.value ?? "";
 }
 
 /** Parse a number from text; supports "2.12", "2,120.50", "US$0.21". */
@@ -171,7 +199,7 @@ function paidAmountFromText(text: string): number {
         /(?:ยอดชำระแล้ว|จำนวนเงินที่ชำระ|ชำระแล้ว|ยอดที่ชำระ|ยอดสุทธิ)\s*:?\s*(?:US\$|USD|THB|฿)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi,
         /(?:amount\s*charged|amount\s*paid|total\s*paid|paid\s*amount|final\s*amount|grand\s*total)\s*:?\s*(?:US\$|USD|THB|฿)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi,
         /(?:US\$|USD|THB|฿)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)\s*(?:charged|paid|ชำระแล้ว)/gi,
-        /(?:ชำระแล้ว|paid)(?:[\s\S]{0,40}?)(?:US\$|USD|THB|฿)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi,
+        /(?:ชำระแล้ว|paid)(?:[\s\S]{0,120}?)(?:US\$|USD|THB|฿)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi,
     ];
 
     const values: number[] = [];
@@ -342,6 +370,30 @@ function extractCardLast4Fallback(pdfText: string): string {
     return "";
 }
 
+function paymentMethodFromText(pdfText: string): string {
+    const text = (pdfText ?? "").slice(0, 12000);
+    if (!text) return "";
+
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const brandPattern = /(mastercard|visa|amex|american express|jcb|unionpay|discover)/i;
+    const last4Pattern = /(?:\*|x{2,}|•{2,}|\.{2,}|-{2,})\s*(\d{4})|\b(\d{4})\b/;
+
+    for (let i = 0; i < lines.length; i++) {
+        const window = [lines[i], lines[i + 1] ?? ""].join(" ");
+        const brandMatch = window.match(brandPattern);
+        if (!brandMatch) continue;
+
+        const brandRaw = brandMatch[1];
+        const brand = /american express/i.test(brandRaw) ? "Amex" : brandRaw[0].toUpperCase() + brandRaw.slice(1).toLowerCase();
+        const last4Match = window.match(last4Pattern);
+        const last4 = (last4Match?.[1] || last4Match?.[2] || "").replace(/\D/g, "").slice(-4);
+        if (last4) return `${brand} *${last4}`;
+        return brand;
+    }
+
+    return "";
+}
+
 function detectPaymentSuccessFromText(pdfText: string): boolean | null {
     if (!pdfText) return null;
 
@@ -462,6 +514,9 @@ ${trimmedText}`;
         const aiBilledTo = normalizeBilledTo(parsed.billed_to ?? "");
         const textBilledTo = billedToFromText(pdfText);
         const resolvedBilledTo = textBilledTo || aiBilledTo;
+        const textPaymentMethod = paymentMethodFromText(pdfText);
+        const aiPaymentMethod = (parsed.payment_method ?? "").trim();
+        const resolvedPaymentMethod = textPaymentMethod || aiPaymentMethod;
 
         return {
             date: parsed.date ?? "",
@@ -470,7 +525,7 @@ ${trimmedText}`;
             currency: parsed.currency ?? "USD",
             billed_to: resolvedBilledTo,
             paymentSuccess,
-            payment_method: (parsed.payment_method ?? "").trim() || undefined,
+            payment_method: resolvedPaymentMethod || undefined,
             invoice_number: (parsed.invoice_number ?? "").trim() || undefined,
             reference_number: (parsed.reference_number ?? "").trim() || undefined,
             transaction_id: (parsed.transaction_id ?? "").trim() || undefined,

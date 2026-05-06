@@ -46,6 +46,7 @@ type DashboardUploadContextValue = {
     requestSessionUpdate: () => Promise<void>;
     isProcessing: boolean;
     currentFile: File | null;
+    cancelUpload: () => void;
 };
 
 const DashboardUploadContext = createContext<DashboardUploadContextValue | null>(null);
@@ -73,6 +74,9 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
     const dismissDuplicateAlert = useCallback(() => setDuplicateAlertFilename(null), []);
 
     const isProcessingRef = useRef(false);
+    const isCancelledRef = useRef(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const stageTimeoutsRef = useRef<number[]>([]);
     const deferredSessionUpdateRef = useRef(false);
     const sessionRef = useRef(session);
     sessionRef.current = session;
@@ -85,8 +89,33 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         }
     }, [update]);
 
+    const clearStageTimeouts = useCallback(() => {
+        for (const id of stageTimeoutsRef.current) {
+            window.clearTimeout(id);
+        }
+        stageTimeoutsRef.current = [];
+    }, []);
+
+    const cancelUpload = useCallback(() => {
+        isCancelledRef.current = true;
+        isProcessingRef.current = false;
+        clearStageTimeouts();
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        setStage("idle");
+        setCurrentIndex(-1);
+        setQueue([]);
+    }, [clearStageTimeouts]);
+
     const processNext = useCallback(
         async (files: File[], index: number, currentResults: ResultItem[]) => {
+            if (isCancelledRef.current) {
+                isProcessingRef.current = false;
+                setCurrentIndex(-1);
+                setStage("idle");
+                return;
+            }
+
             if (index >= files.length) {
                 isProcessingRef.current = false;
                 setCurrentIndex(-1);
@@ -108,16 +137,22 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
             setStage("uploading");
 
             try {
+                abortControllerRef.current = new AbortController();
                 const formData = new FormData();
                 formData.append("file", file);
                 const sheetId = (sessionRef.current?.user as { sheetId?: string })?.sheetId ?? "";
                 if (sheetId) formData.append("sheetId", sheetId);
 
-                setTimeout(() => setStage("extracting"), 800);
-                setTimeout(() => setStage("drive"), 2500);
-                setTimeout(() => setStage("sheets"), 4000);
+                clearStageTimeouts();
+                stageTimeoutsRef.current.push(window.setTimeout(() => setStage("extracting"), 800));
+                stageTimeoutsRef.current.push(window.setTimeout(() => setStage("drive"), 2500));
+                stageTimeoutsRef.current.push(window.setTimeout(() => setStage("sheets"), 4000));
 
-                const res = await fetch("/api/upload", { method: "POST", body: formData });
+                const res = await fetch("/api/upload", {
+                    method: "POST",
+                    body: formData,
+                    signal: abortControllerRef.current.signal,
+                });
                 const raw = await res.text();
                 let data: any = null;
                 try {
@@ -146,8 +181,17 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                 const newResult = data.data as InvoiceResult;
                 const updatedResults = [...currentResults, newResult];
                 setResults(updatedResults);
+                clearStageTimeouts();
+                abortControllerRef.current = null;
                 setTimeout(() => processNext(files, index + 1, updatedResults), 1000);
             } catch (err: unknown) {
+                clearStageTimeouts();
+                abortControllerRef.current = null;
+                if (isCancelledRef.current) {
+                    setStage("idle");
+                    setCurrentIndex(-1);
+                    return;
+                }
                 const message = err instanceof Error ? err.message : "An unexpected error occurred";
                 const errorResult: ResultItem = { filename: file.name, error: message };
                 const updatedResults = [...currentResults, errorResult];
@@ -161,6 +205,7 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
     const onDrop = useCallback(
         (acceptedFiles: File[]) => {
             if (acceptedFiles.length > 0) {
+                isCancelledRef.current = false;
                 setDuplicateAlertFilename(null);
                 setQueue(acceptedFiles);
                 setResults([]);
@@ -178,15 +223,20 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
     });
 
     const resetState = useCallback(() => {
+        isCancelledRef.current = false;
         isProcessingRef.current = false;
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        clearStageTimeouts();
         setDuplicateAlertFilename(null);
         setStage("idle");
         setResults([]);
         setQueue([]);
         setCurrentIndex(-1);
-    }, []);
+    }, [clearStageTimeouts]);
 
     const acknowledgeBatchComplete = useCallback(() => {
+        isCancelledRef.current = false;
         isProcessingRef.current = false;
         setShowBatchComplete(false);
         setStage("idle");
@@ -222,6 +272,7 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         requestSessionUpdate,
         isProcessing,
         currentFile,
+        cancelUpload,
     };
 
     return (

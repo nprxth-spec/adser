@@ -300,6 +300,7 @@ export default function DashboardPage() {
         requestSessionUpdate,
         isProcessing,
         currentFile,
+        cancelUpload,
     } = upload;
 
     const [refreshKey, setRefreshKey] = useState(0);
@@ -611,7 +612,6 @@ export default function DashboardPage() {
 
     return (
         <div className="max-w-7xl mx-auto w-full space-y-6">
-
                 {/* ── Duplicate Alert ── */}
                 {duplicateAlertFilename && (
                     <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
@@ -639,6 +639,14 @@ export default function DashboardPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
+                        {isProcessing && (
+                            <button
+                                onClick={cancelUpload}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-red-50 rounded-xl border border-red-200 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors shadow-sm cursor-pointer"
+                            >
+                                <X className="w-4 h-4" /> {t("ยกเลิกอัปโหลด", "Cancel Upload")}
+                            </button>
+                        )}
                         {(stage === "done" || results.length > 0) && (
                             <button
                                 onClick={resetState}

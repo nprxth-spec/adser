@@ -1,27 +1,7 @@
-import { GoogleGenerativeAI, Schema, SchemaType } from "@google/generative-ai";
+import OpenAI from "openai";
 
-const ai = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
-
-const MODEL_CANDIDATES = [
-    process.env.GOOGLE_AI_MODEL,
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-1.5-flash",
-].filter((m): m is string => Boolean(m && m.trim()));
-
-function isModelNotFoundError(err: unknown): boolean {
-    const message = err instanceof Error ? err.message : String(err ?? "");
-    return message.includes("[404 Not Found]") || message.toLowerCase().includes("no longer available");
-}
-
-function isRateLimitError(err: unknown): boolean {
-    const message = err instanceof Error ? err.message : String(err ?? "");
-    return message.includes("[429 Too Many Requests]") || message.toLowerCase().includes("resource exhausted");
-}
-
-async function sleep(ms: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, ms));
-}
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 export interface InvoiceData {
     date: string;
@@ -38,57 +18,70 @@ export interface InvoiceData {
     account_id?: string;
 }
 
-// Define the exact JSON schema Gemini must return
-const invoiceSchema: Schema = {
-    type: SchemaType.OBJECT,
+// Define the exact JSON schema model must return
+const invoiceSchema = {
+    type: "object",
+    additionalProperties: false,
     properties: {
         date: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "Invoice date or Billing Date in YYYY-MM-DD format",
         },
         card_last_4: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "Exactly the last 4 digits of the payment card (e.g., '1234' from 'MasterCard *1234' or 'Visa *1234')",
         },
         amount: {
-            type: SchemaType.NUMBER,
+            type: "number",
             description: "For successful payment documents: return the TOTAL amount actually charged/paid (final amount debited), including VAT/tax/fees. For unsuccessful payment documents: return the attempted/requested amount shown on the document (e.g. total, amount due, amount attempted), not 0 unless no amount exists at all.",
         },
         currency: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "3-letter currency code (e.g., USD or THB)",
         },
         billed_to: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "The name of the person or company the invoice is billed to (Billed To). Return ONLY the name; omit any timezone prefix such as GMT+7, +12, GMT+12, etc.",
         },
         paymentSuccess: {
-            type: SchemaType.BOOLEAN,
+            type: "boolean",
             description: "True if this receipt/invoice is for a successful payment (amount was charged). False if it is for a failed/unsuccessful payment (e.g. payment declined, unpaid, or explicitly marked as failed).",
         },
         payment_method: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "Payment method used (e.g., 'Visa', 'MasterCard', 'Visa *5991'). Return empty string if not present.",
         },
         invoice_number: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "Invoice number only (e.g., Invoice No., Billing No., Tax Invoice No.). Do not return reference number here. Return empty string if not present.",
         },
         reference_number: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "Reference number only (e.g., Reference No., Ref, Reference ID). Do not return invoice number here. Return empty string if not present.",
         },
         transaction_id: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "Transaction ID or payment ID shown on the document. Return empty string if not present.",
         },
         account_id: {
-            type: SchemaType.STRING,
+            type: "string",
             description: "Account ID (e.g., Facebook/Meta Ad Account ID). Return empty string if not present.",
         },
     },
-    required: ["date", "card_last_4", "amount", "currency", "billed_to", "paymentSuccess"],
-};
+    required: [
+        "date",
+        "card_last_4",
+        "amount",
+        "currency",
+        "billed_to",
+        "paymentSuccess",
+        "payment_method",
+        "invoice_number",
+        "reference_number",
+        "transaction_id",
+        "account_id",
+    ],
+} as const;
 
 /** Strip timezone prefix (e.g. GMT+12, +7) from Billed To so we keep only the name. */
 function normalizeBilledTo(raw: string): string {
@@ -111,18 +104,35 @@ function subtotalPlusVatFromText(text: string): number {
     return 0;
 }
 
+function paidAmountFromText(text: string): number {
+    const patterns = [
+        /(?:ยอดชำระแล้ว|จำนวนเงินที่ชำระ|ชำระแล้ว|ยอดที่ชำระ|ยอดสุทธิ)\s*:?\s*(?:US\$|USD|THB|฿)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi,
+        /(?:amount\s*charged|amount\s*paid|total\s*paid|paid\s*amount|final\s*amount|grand\s*total)\s*:?\s*(?:US\$|USD|THB|฿)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi,
+        /(?:US\$|USD|THB|฿)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)\s*(?:charged|paid|ชำระแล้ว)/gi,
+        /(?:ชำระแล้ว|paid)(?:[\s\S]{0,40}?)(?:US\$|USD|THB|฿)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi,
+    ];
+
+    const values: number[] = [];
+    for (const pattern of patterns) {
+        let match: RegExpExecArray | null;
+        while ((match = pattern.exec(text)) !== null) {
+            const amount = parseAmount(match[1]);
+            if (amount > 0) values.push(amount);
+        }
+    }
+    return values.length ? Math.max(...values) : 0;
+}
+
 function pickBestAmountFromText(pdfText: string, baseAmount: number, currencyHint?: string): number {
     const text = (pdfText ?? "").slice(0, 8000);
     if (!text) return baseAmount;
 
+    const paidAmount = paidAmountFromText(text);
     const subtotalPlusVat = subtotalPlusVatFromText(text);
 
     const currencyTokens = ["USD","US\\$","THB","฿","EUR","€","JPY","¥","IDR","SGD","MYR","RM"];
-    const hint = (currencyHint || "").toUpperCase();
-    const filteredTokens = hint
-        ? currencyTokens.filter((t) => t.replace(/\\W/g, "") === hint || t.toUpperCase() === hint)
-        : currencyTokens;
-    const tokenGroup = filteredTokens.length ? filteredTokens.join("|") : currencyTokens.join("|");
+    // Use full token list to avoid missing symbol variants (e.g. "US$" when hint is "USD")
+    const tokenGroup = currencyTokens.join("|");
     const pattern1 = new RegExp(`(?:${tokenGroup})\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)`, "gi");
     const pattern2 = new RegExp(`([0-9][0-9,]*(?:\\.[0-9]{1,2})?)\\s*(?:${tokenGroup})`, "gi");
     const amounts: number[] = [];
@@ -137,9 +147,9 @@ function pickBestAmountFromText(pdfText: string, baseAmount: number, currencyHin
     collect(pattern2);
     const maxSingleAmount = amounts.length ? Math.max(...amounts) : 0;
 
-    const candidates = [baseAmount, subtotalPlusVat, maxSingleAmount].filter((n) => n > 0);
+    const candidates = [paidAmount, subtotalPlusVat, baseAmount, maxSingleAmount].filter((n) => n > 0);
     if (!candidates.length) return baseAmount;
-    let best = Math.max(...candidates);
+    let best = paidAmount > 0 ? paidAmount : Math.max(...candidates);
     if (baseAmount > 0 && best > baseAmount * 5) best = baseAmount;
     return best;
 }
@@ -240,42 +250,29 @@ Rules:
 ${trimmedText}`;
 
     try {
-        let responseJson = "";
-        let lastError: unknown;
-
-        for (const modelName of MODEL_CANDIDATES) {
-            const model = ai.getGenerativeModel({
-                model: modelName,
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: invoiceSchema,
-                    temperature: 0,
+        const completion = await openai.chat.completions.create({
+            model: OPENAI_MODEL,
+            temperature: 0,
+            response_format: {
+                type: "json_schema",
+                json_schema: {
+                    name: "invoice_data",
+                    strict: true,
+                    schema: invoiceSchema,
                 },
-            });
+            },
+            messages: [
+                {
+                    role: "system",
+                    content:
+                        "You extract structured invoice data. Return strictly valid JSON only that matches the schema.",
+                },
+                { role: "user", content: prompt },
+            ],
+        });
 
-            for (let attempt = 0; attempt < 3; attempt++) {
-                try {
-                    const result = await model.generateContent(prompt);
-                    responseJson = result.response.text();
-                    lastError = undefined;
-                    break;
-                } catch (err) {
-                    lastError = err;
-                    if (isRateLimitError(err) && attempt < 2) {
-                        await sleep(500 * (attempt + 1));
-                        continue;
-                    }
-                    if (isModelNotFoundError(err)) break;
-                    throw err;
-                }
-            }
-
-            if (responseJson) break;
-        }
-
-        if (!responseJson) {
-            throw lastError ?? new Error("No Gemini model available");
-        }
+        const responseJson = completion.choices?.[0]?.message?.content ?? "";
+        if (!responseJson) throw new Error("OpenAI returned empty response");
 
         const parsed = JSON.parse(responseJson) as InvoiceData & {
             cardLast4?: string;
@@ -318,7 +315,7 @@ ${trimmedText}`;
             account_id: (parsed.account_id ?? "").trim() || undefined,
         };
     } catch (err) {
-        console.error("Gemini Extraction Error:", err);
-        return { date: "", card_last_4: "", amount: 0, currency: "USD", billed_to: "", paymentSuccess: true };
+        console.error("OpenAI Extraction Error:", err);
+        throw err;
     }
 }

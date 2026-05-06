@@ -88,7 +88,67 @@ const invoiceSchema: Schema = {
 /** Strip timezone prefix (e.g. GMT+12, +7) from Billed To so we keep only the name. */
 function normalizeBilledTo(raw: string): string {
     const s = (raw ?? "").trim();
-    return s.replace(/^\s*(?:GMT\s*)?[+-]?\d{1,2}\s*/i, "").trim();
+    return s
+        .replace(/^\s*(?:GMT\s*)?[+-]?\d{1,2}\s*/i, "")
+        .replace(/^[\s:|,;.-]+/, "")
+        .replace(/[\s:|,;.-]+$/, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+}
+
+function isLikelyNotPersonOrCompany(line: string): boolean {
+    const t = (line ?? "").trim();
+    if (!t) return true;
+    if (/^\d+$/.test(t)) return true;
+    if (t.length < 2) return true;
+    // Common non-name labels / noise.
+    if (/(invoice|receipt|tax|total|subtotal|amount|vat|reference|transaction|account|date|payment|method|currency)/i.test(t)) return true;
+    if (/(ที่อยู่|โทร|อีเมล|ภาษี|เลขประจำตัวผู้เสียภาษี|ใบกำกับ|ใบเสร็จ|ยอดรวม|ยอดชำระ)/i.test(t)) return true;
+    // Looks like long id/hash/account number.
+    if (/[A-Z0-9]{10,}/i.test(t) && !/\s/.test(t)) return true;
+    return false;
+}
+
+function billedToFromText(pdfText: string): string {
+    const text = (pdfText ?? "").slice(0, 16000);
+    if (!text) return "";
+
+    const lines = text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .slice(0, 600);
+
+    const labelRegex =
+        /^(?:bill(?:ed)?\s*to|customer(?:\s*name)?|recipient|ใบเสร็จ(?:\s*สำหรับ)?|เรียกเก็บ(?:\s*ถึง)?|ลูกค้า)\s*[:\-]?\s*(.*)$/i;
+
+    const candidates: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const m = line.match(labelRegex);
+        if (!m) continue;
+
+        const inlineValue = normalizeBilledTo(m[1] ?? "");
+        if (inlineValue && !isLikelyNotPersonOrCompany(inlineValue)) {
+            candidates.push(inlineValue);
+        }
+
+        // Often the value is on next line(s), not same line as label.
+        for (let j = i + 1; j <= i + 3 && j < lines.length; j++) {
+            const candidate = normalizeBilledTo(lines[j]);
+            if (!candidate) continue;
+            if (labelRegex.test(candidate)) continue;
+            if (isLikelyNotPersonOrCompany(candidate)) continue;
+            candidates.push(candidate);
+            break;
+        }
+    }
+
+    // Prefer longest reasonable candidate (company names often longer than person nicknames).
+    const unique = [...new Set(candidates)];
+    unique.sort((a, b) => b.length - a.length);
+    return unique[0] ?? "";
 }
 
 /** Parse a number from text; supports "2.12", "2,120.50", "US$0.21". */
@@ -399,12 +459,16 @@ ${trimmedText}`;
             extractCardLast4Fallback(pdfText);
         const normalizedLast4 = String(rawLast4 ?? "").replace(/\D/g, "").slice(-4);
 
+        const aiBilledTo = normalizeBilledTo(parsed.billed_to ?? "");
+        const textBilledTo = billedToFromText(pdfText);
+        const resolvedBilledTo = textBilledTo || aiBilledTo;
+
         return {
             date: parsed.date ?? "",
             card_last_4: normalizedLast4,
             amount: adjustedAmount,
             currency: parsed.currency ?? "USD",
-            billed_to: normalizeBilledTo(parsed.billed_to ?? ""),
+            billed_to: resolvedBilledTo,
             paymentSuccess,
             payment_method: (parsed.payment_method ?? "").trim() || undefined,
             invoice_number: (parsed.invoice_number ?? "").trim() || undefined,

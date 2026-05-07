@@ -28,13 +28,20 @@ export interface InvoiceResult {
 
 type ResultItem = InvoiceResult | { filename: string; error: string };
 
+export interface ActiveFile {
+    file: File;
+    index: number;
+    stage: UploadStage;
+}
+
+const CONCURRENCY = 3;
+
 type DashboardUploadContextValue = {
     queue: File[];
     currentIndex: number;
     results: ResultItem[];
     stage: UploadStage;
     showBatchComplete: boolean;
-    /** Filename when last upload was rejected as duplicate; show alert until dismissed. */
     duplicateAlertFilename: string | null;
     dismissDuplicateAlert: () => void;
     onDrop: (acceptedFiles: File[]) => void;
@@ -47,11 +54,13 @@ type DashboardUploadContextValue = {
     isProcessing: boolean;
     currentFile: File | null;
     cancelUpload: () => void;
+    activeFiles: ActiveFile[];
+    completedCount: number;
 };
 
 const DashboardUploadContext = createContext<DashboardUploadContextValue | null>(null);
 
-/** Memoized so that when only upload context state changes, the current page does not re-render (avoids lag when navigating away during upload). */
+/** Memoized so that when only upload context state changes, the current page does not re-render. */
 const MemoizedMain = memo(function MemoizedMain({ children }: { children: React.ReactNode }) {
     return (
         <main className="flex-1 min-h-0 overflow-auto p-3 sm:p-4 lg:p-5">
@@ -65,21 +74,30 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
     const { language } = useAppPreferences();
 
     const [queue, setQueue] = useState<File[]>([]);
-    const [currentIndex, setCurrentIndex] = useState(-1);
     const [results, setResults] = useState<ResultItem[]>([]);
     const [stage, setStage] = useState<UploadStage>("idle");
     const [showBatchComplete, setShowBatchComplete] = useState(false);
     const [duplicateAlertFilename, setDuplicateAlertFilename] = useState<string | null>(null);
+    // Map of fileIndex -> per-file stage (only for files currently being processed)
+    const [fileStages, setFileStages] = useState<Map<number, UploadStage>>(new Map());
+    const [completedCount, setCompletedCount] = useState(0);
 
     const dismissDuplicateAlert = useCallback(() => setDuplicateAlertFilename(null), []);
 
     const isProcessingRef = useRef(false);
     const isCancelledRef = useRef(false);
-    const abortControllerRef = useRef<AbortController | null>(null);
-    const stageTimeoutsRef = useRef<number[]>([]);
+    const abortControllersRef = useRef<Map<number, AbortController>>(new Map());
     const deferredSessionUpdateRef = useRef(false);
     const sessionRef = useRef(session);
     sessionRef.current = session;
+
+    // Worker coordination (refs to avoid stale closures)
+    const nextIndexRef = useRef(0);
+    const activeWorkerCountRef = useRef(0);
+    const queueRef = useRef<File[]>([]);
+    const resultsRef = useRef<ResultItem[]>([]);
+    const completedCountRef = useRef(0);
+    const totalFilesRef = useRef(0);
 
     const requestSessionUpdate = useCallback(async () => {
         if (isProcessingRef.current) {
@@ -89,131 +107,144 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         }
     }, [update]);
 
-    const clearStageTimeouts = useCallback(() => {
-        for (const id of stageTimeoutsRef.current) {
-            window.clearTimeout(id);
-        }
-        stageTimeoutsRef.current = [];
-    }, []);
-
     const cancelUpload = useCallback(() => {
         isCancelledRef.current = true;
         isProcessingRef.current = false;
-        clearStageTimeouts();
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
+        for (const [, ctrl] of abortControllersRef.current) ctrl.abort();
+        abortControllersRef.current.clear();
         setStage("idle");
-        setCurrentIndex(-1);
         setQueue([]);
-    }, [clearStageTimeouts]);
+        setFileStages(new Map());
+        setCompletedCount(0);
+        nextIndexRef.current = 0;
+        activeWorkerCountRef.current = 0;
+    }, []);
 
-    const processNext = useCallback(
-        async (files: File[], index: number, currentResults: ResultItem[]) => {
-            if (isCancelledRef.current) {
-                isProcessingRef.current = false;
-                setCurrentIndex(-1);
-                setStage("idle");
-                return;
+    const setFileStageById = useCallback((fileIndex: number, fileStage: UploadStage | null) => {
+        setFileStages(prev => {
+            const next = new Map(prev);
+            if (fileStage === null) {
+                next.delete(fileIndex);
+            } else {
+                next.set(fileIndex, fileStage);
             }
+            return next;
+        });
+    }, []);
 
-            if (index >= files.length) {
-                isProcessingRef.current = false;
-                setCurrentIndex(-1);
-                setStage("done");
-                setShowBatchComplete(true);
-                if (deferredSessionUpdateRef.current) {
-                    deferredSessionUpdateRef.current = false;
-                    update().catch(() => {});
-                }
-                return;
-            }
+    const processFile = useCallback(
+        async (file: File, fileIndex: number) => {
+            if (isCancelledRef.current) return;
 
-            if (index === 0) {
-                isProcessingRef.current = true;
-            }
+            setFileStageById(fileIndex, "uploading");
 
-            const file = files[index];
-            setCurrentIndex(index);
-            setStage("uploading");
+            const stageTimeouts: number[] = [];
+            const ctrl = new AbortController();
+            abortControllersRef.current.set(fileIndex, ctrl);
 
             try {
-                abortControllerRef.current = new AbortController();
                 const formData = new FormData();
                 formData.append("file", file);
                 const sheetId = (sessionRef.current?.user as { sheetId?: string })?.sheetId ?? "";
                 if (sheetId) formData.append("sheetId", sheetId);
 
-                clearStageTimeouts();
-                stageTimeoutsRef.current.push(window.setTimeout(() => setStage("extracting"), 800));
-                stageTimeoutsRef.current.push(window.setTimeout(() => setStage("drive"), 2500));
-                stageTimeoutsRef.current.push(window.setTimeout(() => setStage("sheets"), 4000));
+                stageTimeouts.push(window.setTimeout(() => setFileStageById(fileIndex, "extracting"), 800));
+                stageTimeouts.push(window.setTimeout(() => setFileStageById(fileIndex, "drive"), 2500));
+                stageTimeouts.push(window.setTimeout(() => setFileStageById(fileIndex, "sheets"), 4000));
 
                 const res = await fetch("/api/upload", {
                     method: "POST",
                     body: formData,
-                    signal: abortControllerRef.current.signal,
+                    signal: ctrl.signal,
                 });
                 const raw = await res.text();
                 let data: any = null;
-                try {
-                    data = raw ? JSON.parse(raw) : null;
-                } catch {
-                    data = null;
-                }
+                try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
 
                 if (!res.ok) {
-                    if (res.status === 409) {
-                        setDuplicateAlertFilename(file.name);
-                    }
+                    if (res.status === 409) setDuplicateAlertFilename(file.name);
                     const useThai = language === "th";
                     const localizedError = useThai ? data?.errorTh : data?.errorEn;
-                    const fallback =
-                        raw && raw.length < 200
-                            ? raw
-                            : `Upload failed (${res.status})`;
+                    const fallback = raw && raw.length < 200 ? raw : `Upload failed (${res.status})`;
                     throw new Error(localizedError ?? data?.error ?? fallback);
                 }
 
-                if (!data?.data) {
-                    throw new Error("Upload response is not valid JSON data");
-                }
+                if (!data?.data) throw new Error("Upload response is not valid JSON data");
 
                 const newResult = data.data as InvoiceResult;
-                const updatedResults = [...currentResults, newResult];
-                setResults(updatedResults);
-                clearStageTimeouts();
-                abortControllerRef.current = null;
-                setTimeout(() => processNext(files, index + 1, updatedResults), 1000);
+                resultsRef.current = [...resultsRef.current, newResult];
+                setResults([...resultsRef.current]);
+
             } catch (err: unknown) {
-                clearStageTimeouts();
-                abortControllerRef.current = null;
-                if (isCancelledRef.current) {
-                    setStage("idle");
-                    setCurrentIndex(-1);
-                    return;
-                }
+                if (isCancelledRef.current) return;
                 const message = err instanceof Error ? err.message : "An unexpected error occurred";
-                const errorResult: ResultItem = { filename: file.name, error: message };
-                const updatedResults = [...currentResults, errorResult];
-                setResults(updatedResults);
-                setTimeout(() => processNext(files, index + 1, updatedResults), 1000);
+                resultsRef.current = [...resultsRef.current, { filename: file.name, error: message }];
+                setResults([...resultsRef.current]);
+            } finally {
+                for (const id of stageTimeouts) window.clearTimeout(id);
+                abortControllersRef.current.delete(fileIndex);
+                setFileStageById(fileIndex, null);
+                completedCountRef.current += 1;
+                setCompletedCount(completedCountRef.current);
             }
         },
-        [update]
+        [language, setFileStageById]
     );
+
+    // Worker loop — each worker processes files until the queue is exhausted
+    const runWorker = useCallback(async () => {
+        while (!isCancelledRef.current) {
+            const idx = nextIndexRef.current;
+            if (idx >= totalFilesRef.current) break;
+            nextIndexRef.current = idx + 1;
+
+            const file = queueRef.current[idx];
+            if (!file) break;
+            await processFile(file, idx);
+
+            // Brief yield so React can flush state updates between files
+            if (!isCancelledRef.current) await new Promise(r => setTimeout(r, 200));
+        }
+
+        activeWorkerCountRef.current -= 1;
+        if (activeWorkerCountRef.current === 0 && !isCancelledRef.current) {
+            isProcessingRef.current = false;
+            setStage("done");
+            setShowBatchComplete(true);
+            if (deferredSessionUpdateRef.current) {
+                deferredSessionUpdateRef.current = false;
+                update().catch(() => {});
+            }
+        }
+    }, [processFile, update]);
 
     const onDrop = useCallback(
         (acceptedFiles: File[]) => {
-            if (acceptedFiles.length > 0) {
-                isCancelledRef.current = false;
-                setDuplicateAlertFilename(null);
-                setQueue(acceptedFiles);
-                setResults([]);
-                setCurrentIndex(-1);
-                processNext(acceptedFiles, 0, []);
+            if (acceptedFiles.length === 0) return;
+            isCancelledRef.current = false;
+            isProcessingRef.current = true;
+            setDuplicateAlertFilename(null);
+
+            queueRef.current = acceptedFiles;
+            resultsRef.current = [];
+            completedCountRef.current = 0;
+            nextIndexRef.current = 0;
+            totalFilesRef.current = acceptedFiles.length;
+            activeWorkerCountRef.current = 0;
+
+            setQueue(acceptedFiles);
+            setResults([]);
+            setFileStages(new Map());
+            setCompletedCount(0);
+            setStage("uploading");
+
+            const workerCount = Math.min(CONCURRENCY, acceptedFiles.length);
+            activeWorkerCountRef.current = workerCount;
+            for (let i = 0; i < workerCount; i++) {
+                void runWorker();
             }
         },
-        [processNext]
+        [runWorker]
     );
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -225,15 +256,17 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
     const resetState = useCallback(() => {
         isCancelledRef.current = false;
         isProcessingRef.current = false;
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
-        clearStageTimeouts();
+        for (const [, ctrl] of abortControllersRef.current) ctrl.abort();
+        abortControllersRef.current.clear();
         setDuplicateAlertFilename(null);
         setStage("idle");
         setResults([]);
         setQueue([]);
-        setCurrentIndex(-1);
-    }, [clearStageTimeouts]);
+        setFileStages(new Map());
+        setCompletedCount(0);
+        nextIndexRef.current = 0;
+        activeWorkerCountRef.current = 0;
+    }, []);
 
     const acknowledgeBatchComplete = useCallback(() => {
         isCancelledRef.current = false;
@@ -241,7 +274,8 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         setShowBatchComplete(false);
         setStage("idle");
         setQueue([]);
-        setCurrentIndex(-1);
+        setFileStages(new Map());
+        setCompletedCount(0);
     }, []);
 
     useEffect(() => {
@@ -252,8 +286,19 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     }, []);
 
-    const isProcessing = currentIndex >= 0 && currentIndex < queue.length;
-    const currentFile = isProcessing ? queue[currentIndex] : null;
+    const isProcessing = fileStages.size > 0 || (isProcessingRef.current);
+
+    // Build sorted activeFiles array for UI consumption
+    const activeFiles: ActiveFile[] = [];
+    for (const [index, s] of fileStages) {
+        const file = queueRef.current[index];
+        if (file) activeFiles.push({ file, index, stage: s });
+    }
+    activeFiles.sort((a, b) => a.index - b.index);
+
+    // Backward-compat single-file props
+    const currentFile = activeFiles[0]?.file ?? null;
+    const currentIndex = activeFiles[0]?.index ?? -1;
 
     const value: DashboardUploadContextValue = {
         queue,
@@ -273,6 +318,8 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         isProcessing,
         currentFile,
         cancelUpload,
+        activeFiles,
+        completedCount,
     };
 
     return (

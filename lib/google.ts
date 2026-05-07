@@ -10,7 +10,6 @@ function getOAuth2Client(accessToken: string) {
     return oauth2Client;
 }
 
-/** Escape single quotes for Drive API query strings */
 function escapeDriveQuery(value: string): string {
     return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
@@ -50,7 +49,6 @@ async function getOrCreateDateSubfolder(
     parentFolderId: string,
     invoiceDate: string
 ): Promise<string> {
-    // Convert YYYY-MM-DD → DD/MM/YYYY for the folder name
     const safeDate = (invoiceDate ?? "").replace(/[^0-9-]/g, "");
     let folderName: string;
     if (/^\d{4}-\d{2}-\d{2}$/.test(safeDate)) {
@@ -126,6 +124,82 @@ async function getOrCreateFailedSubfolder(
     return createRes.data.id!;
 }
 
+// ─── Generic subfolder helper ─────────────────────────────────────────────────
+
+async function getOrCreateSubfolder(
+    drive: ReturnType<typeof google.drive>,
+    parentFolderId: string,
+    folderName: string,
+): Promise<string> {
+    const escapedParent = escapeDriveQuery(parentFolderId);
+    const escapedName   = escapeDriveQuery(folderName);
+
+    const searchRes = await drive.files.list({
+        q: [
+            `name='${escapedName}'`,
+            "mimeType='application/vnd.google-apps.folder'",
+            "trashed=false",
+            `'${escapedParent}' in parents`,
+        ].join(" and "),
+        fields: "files(id, name)",
+        spaces: "drive",
+    });
+
+    if (searchRes.data.files && searchRes.data.files.length > 0) {
+        return searchRes.data.files[0].id!;
+    }
+
+    const createRes = await drive.files.create({
+        requestBody: {
+            name: folderName,
+            mimeType: "application/vnd.google-apps.folder",
+            parents: [parentFolderId],
+        },
+        fields: "id",
+    });
+
+    return createRes.data.id!;
+}
+
+// ─── Year / Month / Day hierarchy ─────────────────────────────────────────────
+
+const MONTH_NAMES = [
+    "January", "February", "March",     "April",   "May",      "June",
+    "July",    "August",   "September", "October", "November", "December",
+];
+
+/**
+ * Resolves (or creates) root / YYYY / MM_MonthName / DD/MM/YYYY
+ * from a date string formatted as YYYY-MM-DD.
+ */
+async function getOrCreateYearMonthDayFolder(
+    drive: ReturnType<typeof google.drive>,
+    rootFolderId: string,
+    invoiceDate: string,
+): Promise<string> {
+    const safeDate = (invoiceDate ?? "").replace(/[^0-9-]/g, "");
+
+    let year: string, month: string, day: string;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(safeDate)) {
+        [year, month, day] = safeDate.split("-");
+    } else {
+        const today = new Date();
+        year  = String(today.getFullYear());
+        month = String(today.getMonth() + 1).padStart(2, "0");
+        day   = String(today.getDate()).padStart(2, "0");
+    }
+
+    const monthIndex      = parseInt(month, 10) - 1;
+    const monthFolderName = `${month}_${MONTH_NAMES[monthIndex] ?? month}`;
+    const dayFolderName   = `${day}/${month}/${year}`;
+
+    const yearFolderId  = await getOrCreateSubfolder(drive, rootFolderId,  year);
+    const monthFolderId = await getOrCreateSubfolder(drive, yearFolderId,  monthFolderName);
+    const dayFolderId   = await getOrCreateSubfolder(drive, monthFolderId, dayFolderName);
+
+    return dayFolderId;
+}
+
 export interface SheetMapping {
     date: string;
     card_last_4: string;
@@ -181,36 +255,34 @@ export interface SyncResult {
     sheetRow: number;
 }
 
-export async function syncToGoogle(
-    data: InvoiceData,
+/** Upload a file to Drive only (no Sheets). Returns driveLink and driveFileId. */
+export async function uploadFileToDrive(
     fileBuffer: Buffer,
     filename: string,
     accessToken: string,
-    sheetId: string,
-    sheetName: string | null = null,
-    sheetMapping: any | null = null,
+    invoiceDate: string,
     driveFolderId: string | null = null,
-    driveFolderMode: string = "auto"
-): Promise<SyncResult> {
+    driveFolderMode: string = "auto",
+    paymentSuccess: boolean = true,
+): Promise<{ driveLink: string; driveFileId: string }> {
     const auth = getOAuth2Client(accessToken);
     const drive = google.drive({ version: "v3", auth });
-    const sheets = google.sheets({ version: "v4", auth });
 
-    // 1. Determine target Drive folder
     let baseFolderId: string;
-    if (driveFolderMode === "date-subfolder" && driveFolderId && driveFolderId.trim().length > 0) {
-        baseFolderId = await getOrCreateDateSubfolder(drive, driveFolderId, data.date);
+    if (driveFolderMode === "year-month-day" && driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = await getOrCreateYearMonthDayFolder(drive, driveFolderId, invoiceDate);
+    } else if (driveFolderMode === "date-subfolder" && driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = await getOrCreateDateSubfolder(drive, driveFolderId, invoiceDate);
     } else if (driveFolderId && driveFolderId.trim().length > 0) {
         baseFolderId = driveFolderId;
     } else {
-        baseFolderId = await getOrCreateFolder(drive, data.date);
+        baseFolderId = await getOrCreateFolder(drive, invoiceDate);
     }
 
-    const folderId = data.paymentSuccess
+    const folderId = paymentSuccess
         ? baseFolderId
         : await getOrCreateFailedSubfolder(drive, baseFolderId);
 
-    // 2. Upload PDF
     const { Readable } = await import("stream");
     const fileStream = Readable.from(fileBuffer);
 
@@ -220,16 +292,45 @@ export async function syncToGoogle(
         fields: "id, webViewLink",
     });
 
-    const driveLink = uploadRes.data.webViewLink ?? "";
+    return {
+        driveLink: uploadRes.data.webViewLink ?? "",
+        driveFileId: uploadRes.data.id ?? "",
+    };
+}
 
-    // 3. Write to Google Sheet
+/** Rename an existing Drive file. */
+export async function renameDriveFile(
+    fileId: string,
+    newName: string,
+    accessToken: string,
+): Promise<void> {
+    const auth = getOAuth2Client(accessToken);
+    const drive = google.drive({ version: "v3", auth });
+    await drive.files.update({
+        fileId,
+        requestBody: { name: newName },
+    });
+}
+
+/** Append a single row to Sheets (used when approving a review item). */
+export async function appendToSheet(
+    data: InvoiceData,
+    filename: string,
+    driveLink: string,
+    accessToken: string,
+    sheetId: string,
+    sheetName: string | null = null,
+    sheetMapping: any | null = null,
+): Promise<number> {
+    const auth = getOAuth2Client(accessToken);
+    const sheets = google.sheets({ version: "v4", auth });
+
     const mapping: SheetMapping | null =
         sheetMapping && typeof sheetMapping === "object" ? (sheetMapping as SheetMapping) : null;
 
     let nextRow: number;
 
     if (mapping) {
-        // Custom mapping: get next row then batchUpdate in one call
         const sheetPrefix = sheetName ? `'${sheetName}'!` : "";
         const existingRes = await sheets.spreadsheets.values.get({
             spreadsheetId: sheetId,
@@ -266,7 +367,114 @@ export async function syncToGoogle(
             });
         }
     } else {
-        // No mapping: use append for atomic row insertion (fixes race condition)
+        const valuesArray: any[] = [
+            data.date ?? "",
+            data.billed_to ?? "",
+            data.card_last_4 ?? "",
+            data.amount ?? 0,
+            data.currency ?? "",
+            filename,
+            driveLink,
+        ];
+        const targetRange = sheetName ? `'${sheetName}'!A:G` : "A:G";
+        const appendRes = await sheets.spreadsheets.values.append({
+            spreadsheetId: sheetId,
+            range: targetRange,
+            valueInputOption: "USER_ENTERED",
+            insertDataOption: "INSERT_ROWS",
+            requestBody: { values: [valuesArray] },
+        });
+        const updatedRange = appendRes.data.updates?.updatedRange ?? "";
+        const rowMatch = updatedRange.match(/(\d+)(?::\w+\d+)?$/);
+        nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
+    }
+
+    return nextRow;
+}
+
+export async function syncToGoogle(
+    data: InvoiceData,
+    fileBuffer: Buffer,
+    filename: string,
+    accessToken: string,
+    sheetId: string,
+    sheetName: string | null = null,
+    sheetMapping: any | null = null,
+    driveFolderId: string | null = null,
+    driveFolderMode: string = "auto"
+): Promise<SyncResult> {
+    const auth = getOAuth2Client(accessToken);
+    const drive = google.drive({ version: "v3", auth });
+    const sheets = google.sheets({ version: "v4", auth });
+
+    let baseFolderId: string;
+    if (driveFolderMode === "year-month-day" && driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = await getOrCreateYearMonthDayFolder(drive, driveFolderId, data.date);
+    } else if (driveFolderMode === "date-subfolder" && driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = await getOrCreateDateSubfolder(drive, driveFolderId, data.date);
+    } else if (driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = driveFolderId;
+    } else {
+        baseFolderId = await getOrCreateFolder(drive, data.date);
+    }
+
+    const folderId = data.paymentSuccess
+        ? baseFolderId
+        : await getOrCreateFailedSubfolder(drive, baseFolderId);
+
+    const { Readable } = await import("stream");
+    const fileStream = Readable.from(fileBuffer);
+
+    const uploadRes = await drive.files.create({
+        requestBody: { name: filename, parents: [folderId] },
+        media: { mimeType: "application/pdf", body: fileStream },
+        fields: "id, webViewLink",
+    });
+
+    const driveLink = uploadRes.data.webViewLink ?? "";
+
+    const mapping: SheetMapping | null =
+        sheetMapping && typeof sheetMapping === "object" ? (sheetMapping as SheetMapping) : null;
+
+    let nextRow: number;
+
+    if (mapping) {
+        const sheetPrefix = sheetName ? `'${sheetName}'!` : "";
+        const existingRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: sheetId,
+            range: `${sheetPrefix}A:A`,
+        });
+        nextRow = (existingRes.data.values?.length ?? 0) + 1;
+
+        const cellMap: Record<string, any> = {};
+        const addCell = (col: string | undefined | null, value: any) => {
+            if (!col || col.trim() === "") return;
+            cellMap[col.toUpperCase()] = value;
+        };
+
+        addCell(mapping.date, data.date ?? "");
+        addCell(mapping.billed_to, data.billed_to ?? "");
+        addCell(mapping.card_last_4, data.card_last_4 ?? "");
+        if (data.paymentSuccess) {
+            addCell(mapping.amount, data.amount ?? 0);
+        } else {
+            addCell(mapping.amountFailed ?? "H", data.amount ?? 0);
+        }
+        addCell(mapping.currency, data.currency ?? "");
+        addCell(mapping.filename, filename);
+        addCell(mapping.driveLink, driveLink);
+
+        if (Object.keys(cellMap).length > 0) {
+            const batchData = Object.entries(cellMap).map(([col, val]) => ({
+                range: sheetName ? `'${sheetName}'!${col}${nextRow}` : `${col}${nextRow}`,
+                values: [[val]],
+            }));
+            await sheets.spreadsheets.values.batchUpdate({
+                spreadsheetId: sheetId,
+                requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+            });
+        }
+    } else {
         const valuesArray: any[] = [
             data.date ?? "",
             data.billed_to ?? "",

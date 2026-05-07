@@ -20,6 +20,28 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Maintenance Mode
+
+When you want to temporarily stop users from using the web app, enable maintenance mode:
+
+1. Add this variable to your environment file (`.env.local` in development, or your production env vars):
+
+```bash
+MAINTENANCE_MODE=true
+```
+
+2. Restart the app.
+
+When enabled:
+- All web pages redirect to `/maintenance` (except the maintenance page itself)
+- API routes return HTTP `503 Service Unavailable`
+
+To turn it off:
+
+```bash
+MAINTENANCE_MODE=false
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

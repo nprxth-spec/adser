@@ -11,6 +11,7 @@ import {
     FileText,
     Wrench,
     ChevronRight,
+    AlertTriangle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
@@ -19,8 +20,16 @@ export default function Sidebar() {
     const pathname = usePathname();
     const { t } = useAppPreferences();
     const [collapsed, setCollapsed] = useState(false);
+    const [reviewCount, setReviewCount] = useState(0);
+
     const navLinks = [
         { href: "/dashboard", label: t("อัปโหลด", "Upload"), icon: Upload },
+        {
+            href: "/review",
+            label: t("ต้องตรวจสอบ", "Needs Review"),
+            icon: AlertTriangle,
+            badge: reviewCount > 0 ? reviewCount : undefined,
+        },
         { href: "/history", label: t("ประวัติ", "History"), icon: History },
         { href: "/integrations", label: t("การเชื่อมต่อ", "Integrations"), icon: Wrench },
         { href: "/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },
@@ -28,16 +37,13 @@ export default function Sidebar() {
         { href: "/settings", label: t("ตั้งค่า", "Settings"), icon: Settings },
     ];
 
-    // Restore collapsed state from localStorage; on small screens start collapsed
     useEffect(() => {
         if (typeof window === "undefined") return;
         const stored = window.localStorage.getItem("sidebar-collapsed");
         const isNarrow = window.innerWidth < 768;
-        if (stored === "true" || isNarrow) {
-            setCollapsed(true);
-        }
+        if (stored === "true" || isNarrow) setCollapsed(true);
     }, []);
-    
+
     useEffect(() => {
         if (typeof window === "undefined") return;
         const syncCollapsed = () => {
@@ -55,13 +61,28 @@ export default function Sidebar() {
         };
     }, []);
 
+    useEffect(() => {
+        let cancelled = false;
+        const fetchCount = async () => {
+            try {
+                const res = await fetch("/api/review");
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!cancelled && Array.isArray(data.data)) {
+                    setReviewCount(data.data.length);
+                }
+            } catch {}
+        };
+        fetchCount();
+        return () => { cancelled = true; };
+    }, [pathname]);
+
     return (
         <aside
             className={`${
                 collapsed ? "w-16" : "w-16 md:w-64"
             } h-screen bg-slate-900 text-white flex flex-col shrink-0 sticky top-0 overflow-x-hidden transition-[width] duration-200`}
         >
-            {/* Logo */}
             <div className="h-14 sm:h-16 px-4 border-b border-slate-800 flex items-center">
                 <div className="flex items-center gap-3 overflow-hidden">
                     <div className="w-9 h-9 rounded-xl landing-accent-bg flex items-center justify-center shadow-lg shadow-teal-900/30">
@@ -76,9 +97,8 @@ export default function Sidebar() {
                 </div>
             </div>
 
-            {/* Nav Links */}
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-                {navLinks.map(({ href, label, icon: Icon }) => {
+                {navLinks.map(({ href, label, icon: Icon, badge }: any) => {
                     const isActive = pathname === href;
                     return (
                         <Link
@@ -93,11 +113,23 @@ export default function Sidebar() {
                                     : "text-slate-400 hover:text-white hover:bg-slate-800"
                             }`}
                         >
-                            <Icon className="w-5 h-5 shrink-0" />
+                            <div className="relative shrink-0">
+                                <Icon className="w-5 h-5" />
+                                {collapsed && badge !== undefined && (
+                                    <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 flex items-center justify-center rounded-full bg-amber-400 text-slate-900 text-[9px] font-bold px-0.5">
+                                        {badge > 99 ? "99+" : badge}
+                                    </span>
+                                )}
+                            </div>
                             {!collapsed && (
                                 <>
                                     <span className="flex-1 truncate">{label}</span>
-                                    {isActive && <ChevronRight className="w-3.5 h-3.5 opacity-60" />}
+                                    {badge !== undefined && (
+                                        <span className="ml-auto min-w-[20px] h-5 flex items-center justify-center rounded-full bg-amber-400 text-slate-900 text-[10px] font-bold px-1">
+                                            {badge > 99 ? "99+" : badge}
+                                        </span>
+                                    )}
+                                    {isActive && !badge && <ChevronRight className="w-3.5 h-3.5 opacity-60" />}
                                 </>
                             )}
                         </Link>

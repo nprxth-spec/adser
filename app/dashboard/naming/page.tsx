@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Save, Loader2, FileText, Plus, X, Eye, RotateCcw, GripVertical } from "lucide-react";
+import { Save, Loader2, FileText, Eye, Lock } from "lucide-react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 // ── Token definitions ──────────────────────────────────────────────────────────
@@ -27,20 +27,17 @@ type TemplateItem =
   | { type: "field";   key: string;   id: string }
   | { type: "literal"; value: string; id: string };
 
-const DEFAULT_TEMPLATE: TemplateItem[] = [
-  { type: "field",   key: "card_prefix",       id: "d1" },
-  { type: "literal", value: " - ",             id: "d2" },
-  { type: "field",   key: "original_filename", id: "d3" },
-  { type: "literal", value: " (",              id: "d4" },
-  { type: "field",   key: "billed_to",         id: "d5" },
-  { type: "literal", value: ")",               id: "d6" },
+// ── LOCKED template: {card_prefix} - {date} - {reference_number} ({billed_to})
+export const LOCKED_TEMPLATE: TemplateItem[] = [
+  { type: "field",   key: "card_prefix",      id: "t1" },
+  { type: "literal", value: " - ",            id: "t2" },
+  { type: "field",   key: "date",             id: "t3" },
+  { type: "literal", value: " - ",            id: "t4" },
+  { type: "field",   key: "reference_number", id: "t5" },
+  { type: "literal", value: " (",             id: "t6" },
+  { type: "field",   key: "billed_to",        id: "t7" },
+  { type: "literal", value: ")",              id: "t8" },
 ];
-
-let _idSeq = 0;
-function genId() { return `i${Date.now()}${++_idSeq}`; }
-function cloneWithIds(items: any[]): TemplateItem[] {
-  return items.map((item) => ({ ...item, id: item.id || genId() }));
-}
 
 // ── Card prefix mapping helpers ────────────────────────────────────────────────
 type MappingObject = Record<string, string>;
@@ -70,30 +67,14 @@ function buildPreview(template: TemplateItem[], examples: Record<string, string>
 export default function NamingRulesPage() {
   const { t } = useAppPreferences();
 
-  const [template, setTemplate] = useState<TemplateItem[]>(cloneWithIds(DEFAULT_TEMPLATE));
   const [rawText, setRawText] = useState("");
   const [loading, setLoading] = useState(true);
-  const mappingLoadedFromServer = useRef(false); // true once we got data from server
+  const mappingLoadedFromServer = useRef(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  // Drag state
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-
-  // Inline insert state: -1 = before first chip, n = after chip n
-  const [insertAfterIdx, setInsertAfterIdx] = useState<number | null>(null);
-  const [insertText, setInsertText] = useState("");
-
-  // Inline edit state for literal chips
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState("");
-
-  const insertInputRef = useRef<HTMLInputElement>(null);
-  const editInputRef = useRef<HTMLInputElement>(null);
-
-  // ── Load ───────────────────────────────────────────────────────────────────
+  // ── Load (only mapping; template is locked so we still persist it as LOCKED) ──
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -102,104 +83,25 @@ export default function NamingRulesPage() {
           fetch("/api/filename-template"),
           fetch("/api/filename-mapping"),
         ]);
-        const [tData, mData] = await Promise.all([tRes.json(), mRes.json()]);
-        if (Array.isArray(tData?.data) && tData.data.length > 0)
-          setTemplate(cloneWithIds(tData.data));
+        const [, mData] = await Promise.all([tRes.json(), mRes.json()]);
         if (mData?.data) { setRawText(serializeMapping(mData.data)); mappingLoadedFromServer.current = true; }
       } catch {}
       setLoading(false);
     })();
   }, []);
 
-  // ── Drag & Drop ────────────────────────────────────────────────────────────
-  const handleDragStart = (e: React.DragEvent, idx: number) => {
-    setDragIdx(idx);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(idx));
-  };
-  const handleDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (dragIdx !== idx) setDragOverIdx(idx);
-  };
-  const handleDrop = (e: React.DragEvent, targetIdx: number) => {
-    e.preventDefault();
-    if (dragIdx === null || dragIdx === targetIdx) {
-      setDragIdx(null); setDragOverIdx(null); return;
-    }
-    setTemplate((prev) => {
-      const next = [...prev];
-      const [item] = next.splice(dragIdx, 1);
-      const at = dragIdx < targetIdx ? targetIdx - 1 : targetIdx;
-      next.splice(at, 0, item);
-      return next;
-    });
-    setDragIdx(null); setDragOverIdx(null);
-  };
-  const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
-
-  // ── Inline insert ──────────────────────────────────────────────────────────
-  const openInsert = (afterIdx: number) => {
-    setInsertAfterIdx(afterIdx);
-    setInsertText("");
-    setEditingId(null);
-    setTimeout(() => insertInputRef.current?.focus(), 30);
-  };
-  const commitInsert = () => {
-    const val = insertText;
-    const after = insertAfterIdx;
-    setInsertAfterIdx(null);
-    setInsertText("");
-    if (!val || after === null) return;
-    setTemplate((prev) => {
-      const next = [...prev];
-      const insertAt = after < 0 ? 0 : after + 1;
-      next.splice(insertAt, 0, { type: "literal", value: val, id: genId() });
-      return next;
-    });
-  };
-
-  // ── Inline edit literal ────────────────────────────────────────────────────
-  const startEdit = (item: TemplateItem) => {
-    if (item.type !== "literal") return;
-    setEditingId(item.id);
-    setEditText(item.value);
-    setInsertAfterIdx(null);
-    setTimeout(() => editInputRef.current?.focus(), 30);
-  };
-  const commitEdit = () => {
-    const id = editingId;
-    const val = editText;
-    setEditingId(null);
-    if (!id) return;
-    if (!val.trim()) {
-      setTemplate((prev) => prev.filter((i) => i.id !== id));
-      return;
-    }
-    setTemplate((prev) =>
-      prev.map((item) =>
-        item.id === id && item.type === "literal" ? { ...item, value: val } : item
-      )
-    );
-  };
-
-  const remove = (id: string) => setTemplate((prev) => prev.filter((i) => i.id !== id));
-  const addField = (key: string) =>
-    setTemplate((prev) => [...prev, { type: "field", key, id: genId() }]);
-  const resetToDefault = () => setTemplate(cloneWithIds(DEFAULT_TEMPLATE));
-
   // ── Save ───────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     setSaving(true); setSaved(false); setError("");
     try {
       const mapping = parseMapping(rawText);
-      // Safety: never overwrite existing mapping with empty unless we confirmed server has no data
       const shouldSaveMapping = rawText.trim() !== "" || mappingLoadedFromServer.current;
       const [tRes, mRes] = await Promise.all([
+        // Always persist the locked template
         fetch("/api/filename-template", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ template }),
+          body: JSON.stringify({ template: LOCKED_TEMPLATE }),
         }),
         shouldSaveMapping ? fetch("/api/filename-mapping", {
           method: "POST",
@@ -220,38 +122,11 @@ export default function NamingRulesPage() {
   const firstCard = Object.entries(parseMapping(rawText))[0];
   const examples: Record<string, string> = {
     card_prefix: firstCard ? firstCard[1] : "WF-0004-1",
-    original_filename: "invoice_2024-01",
     billed_to: "John Doe",
-    date: "2024-01-15", amount: "150.00", currency: "USD",
-    payment_method: "Visa", invoice_number: "INV-2026-001", reference_number: "REF-123456",
-    transaction_id: "TXN-789012", account_id: "ACC-456789",
+    date: "2024-01-15",
+    reference_number: "REF-123456",
   };
-  const preview = buildPreview(template, examples) + ".pdf";
-
-  // ── Small helper component ─────────────────────────────────────────────────
-  const InsertBtn = ({ afterIdx }: { afterIdx: number }) =>
-    insertAfterIdx === afterIdx ? (
-      <input
-        ref={insertInputRef}
-        value={insertText}
-        onChange={(e) => setInsertText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); commitInsert(); }
-          if (e.key === "Escape") { setInsertAfterIdx(null); setInsertText(""); }
-        }}
-        onBlur={commitInsert}
-        placeholder="..."
-        className="w-16 px-1.5 py-1 text-xs font-mono border-2 border-teal-400 rounded-lg bg-white outline-none shadow-sm"
-      />
-    ) : (
-      <button
-        onClick={() => openInsert(afterIdx)}
-        title={t("เพิ่มตัวคั่น", "Add separator here")}
-        className="w-5 h-5 rounded-full flex items-center justify-center text-slate-300 hover:text-teal-600 hover:bg-teal-50 text-sm font-bold cursor-pointer transition-colors select-none"
-      >
-        +
-      </button>
-    );
+  const preview = buildPreview(LOCKED_TEMPLATE, examples) + ".pdf";
 
   // ══════════════════════════════════════════════════════════════════════════
   return (
@@ -263,8 +138,8 @@ export default function NamingRulesPage() {
         </h1>
         <p className="text-slate-500">
           {t(
-            "กำหนดรูปแบบชื่อไฟล์โดยเลือกข้อมูลจากใบเสร็จ แล้วลากจัดลำดับตามต้องการ",
-            "Configure the filename format by selecting invoice fields, then drag to reorder."
+            "รูปแบบชื่อไฟล์ถูกกำหนดไว้แล้ว — แก้ไขได้เฉพาะการจับคู่ชื่อบัตร",
+            "The filename format is fixed — you can only edit the card name mapping."
           )}
         </p>
       </div>
@@ -279,7 +154,7 @@ export default function NamingRulesPage() {
         <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">{error}</div>
       )}
 
-      {/* ── Template builder ── */}
+      {/* ── Locked Template Display ── */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5 mb-5">
 
         <div className="flex items-start gap-3">
@@ -287,141 +162,39 @@ export default function NamingRulesPage() {
             <FileText className="w-5 h-5 text-violet-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
               <p className="font-semibold text-slate-900">{t("รูปแบบชื่อไฟล์", "Filename Template")}</p>
-              <button
-                onClick={resetToDefault}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 cursor-pointer transition-colors shrink-0"
-              >
-                <RotateCcw className="w-3 h-3" />
-                {t("รีเซ็ต", "Reset")}
-              </button>
+              <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                <Lock className="w-3 h-3" />
+                {t("ล็อก", "Locked")}
+              </span>
             </div>
             <p className="text-sm text-slate-400">
               {t(
-                "ลากชิปเพื่อเรียงลำดับ • กด + เพื่อพิมพ์ตัวคั่น • คลิกข้อความเพื่อแก้ไข",
-                "Drag chips to reorder • Press + to type a separator • Click text to edit"
+                "รูปแบบนี้ถูกกำหนดไว้แล้วและไม่สามารถเปลี่ยนแปลงได้",
+                "This format is fixed and cannot be changed."
               )}
             </p>
           </div>
         </div>
 
-        {/* ── Template strip ── */}
-        <div
-          className="min-h-[60px] p-3 rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-wrap gap-y-2 items-center"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            if (dragIdx !== null && template.length === 0) {
-              e.preventDefault();
-            }
-          }}
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-          ) : template.length === 0 ? (
-            <>
-              <InsertBtn afterIdx={-1} />
-              <span className="text-slate-400 text-sm italic ml-2">
-                {t("ว่างอยู่ — คลิก + เพื่อเริ่ม", "Empty — click + to start")}
-              </span>
-            </>
-          ) : (
-            <>
-              {/* Insert before first */}
-              <InsertBtn afterIdx={-1} />
-
-              {template.map((item, idx) => {
-                const field = item.type === "field" ? FIELD_MAP[item.key] : null;
-                const isDragging = dragIdx === idx;
-                const isDragOver = dragOverIdx === idx && dragIdx !== null && dragIdx !== idx;
-                const isEditing = editingId === item.id;
-
-                return (
-                  <div key={item.id} className="flex items-center gap-0.5">
-                    {/* Chip */}
-                    <div
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, idx)}
-                      onDragOver={(e) => handleDragOver(e, idx)}
-                      onDrop={(e) => handleDrop(e, idx)}
-                      onDragEnd={handleDragEnd}
-                      className={[
-                        "flex items-center rounded-lg border text-xs font-medium select-none transition-all duration-100",
-                        isDragging ? "opacity-30 scale-95" : "",
-                        isDragOver ? "ring-2 ring-teal-400 ring-offset-1 scale-105" : "",
-                        item.type === "field"
-                          ? (field?.color ?? "bg-slate-100 text-slate-700 border-slate-200")
-                          : "bg-white text-slate-600 border-slate-300 font-mono",
-                      ].join(" ")}
-                    >
-                      {/* Drag handle */}
-                      <span className="cursor-grab active:cursor-grabbing pl-1.5 py-1 text-slate-300 hover:text-slate-500 transition-colors">
-                        <GripVertical className="w-3.5 h-3.5" />
-                      </span>
-
-                      {/* Content */}
-                      {item.type === "field" ? (
-                        <span className="px-1.5 py-1">
-                          {t(field?.label ?? item.key, field?.labelEn ?? item.key)}
-                        </span>
-                      ) : isEditing ? (
-                        <input
-                          ref={editInputRef}
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); commitEdit(); }
-                            if (e.key === "Escape") { setEditingId(null); }
-                          }}
-                          onBlur={commitEdit}
-                          className="min-w-[2rem] w-auto bg-transparent outline-none py-1 px-1 font-mono text-xs border-b border-teal-400"
-                          style={{ width: `${Math.max(editText.length + 1, 3)}ch` }}
-                        />
-                      ) : (
-                        <span
-                          className="px-1.5 py-1 cursor-text hover:text-slate-900 font-mono"
-                          onClick={() => startEdit(item)}
-                          title={t("คลิกเพื่อแก้ไข", "Click to edit")}
-                        >
-                          {item.value || <span className="text-slate-300 italic">empty</span>}
-                        </span>
-                      )}
-
-                      {/* Remove */}
-                      <button
-                        onClick={() => remove(item.id)}
-                        className="pr-1.5 py-1 pl-0.5 text-slate-300 hover:text-red-500 cursor-pointer transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-
-                    {/* Insert after this chip */}
-                    <InsertBtn afterIdx={idx} />
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-
-        {/* ── Available field tokens ── */}
-        <div>
-          <p className="text-xs font-medium text-slate-500 mb-2">
-            {t("คลิกเพื่อเพิ่มข้อมูลต่อท้าย", "Click to append a field")}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {TOKEN_FIELDS.map((field) => (
-              <button
-                key={field.key}
-                onClick={() => addField(field.key)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium cursor-pointer hover:opacity-75 active:scale-95 transition-all ${field.color}`}
-              >
-                <Plus className="w-3 h-3 shrink-0" />
-                {t(field.label, field.labelEn)}
-              </button>
-            ))}
-          </div>
+        {/* ── Read-only template chips ── */}
+        <div className="min-h-[52px] p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap gap-y-2 items-center">
+          {LOCKED_TEMPLATE.map((item) => {
+            const field = item.type === "field" ? FIELD_MAP[item.key] : null;
+            return (
+              <div key={item.id} className="flex items-center">
+                {item.type === "field" ? (
+                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium ${field?.color ?? "bg-slate-100 text-slate-700 border-slate-200"}`}>
+                    <Lock className="w-2.5 h-2.5 opacity-50" />
+                    {t(field?.label ?? item.key, field?.labelEn ?? item.key)}
+                  </span>
+                ) : (
+                  <span className="px-1 text-xs font-mono text-slate-500">{item.value}</span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* ── Live preview ── */}

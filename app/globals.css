@@ -111,6 +111,22 @@ html[data-theme="dark"] .text-slate-300 {
   .animate-fade-in-up-delay-3 {
     animation: fadeInUp 0.6s ease-out 0.3s both;
   }
+
+  .animate-maintenance-float {
+    animation: maintenanceFloat 6s ease-in-out infinite;
+  }
+
+  .animate-maintenance-glow {
+    animation: maintenanceGlow 4s ease-in-out infinite alternate;
+  }
+
+  .animate-maintenance-spin-slow {
+    animation: maintenanceSpin 18s linear infinite;
+  }
+
+  .animate-maintenance-spin-reverse {
+    animation: maintenanceSpinReverse 9s linear infinite;
+  }
 }
 
 @keyframes fadeInUp {
@@ -132,6 +148,50 @@ html[data-theme="dark"] .text-slate-300 {
 
   100% {
     background-position: 200% 0;
+  }
+}
+
+@keyframes maintenanceFloat {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes maintenanceGlow {
+  0% {
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.12);
+  }
+
+  100% {
+    box-shadow: 0 0 60px rgba(20, 184, 166, 0.28);
+  }
+}
+
+@keyframes maintenanceSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes maintenanceSpinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
   }
 }
 

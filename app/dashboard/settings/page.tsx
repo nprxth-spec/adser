@@ -277,7 +277,8 @@ export default function SettingsPage() {
               {t("Sheets:", "Sheets:")} {sheetId ? `${sheetName ?? t("เชื่อมต่อแล้ว", "Connected")} (${sheetId.slice(0, 8)}...)` : t("ยังไม่ตั้งค่า", "Not configured")}
             </p>
             <p className="text-sm text-slate-600">
-              {t("ปลายทาง Drive:", "Drive destination:")} {driveFolderId ? `${driveFolderId.slice(0, 12)}...` : t("อัตโนมัติ / ยังไม่ตั้งค่า", "Automatic / not set")}
+              {t("ปลายทาง Drive:", "Drive destination:")}{" "}
+              {t("ระบบจัดเก็บอัตโนมัติตามวันที่ใบเสร็จ (ปี / เดือน / วัน)", "Auto-organised by receipt date (Year / Month / Day)")}
             </p>
             {status.missingScopes.length > 0 && (
               <p className="text-xs text-amber-600">{t("คำเตือนสิทธิ์:", "Permission warning:")} {status.missingScopes.join(", ")}</p>
@@ -306,11 +307,14 @@ export default function SettingsPage() {
           disabled={deleting}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 cursor-pointer"
         >
-          {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+          {deleting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
           {t("ลบบัญชี", "Delete account")}
         </button>
       </section>
     </div>
   );
 }
-

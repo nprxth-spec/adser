@@ -13,14 +13,13 @@ import {
     HardDrive,
     Sheet,
     X,
-    ChevronDown,
     Trash2,
     Zap,
     TrendingUp,
     DollarSign,
     ExternalLink,
 } from "lucide-react";
-import { useDashboardUpload, type UploadStage } from "@/components/DashboardUploadContext";
+import { useDashboardUpload, type UploadStage, type ActiveFile } from "@/components/DashboardUploadContext";
 import Link from "next/link";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
@@ -301,6 +300,8 @@ export default function DashboardPage() {
         isProcessing,
         currentFile,
         cancelUpload,
+        activeFiles,
+        completedCount,
     } = upload;
 
     const [refreshKey, setRefreshKey] = useState(0);
@@ -315,101 +316,13 @@ export default function DashboardPage() {
         prevResultsLen.current = results.length;
     }, [results.length]);
 
-    // Drive folder selection
-    const [driveFolderId, setDriveFolderId] = useState("");
-    const [driveFolderMode, setDriveFolderMode] = useState<"auto" | "custom" | "date-subfolder">("auto");
-    const [modeInitialized, setModeInitialized] = useState(false);
-    const [modeMenuOpen, setModeMenuOpen] = useState(false);
-    const modeMenuRef = useRef<HTMLDivElement | null>(null);
-    const [folderError, setFolderError] = useState("");
-    const [driveFolderLabel, setDriveFolderLabel] = useState("");
     const [spreadsheetTitle, setSpreadsheetTitle] = useState<string | null>(null);
     const [effectiveSheetId, setEffectiveSheetId] = useState<string>("");
     const [effectiveSheetName, setEffectiveSheetName] = useState<string>("");
     const [effectiveSheetGid, setEffectiveSheetGid] = useState<number | null>(null);
 
-    const PICKER_ROOT_FOLDER_ID = "11-naB49cPhno_HpKcTbrmYPhNz_R8oJk";
 
-    // Close mode dropdown when clicking outside
-    useEffect(() => {
-        if (!modeMenuOpen) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            if (modeMenuRef.current && !modeMenuRef.current.contains(e.target as Node)) {
-                setModeMenuOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [modeMenuOpen]);
 
-    // ── helpers: localStorage cache สำหรับ folder label ──────────────────────
-    const getFolderLabelCache = (id: string) => {
-        try { return localStorage.getItem(`drive-folder-label:${id}`) ?? ""; } catch { return ""; }
-    };
-    const setFolderLabelCache = (id: string, label: string) => {
-        try { localStorage.setItem(`drive-folder-label:${id}`, label); } catch { /* ignore */ }
-    };
-    const clearFolderLabelCache = (id: string) => {
-        try { localStorage.removeItem(`drive-folder-label:${id}`); } catch { /* ignore */ }
-    };
-
-    // ── Initialize folder ID, mode, และ label จาก session / API ─────────────
-    useEffect(() => {
-        if (modeInitialized && (driveFolderId ? driveFolderLabel !== "" : true)) return;
-        const load = async () => {
-            let id = driveFolderId;
-            let mode: "auto" | "custom" | "date-subfolder" | null = null;
-
-            const sessionFolderId = (session?.user as any)?.driveFolderId as string | undefined;
-            const sessionFolderMode = (session?.user as any)?.driveFolderMode as string | undefined;
-            if (sessionFolderId) id = sessionFolderId;
-            if (sessionFolderMode === "auto" || sessionFolderMode === "custom" || sessionFolderMode === "date-subfolder") {
-                mode = sessionFolderMode;
-            }
-
-            if (!id || !mode) {
-                try {
-                    const res = await fetch("/api/drive-folder");
-                    const data = await res.json();
-                    if (res.ok) {
-                        if (data?.data?.driveFolderId) id = data.data.driveFolderId as string;
-                        const apiMode = data?.data?.driveFolderMode as string | undefined;
-                        if (apiMode === "auto" || apiMode === "custom" || apiMode === "date-subfolder") {
-                            mode = apiMode;
-                        }
-                    }
-                } catch { /* ignore */ }
-            }
-
-            if (id && !driveFolderId) setDriveFolderId(id);
-
-            if (!modeInitialized) {
-                setDriveFolderMode(mode ?? (id ? "custom" : "auto"));
-                setModeInitialized(true);
-            }
-
-            if (id && !driveFolderLabel) {
-                // 1) ลอง localStorage ก่อน — แสดงทันที ไม่ต้องรอ API
-                const cached = getFolderLabelCache(id);
-                if (cached) {
-                    setDriveFolderLabel(cached);
-                    return; // ไม่ต้อง fetch ใหม่
-                }
-
-                // 2) ไม่มี cache → fetch จาก API แล้ว cache ไว้
-                try {
-                    const res = await fetch(`/api/drive/folder-meta?id=${encodeURIComponent(id)}`);
-                    const data = await res.json();
-                    if (res.ok && data?.data) {
-                        const label = (data.data.path as string) || (data.data.name as string) || id;
-                        setDriveFolderLabel(label);
-                        setFolderLabelCache(id, label);
-                    }
-                } catch { /* ignore */ }
-            }
-        };
-        void load();
-    }, [session, modeInitialized, driveFolderId, driveFolderLabel]);
 
     // Resolve current sheet destination from active integrations profile (fallback to session fields)
     useEffect(() => {
@@ -504,103 +417,6 @@ export default function DashboardPage() {
             document.body.appendChild(script);
         });
 
-    const handleOpenDrivePicker = async () => {
-        setFolderError("");
-        try {
-            if (typeof window === "undefined") return;
-            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-            let accessToken = (session as any)?.accessToken as string | undefined;
-
-            if (!apiKey) { setFolderError("Missing NEXT_PUBLIC_GOOGLE_API_KEY in environment."); return; }
-
-            if (!accessToken) {
-                const res = await fetch("/api/google/access-token");
-                const data = await res.json();
-                if (!res.ok || !data?.data?.accessToken) {
-                    setFolderError(data?.error ?? "Google access token missing. Please sign in again.");
-                    return;
-                }
-                accessToken = data.data.accessToken as string;
-            }
-
-            await loadGoogleApiScript();
-
-            const googleObj = (window as any).google;
-            if (!googleObj || !googleObj.picker) {
-                setFolderError("Google Picker API not available (picker library not loaded).");
-                return;
-            }
-
-            const view = new googleObj.picker.DocsView(googleObj.picker.ViewId.FOLDERS)
-                .setIncludeFolders(true)
-                .setSelectFolderEnabled(true)
-                .setParent(PICKER_ROOT_FOLDER_ID);
-
-            const picker = new googleObj.picker.PickerBuilder()
-                .addView(view)
-                .setOAuthToken(accessToken)
-                .setDeveloperKey(apiKey)
-                .setCallback((data: any) => {
-                    if (data.action === googleObj.picker.Action.PICKED && data.docs?.length > 0) {
-                        const picked = data.docs[0];
-                        if (picked?.id) {
-                            // คงโหมดเดิมไว้ถ้าเป็น date-subfolder ไม่อัปเดตเป็น custom
-                            const pickedMode = driveFolderMode === "date-subfolder" ? "date-subfolder" : "custom";
-                            setDriveFolderId(picked.id);
-                            setDriveFolderMode(pickedMode);
-                            // แสดงชื่อโฟลเดอร์ทันทีจาก picker (ไม่ต้องรอ API)
-                            const leafName: string = picked.name || picked.id;
-                            setDriveFolderLabel(leafName);
-
-                            // ── เริ่ม meta fetch ทันที (ไม่รอ save) ──────────────────
-                            const metaParams = new URLSearchParams({ id: picked.id, leafName });
-                            if (picked.parentId) metaParams.set("parentId", picked.parentId);
-                            const metaPromise = fetch(`/api/drive/folder-meta?${metaParams}`)
-                                .then((r) => (r.ok ? r.json() : null))
-                                .catch(() => null);
-
-                            (async () => {
-                                try {
-                                    // save + session update ไปพร้อมๆ กับที่ meta กำลัง fetch
-                                    const res = await fetch("/api/drive-folder", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ driveFolderId: picked.id, driveFolderMode: pickedMode }),
-                                    });
-                                    const resData = await res.json();
-                                    if (!res.ok) {
-                                        setFolderError(resData.error ?? "Failed to save folder");
-                                    } else {
-                                        await requestSessionUpdate();
-                                    }
-                                } catch (err: any) {
-                                    setFolderError(err.message ?? "Failed to save folder");
-                                }
-
-                                // รับผล meta (มักจะ resolve แล้วตอนนี้)
-                                try {
-                                    const metaData = await metaPromise;
-                                    if (metaData?.data) {
-                                        const label =
-                                            (metaData.data.path as string) ||
-                                            (metaData.data.name as string) ||
-                                            leafName;
-                                        setDriveFolderLabel(label);
-                                        setFolderLabelCache(picked.id, label);
-                                    }
-                                } catch { /* ignore */ }
-                            })();
-                        }
-                    }
-                })
-                .build();
-
-            picker.setVisible(true);
-        } catch (err: any) {
-            setFolderError(err.message ?? "Failed to open Google Picker.");
-        }
-    };
-
     // Warn before leaving during upload
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -662,212 +478,41 @@ export default function DashboardPage() {
                 {/* ── Row 1: Drive destination (left) + Drop Zone (right) ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-                    {/* Drive destination */}
+                    {/* Drive destination — locked */}
                     <div className="bg-white rounded-xl border border-slate-200 p-4">
-                            <p className="text-sm font-semibold text-slate-800 mb-1">{t("ปลายทาง Drive", "Drive destination")}</p>
-                            <p className="text-xs text-slate-400 mb-3">
-                                {t("เลือกโฟลเดอร์รายเดือนอัตโนมัติ หรือเลือกโฟลเดอร์เองใน Drive", "Choose automatic monthly folder or a custom Drive folder.")}
-                            </p>
+                        <p className="text-sm font-semibold text-slate-800 mb-1">{t("ปลายทาง Drive", "Drive destination")}</p>
 
-                            <div className="flex gap-2">
-                                <div className="relative flex-1 min-w-0" ref={modeMenuRef}>
-                                    <button
-                                    type="button"
-                                    onClick={() => setModeMenuOpen((v) => !v)}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 flex items-center justify-between hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm cursor-pointer"
-                                >
-                                    <span>
-                                        {driveFolderMode === "auto"
-                                            ? t("อัตโนมัติ — FB_Invoices_YYYY-MM", "Automatic — FB_Invoices_YYYY-MM")
-                                            : driveFolderMode === "date-subfolder"
-                                            ? t("สร้างโฟลเดอร์ตามวันที่ใบเสร็จ", "Auto subfolder by receipt date")
-                                            : t("โฟลเดอร์กำหนดเอง", "Custom folder")}
-                                    </span>
-                                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                </button>
-                                {modeMenuOpen && (
-                                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg py-1 text-xs text-slate-700">
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                setModeMenuOpen(false);
-                                                setDriveFolderMode("auto");
-                                                setFolderError("");
-                                                try {
-                                                    await fetch("/api/drive-folder", {
-                                                        method: "POST",
-                                                        headers: { "Content-Type": "application/json" },
-                                                        body: JSON.stringify({ driveFolderId: null, driveFolderMode: "auto" }),
-                                                    });
-                                                    if (driveFolderId) clearFolderLabelCache(driveFolderId);
-                                                    setDriveFolderId("");
-                                                    setDriveFolderLabel("");
-                                                    await requestSessionUpdate();
-                                                } catch { /* ignore */ }
-                                            }}
-                                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${driveFolderMode === "auto" ? "bg-slate-50" : ""}`}
-                                        >
-                                            <span className="font-semibold">{t("อัตโนมัติ", "Automatic")}</span>{" "}
-                                            <span className="text-slate-500">— FB_Invoices_YYYY-MM</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                setModeMenuOpen(false);
-                                                setDriveFolderMode("custom");
-                                                setFolderError("");
-                                                if (driveFolderId) {
-                                                    try {
-                                                        await fetch("/api/drive-folder", {
-                                                            method: "POST",
-                                                            headers: { "Content-Type": "application/json" },
-                                                            body: JSON.stringify({ driveFolderId, driveFolderMode: "custom" }),
-                                                        });
-                                                        await requestSessionUpdate();
-                                                    } catch { /* ignore */ }
-                                                }
-                                            }}
-                                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${driveFolderMode === "custom" ? "bg-slate-50" : ""}`}
-                                        >
-                                            <span className="font-semibold">{t("โฟลเดอร์กำหนดเอง", "Custom folder")}</span>{" "}
-                                            <span className="text-slate-500">— {t("เลือกจาก Drive", "pick from Drive")}</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                setModeMenuOpen(false);
-                                                setDriveFolderMode("date-subfolder");
-                                                setFolderError("");
-                                                if (driveFolderId) {
-                                                    try {
-                                                        await fetch("/api/drive-folder", {
-                                                            method: "POST",
-                                                            headers: { "Content-Type": "application/json" },
-                                                            body: JSON.stringify({ driveFolderId, driveFolderMode: "date-subfolder" }),
-                                                        });
-                                                        await requestSessionUpdate();
-                                                    } catch { /* ignore */ }
-                                                }
-                                            }}
-                                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 rounded-xl cursor-pointer ${driveFolderMode === "date-subfolder" ? "bg-slate-50" : ""}`}
-                                        >
-                                            <span className="font-semibold">{t("สร้างโฟลเดอร์ตามวันที่ใบเสร็จ", "Auto subfolder by receipt date")}</span>{" "}
-                                            <span className="text-slate-500">— {t("DD/MM/YYYY ภายในโฟลเดอร์ที่เลือก", "DD/MM/YYYY inside picked folder")}</span>
-                                        </button>
-                                    </div>
-                                )}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleOpenDrivePicker}
-                                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed h-[34px]"
-                                    disabled={driveFolderMode !== "custom" && driveFolderMode !== "date-subfolder"}
-                                >
-                                    <HardDrive className="w-3.5 h-3.5" />
-                                    {t("เลือกจาก Drive", "Pick from Drive")}
-                                </button>
+                        <div className="mt-2 rounded-lg bg-slate-50 border border-slate-100 px-3.5 py-2.5 space-y-1.5">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{t("ปลายทางซิงก์", "Sync destination")}</p>
+
+                            {/* Drive folder row — auto-managed */}
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src="https://img.icons8.com/color/20/folder-invoices--v1.png"
+                                    alt="Google Drive folder"
+                                    width={16}
+                                    height={16}
+                                    className="flex-shrink-0"
+                                />
+                                <span className="text-slate-500">
+                                    {t("ระบบจัดเก็บอัตโนมัติตามวันที่ใบเสร็จ", "Auto-organised by receipt date")}
+                                </span>
+                                <span className="text-slate-300">·</span>
+                                <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{t("ปี", "Year")}</span>
+                                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                                <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{t("เดือน", "Month")}</span>
+                                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                                <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
+                                    {t("DD/MM/YYYY", "DD/MM/YYYY")}
+                                </span>
                             </div>
 
-                            {/* Error */}
-                            {folderError && (
-                                <div className="mt-2 space-y-1">
-                                    <p className="text-xs text-red-600">{folderError}</p>
-                                    <p className="text-xs text-amber-700">
-                                        ถ้าเห็น 403 อาจต้อง{" "}
-                                        <button
-                                            type="button"
-                                            onClick={() => signOut({ callbackUrl: "/login" })}
-                                            className="underline font-medium hover:text-amber-900 cursor-pointer"
-                                        >
-                                            ออกจากระบบแล้วล็อกอินใหม่
-                                        </button>
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Sync destination — styled like receiptflow-ai */}
-                            <div className="mt-3 rounded-lg bg-slate-50 border border-slate-100 px-3.5 py-2.5 space-y-1.5">
-                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{t("ปลายทางซิงก์", "Sync destination")}</p>
-
-                                {/* Drive folder row */}
-                                <div className="flex flex-wrap items-center gap-1 text-xs">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src="https://img.icons8.com/color/20/folder-invoices--v1.png"
-                                        alt="Google Drive folder"
-                                        width={16}
-                                        height={16}
-                                        className="flex-shrink-0"
-                                    />
-                                    {driveFolderMode === "auto" ? (
-                                        <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
-                                            FB_Invoices_YYYY-MM
-                                        </span>
-                                    ) : driveFolderMode === "date-subfolder" && driveFolderId ? (
-                                        (() => {
-                                            const segs = driveFolderLabel
-                                                ? driveFolderLabel.split(" / ")
-                                                : [driveFolderId];
-                                            return (
-                                                <span className="flex flex-wrap items-center gap-1">
-                                                    {segs.map((seg, i, arr) => (
-                                                        <span key={i} className="flex items-center gap-1">
-                                                            <span className={`px-1.5 py-0.5 rounded ${i === arr.length - 1 ? "bg-blue-100 text-blue-700 font-medium" : "text-slate-400"}`}>
-                                                                {seg}
-                                                            </span>
-                                                            {i < arr.length - 1 && (
-                                                                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                                </svg>
-                                                            )}
-                                                        </span>
-                                                    ))}
-                                                    <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                    <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-medium italic">
-                                                        {t("DD/MM/YYYY (วันที่ใบเสร็จ)", "DD/MM/YYYY (receipt date)")}
-                                                    </span>
-                                                </span>
-                                            );
-                                        })()
-                                    ) : driveFolderMode === "date-subfolder" && !driveFolderId ? (
-                                        <span className="text-slate-400 italic">{t("ยังไม่ตั้งค่า — เลือกโฟลเดอร์หลักด้านบน", "Not set — pick a parent folder above")}</span>
-                                    ) : driveFolderId ? (
-                                        (() => {
-                                            const segs = driveFolderLabel
-                                                ? driveFolderLabel.split(" / ")
-                                                : [driveFolderId];
-                                            return segs.map((seg, i, arr) => (
-                                                <span key={i} className="flex items-center gap-1">
-                                                    <a
-                                                        href={i === arr.length - 1
-                                                            ? `https://drive.google.com/drive/folders/${driveFolderId}`
-                                                            : undefined}
-                                                        target={i === arr.length - 1 ? "_blank" : undefined}
-                                                        rel="noopener noreferrer"
-                                                        className={`px-1.5 py-0.5 rounded ${
-                                                            i === arr.length - 1
-                                                                ? "bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition-colors"
-                                                                : "text-slate-400"
-                                                        }`}
-                                                    >
-                                                        {seg}
-                                                    </a>
-                                                    {i < arr.length - 1 && (
-                                                        <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                        </svg>
-                                                    )}
-                                                </span>
-                                            ));
-                                        })()
-                                    ) : (
-                                        <span className="text-slate-400 italic">{t("ยังไม่ตั้งค่า — เลือกโฟลเดอร์ด้านบน", "Not set — pick a folder above")}</span>
-                                    )}
-                                </div>
-
-                                {/* Google Sheet row */}
+                            {/* Google Sheet row */}
                                 <div className="flex flex-wrap items-center gap-1 text-xs">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
@@ -917,8 +562,7 @@ export default function DashboardPage() {
                             </div>
 
                         </div>
-
-                    {/* Drop Zone + Results */}
+                                        {/* Drop Zone + Results */}
                     <div className="flex flex-col gap-4 h-full">
                         <div
                             {...getRootProps()}
@@ -949,40 +593,39 @@ export default function DashboardPage() {
                                 </div>
                             )}
 
-                            {isProcessing && currentFile && (
-                                <div>
-                                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mx-auto mb-3 relative">
-                                        <FileText className="w-6 h-6 text-teal-500" />
-                                        <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full landing-accent-bg flex items-center justify-center text-white text-[9px] font-bold">
-                                            {currentIndex + 1}/{queue.length}
-                                        </div>
+                            {isProcessing && activeFiles.length > 0 && (
+                                <div className="w-full space-y-2">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <p className="text-xs font-semibold text-slate-600">
+                                            {t("กำลังประมวลผล", "Processing")}
+                                            <span className="ml-1 text-teal-600">{completedCount}/{queue.length}</span>
+                                            <span className="ml-1 text-slate-400">{t("ไฟล์", "files")}</span>
+                                        </p>
+                                        <Loader2 className="w-3 h-3 animate-spin text-teal-500" />
                                     </div>
-                                    <p className="font-medium text-slate-700 text-xs mb-1 truncate max-w-[180px] mx-auto">
-                                        {currentFile.name}
-                                    </p>
-                                    <p className="text-slate-400 text-xs mt-1 flex items-center justify-center gap-1.5">
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                        <span>
-                                            {{
-                                                uploading: t("กำลังอัปโหลด", "Uploading"),
-                                                extracting: t("AI กำลังดึงข้อมูล", "AI Extracting"),
-                                                drive: t("กำลังบันทึกไปยัง Drive", "Saving to Drive"),
-                                                sheets: t("กำลังอัปเดต Sheet", "Updating Sheet"),
-                                            }[stage as "uploading" | "extracting" | "drive" | "sheets"] || t("กำลังทำงาน...", "Working...")}
-                                            <span className="font-semibold text-teal-600 ml-1">
-                                                {stage === "uploading" ? 25 : stage === "extracting" ? 60 : stage === "drive" ? 85 : stage === "sheets" ? 95 : stage === "done" ? 100 : 0}%
-                                            </span>
-                                        </span>
-                                    </p>
-                                    {/* Fake Progress Bar */}
-                                    <div className="w-full max-w-[160px] mx-auto mt-2.5 h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                        <div 
-                                            className="h-full bg-teal-500 rounded-full transition-all duration-700 ease-out" 
-                                            style={{ 
-                                                width: `${stage === "uploading" ? 25 : stage === "extracting" ? 60 : stage === "drive" ? 85 : stage === "sheets" ? 95 : stage === "done" ? 100 : 0}%` 
-                                            }}
-                                        />
-                                    </div>
+                                    {activeFiles.map((af: ActiveFile) => {
+                                        const pct = af.stage === "uploading" ? 25 : af.stage === "extracting" ? 60 : af.stage === "drive" ? 85 : af.stage === "sheets" ? 95 : 100;
+                                        const stageLabel = af.stage === "uploading" ? t("อัปโหลด", "Uploading") : af.stage === "extracting" ? t("AI ดึงข้อมูล", "AI Extract") : af.stage === "drive" ? t("Drive", "Drive") : af.stage === "sheets" ? t("Sheets", "Sheets") : t("เสร็จ", "Done");
+                                        return (
+                                            <div key={af.index} className="bg-slate-50 rounded-lg px-3 py-2">
+                                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                    <p className="text-[11px] font-medium text-slate-700 truncate flex-1">{af.file.name}</p>
+                                                    <span className="text-[10px] text-teal-600 font-semibold shrink-0">{stageLabel}</span>
+                                                </div>
+                                                <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-teal-500 rounded-full transition-all duration-700 ease-out"
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {completedCount > 0 && (
+                                        <p className="text-[10px] text-slate-400 text-center">
+                                            {t(`เสร็จแล้ว ${completedCount} ไฟล์`, `${completedCount} file${completedCount > 1 ? "s" : ""} done`)}
+                                        </p>
+                                    )}
                                 </div>
                             )}
 

@@ -85,6 +85,7 @@ model ProcessingLog {
   driveLink   String?
   sheetRow    Int?
   status      String   @default("success")
+  pendingData Json?    // stored when status="review": { invoiceData, missingFields, driveFileId, cardPrefix, ... }
   createdAt   DateTime @default(now())
 
   @@index([userId])

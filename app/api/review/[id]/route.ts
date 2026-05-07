@@ -70,20 +70,29 @@ export async function PATCH(
     };
     const cardPrefix: string = body.cardPrefix ?? pending.cardPrefix ?? "";
 
-    // Build final filename using locked template: {card_prefix} - {date} - {reference_number} ({billed_to})
+    // Build final filename
+    // reference_number is optional when payment failed
+    const paymentSucceeded = (mergedInvoiceData as any).paymentSuccess !== false;
     const date = (mergedInvoiceData.date ?? "").trim();
     const refNo = (mergedInvoiceData.reference_number ?? "").trim();
     const billedTo = (mergedInvoiceData.billed_to ?? "").trim();
     const prefix = cardPrefix.trim();
 
-    if (!prefix || !date || !refNo || !billedTo) {
+    const missingRequired = !prefix || !date || !billedTo || (paymentSucceeded && !refNo);
+    if (missingRequired) {
+        const required = paymentSucceeded
+            ? "ชื่อบัตร, วันที่, หมายเลขอ้างอิง, ใบเสร็จสำหรับ"
+            : "ชื่อบัตร, วันที่, ใบเสร็จสำหรับ";
         return NextResponse.json(
-            { error: "All fields (ชื่อบัตร, วันที่, หมายเลขอ้างอิง, ใบเสร็จสำหรับ) are required to approve" },
+            { error: `Required fields: ${required}` },
             { status: 400 }
         );
     }
 
-    const finalFilename = `${prefix} - ${date} - ${refNo} (${billedTo}).pdf`;
+    // Filename: include reference_number only when payment succeeded and it exists
+    const finalFilename = (paymentSucceeded && refNo)
+        ? `${prefix} - ${date} - ${refNo} (${billedTo}).pdf`
+        : `${prefix} - ${date} (${billedTo}).pdf`;
 
     // Get access token
     const accessToken = await getValidGoogleAccessToken(userId);

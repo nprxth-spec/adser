@@ -11,6 +11,8 @@ import {
 } from "react";
 import { useDropzone } from "react-dropzone";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 export type UploadStage = "idle" | "uploading" | "extracting" | "drive" | "sheets" | "done" | "error";
@@ -71,7 +73,7 @@ const MemoizedMain = memo(function MemoizedMain({ children }: { children: React.
 
 export function DashboardUploadProvider({ children }: { children: React.ReactNode }) {
     const { data: session, update } = useSession();
-    const { language } = useAppPreferences();
+    const { language, t } = useAppPreferences();
 
     const [queue, setQueue] = useState<File[]>([]);
     const [results, setResults] = useState<ResultItem[]>([]);
@@ -82,6 +84,7 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
     const [fileStages, setFileStages] = useState<Map<number, UploadStage>>(new Map());
     const [completedCount, setCompletedCount] = useState(0);
 
+    const pathname = usePathname();
     const dismissDuplicateAlert = useCallback(() => setDuplicateAlertFilename(null), []);
 
     const isProcessingRef = useRef(false);
@@ -174,6 +177,11 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                 const newResult = data.data as InvoiceResult;
                 resultsRef.current = [...resultsRef.current, newResult];
                 setResults([...resultsRef.current]);
+
+                // Notify sidebar badge to refresh if this file needs review
+                if (data.requiresReview) {
+                    window.dispatchEvent(new Event("filesgo:review-update"));
+                }
 
             } catch (err: unknown) {
                 if (isCancelledRef.current) return;
@@ -280,7 +288,11 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
 
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isProcessingRef.current) e.preventDefault();
+            if (isProcessingRef.current) {
+                // Both lines required: preventDefault for Firefox, returnValue for Chrome/Edge
+                e.preventDefault();
+                e.returnValue = "";
+            }
         };
         window.addEventListener("beforeunload", handleBeforeUnload);
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -322,9 +334,54 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         completedCount,
     };
 
+    // Show floating progress badge on every page EXCEPT /dashboard (which has its own inline UI)
+    const onDashboard = pathname === "/dashboard";
+    const showFloat = isProcessingRef.current && !onDashboard;
+    const floatDone  = stage === "done" && !onDashboard && completedCount > 0;
+
     return (
         <DashboardUploadContext.Provider value={value}>
             <MemoizedMain>{children}</MemoizedMain>
+
+            {/* Floating upload progress — persists across in-app navigation */}
+            {(showFloat || floatDone) && (
+                <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className={`bg-white rounded-2xl shadow-2xl border px-4 py-3 flex items-center gap-3 min-w-[220px] max-w-xs ${floatDone ? "border-emerald-200" : "border-slate-200"}`}>
+                        {floatDone ? (
+                            <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                        ) : (
+                            <div className="w-7 h-7 rounded-full landing-accent-bg flex items-center justify-center shrink-0">
+                                <svg className="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                </svg>
+                            </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-800 truncate">
+                                {floatDone
+                                    ? t("ประมวลผลเสร็จแล้ว", "Processing complete")
+                                    : t("กำลังประมวลผลไฟล์", "Processing files")}
+                            </p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                                {floatDone
+                                    ? t(`${completedCount} ไฟล์เสร็จแล้ว`, `${completedCount} file${completedCount !== 1 ? "s" : ""} done`)
+                                    : t(`${completedCount}/${queue.length} ไฟล์`, `${completedCount} / ${queue.length} files`)}
+                            </p>
+                        </div>
+                        <Link
+                            href="/dashboard"
+                            className="text-[11px] font-medium text-teal-600 hover:text-teal-800 hover:underline shrink-0 transition-colors"
+                        >
+                            {t("ดู", "View")}
+                        </Link>
+                    </div>
+                </div>
+            )}
         </DashboardUploadContext.Provider>
     );
 }

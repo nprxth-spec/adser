@@ -72,10 +72,14 @@ function ReviewDialog({
   const [error, setError] = useState("");
   const [rescanNotice, setRescanNotice] = useState("");
 
-  const allFilled = FIELD_KEYS.every((k) => fields[k].trim() !== "");
+  const paymentSucceeded = (pending?.invoiceData?.paymentSuccess ?? true) !== false;
+  const requiredKeys = FIELD_KEYS.filter(k => k !== "reference_number" || paymentSucceeded);
+  const allFilled = requiredKeys.every((k) => fields[k].trim() !== "");
 
   const preview = allFilled
-    ? `${fields.card_prefix} - ${fields.date} - ${fields.reference_number} (${fields.billed_to}).pdf`
+    ? (paymentSucceeded && fields.reference_number.trim())
+      ? `${fields.card_prefix} - ${fields.date} - ${fields.reference_number} (${fields.billed_to}).pdf`
+      : `${fields.card_prefix} - ${fields.date} (${fields.billed_to}).pdf`
     : null;
 
   const handleRescan = async () => {
@@ -87,13 +91,23 @@ function ReviewDialog({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Re-scan failed");
       const inv = data.data?.invoiceData ?? {};
-      setFields(prev => ({
-        card_prefix:      prev.card_prefix || (pending?.cardPrefix ?? ""),
-        date:             inv.date              || prev.date,
-        reference_number: inv.reference_number  || prev.reference_number,
-        billed_to:        inv.billed_to         || prev.billed_to,
-      }));
-      setRescanNotice(t("สแกนซ้ำแล้ว — ตรวจสอบข้อมูลด้านล่าง", "Re-scanned — verify the fields below"));
+      // cardPrefix resolved from user's CURRENT filenameMapping (may be newly added)
+      const resolvedCardPrefix: string = data.data?.cardPrefix ?? "";
+      const notices: string[] = [];
+      setFields(prev => {
+        const next = {
+          card_prefix:      resolvedCardPrefix || prev.card_prefix,
+          date:             inv.date              || prev.date,
+          reference_number: inv.reference_number  || prev.reference_number,
+          billed_to:        inv.billed_to         || prev.billed_to,
+        };
+        if (resolvedCardPrefix && !prev.card_prefix) {
+          notices.push(t(`พบชื่อบัตร: ${resolvedCardPrefix}`, `Found card name: ${resolvedCardPrefix}`));
+        }
+        return next;
+      });
+      const baseNotice = t("สแกนซ้ำแล้ว — ตรวจสอบข้อมูลด้านล่าง", "Re-scanned — verify the fields below");
+      setRescanNotice(notices.length > 0 ? `${baseNotice} · ${notices.join(", ")}` : baseNotice);
     } catch (e: any) {
       setError(e.message ?? "Re-scan failed");
     } finally {
@@ -210,7 +224,7 @@ function ReviewDialog({
                     placeholder={isMissing ? t("กรอกข้อมูล...", "Fill in...") : ""}
                     className={[
                       "w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent",
-                      isMissing && !fields[key].trim()
+                      isMissing && !fields[key].trim() && (key !== "reference_number" || paymentSucceeded)
                         ? "border-red-300 bg-red-50"
                         : "border-slate-200 bg-white",
                     ].join(" ")}
@@ -299,7 +313,10 @@ function ReviewRow({
             <FileText className="w-3.5 h-3.5 text-amber-500" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-800 truncate max-w-[200px]">
+            <p
+              className="text-sm font-medium text-slate-800 truncate w-full max-w-[min(55vw,36rem)]"
+              title={item.originalFilename ?? item.filename}
+            >
               {item.originalFilename ?? item.filename}
             </p>
             <p className="text-xs text-slate-400">
@@ -413,6 +430,7 @@ export default function ReviewPage() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "Failed to approve");
     setItems((prev) => prev.filter((i) => i.id !== id));
+    window.dispatchEvent(new Event("filesgo:review-update"));
   };
 
   const handleDiscard = async (id: string) => {
@@ -423,13 +441,14 @@ export default function ReviewPage() {
       if (!res.ok) throw new Error(data.error ?? "Failed to discard");
       setItems((prev) => prev.filter((i) => i.id !== id));
       if (selectedItem?.id === id) setSelectedItem(null);
+      window.dispatchEvent(new Event("filesgo:review-update"));
     } finally {
       setDiscardingId(null);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 w-full min-w-0">
+    <div className="max-w-7xl mx-auto w-full space-y-6">
 
       {/* Page header */}
       <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">

@@ -1,6 +1,28 @@
 import { google } from "googleapis";
 import { InvoiceData } from "./openai";
 
+// ── Per-sheet write serializer ────────────────────────────────────────────────
+// Prevents concurrent uploads from all reading the same "last row" and
+// then overwriting each other via batchUpdate. Each sheetId gets its own
+// promise chain; Drive uploads remain fully parallel.
+const _sheetWriteLocks = new Map<string, Promise<unknown>>();
+
+async function withSheetLock<T>(sheetId: string, fn: () => Promise<T>): Promise<T> {
+    const prev = _sheetWriteLocks.get(sheetId) ?? Promise.resolve();
+    let resolve!: () => void;
+    const current = new Promise<void>(r => { resolve = r; });
+    _sheetWriteLocks.set(sheetId, current);
+    try {
+        await prev;         // wait for previous write on this sheet
+        return await fn();  // perform the read-then-write atomically
+    } finally {
+        resolve();          // unblock next queued write
+        if (_sheetWriteLocks.get(sheetId) === current) {
+            _sheetWriteLocks.delete(sheetId);
+        }
+    }
+}
+
 function getOAuth2Client(accessToken: string) {
     const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
@@ -331,42 +353,47 @@ export async function appendToSheet(
     let nextRow: number;
 
     if (mapping) {
-        const sheetPrefix = sheetName ? `'${sheetName}'!` : "";
-        const existingRes = await sheets.spreadsheets.values.get({
-            spreadsheetId: sheetId,
-            range: `${sheetPrefix}A:A`,
-        });
-        nextRow = (existingRes.data.values?.length ?? 0) + 1;
-
-        const cellMap: Record<string, any> = {};
-        const addCell = (col: string | undefined | null, value: any) => {
-            if (!col || col.trim() === "") return;
-            cellMap[col.toUpperCase()] = value;
-        };
-
-        addCell(mapping.date, data.date ?? "");
-        addCell(mapping.billed_to, data.billed_to ?? "");
-        addCell(mapping.card_last_4, data.card_last_4 ?? "");
-        if (data.paymentSuccess) {
-            addCell(mapping.amount, data.amount ?? 0);
-        } else {
-            addCell(mapping.amountFailed ?? "H", data.amount ?? 0);
-        }
-        addCell(mapping.currency, data.currency ?? "");
-        addCell(mapping.filename, filename);
-        addCell(mapping.driveLink, driveLink);
-
-        if (Object.keys(cellMap).length > 0) {
-            const batchData = Object.entries(cellMap).map(([col, val]) => ({
-                range: sheetName ? `'${sheetName}'!${col}${nextRow}` : `${col}${nextRow}`,
-                values: [[val]],
-            }));
-            await sheets.spreadsheets.values.batchUpdate({
+        // Serialized: read last row then write — must not run concurrently on same sheet
+        nextRow = await withSheetLock(sheetId, async () => {
+            const sheetPrefix = sheetName ? `'${sheetName}'!` : "";
+            const existingRes = await sheets.spreadsheets.values.get({
                 spreadsheetId: sheetId,
-                requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+                range: `${sheetPrefix}A:A`,
             });
-        }
+            const row = (existingRes.data.values?.length ?? 0) + 1;
+
+            const cellMap: Record<string, any> = {};
+            const addCell = (col: string | undefined | null, value: any) => {
+                if (!col || col.trim() === "") return;
+                cellMap[col.toUpperCase()] = value;
+            };
+
+            addCell(mapping.date, data.date ?? "");
+            addCell(mapping.billed_to, data.billed_to ?? "");
+            addCell(mapping.card_last_4, data.card_last_4 ?? "");
+            if (data.paymentSuccess) {
+                addCell(mapping.amount, data.amount ?? 0);
+            } else {
+                addCell(mapping.amountFailed ?? "H", data.amount ?? 0);
+            }
+            addCell(mapping.currency, data.currency ?? "");
+            addCell(mapping.filename, filename);
+            addCell(mapping.driveLink, driveLink);
+
+            if (Object.keys(cellMap).length > 0) {
+                const batchData = Object.entries(cellMap).map(([col, val]) => ({
+                    range: sheetName ? `'${sheetName}'!${col}${row}` : `${col}${row}`,
+                    values: [[val]],
+                }));
+                await sheets.spreadsheets.values.batchUpdate({
+                    spreadsheetId: sheetId,
+                    requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+                });
+            }
+            return row;
+        });
     } else {
+        // values.append with INSERT_ROWS is atomic on Google's side — safe for concurrent calls
         const valuesArray: any[] = [
             data.date ?? "",
             data.billed_to ?? "",
@@ -439,42 +466,47 @@ export async function syncToGoogle(
     let nextRow: number;
 
     if (mapping) {
-        const sheetPrefix = sheetName ? `'${sheetName}'!` : "";
-        const existingRes = await sheets.spreadsheets.values.get({
-            spreadsheetId: sheetId,
-            range: `${sheetPrefix}A:A`,
-        });
-        nextRow = (existingRes.data.values?.length ?? 0) + 1;
-
-        const cellMap: Record<string, any> = {};
-        const addCell = (col: string | undefined | null, value: any) => {
-            if (!col || col.trim() === "") return;
-            cellMap[col.toUpperCase()] = value;
-        };
-
-        addCell(mapping.date, data.date ?? "");
-        addCell(mapping.billed_to, data.billed_to ?? "");
-        addCell(mapping.card_last_4, data.card_last_4 ?? "");
-        if (data.paymentSuccess) {
-            addCell(mapping.amount, data.amount ?? 0);
-        } else {
-            addCell(mapping.amountFailed ?? "H", data.amount ?? 0);
-        }
-        addCell(mapping.currency, data.currency ?? "");
-        addCell(mapping.filename, filename);
-        addCell(mapping.driveLink, driveLink);
-
-        if (Object.keys(cellMap).length > 0) {
-            const batchData = Object.entries(cellMap).map(([col, val]) => ({
-                range: sheetName ? `'${sheetName}'!${col}${nextRow}` : `${col}${nextRow}`,
-                values: [[val]],
-            }));
-            await sheets.spreadsheets.values.batchUpdate({
+        // Serialized: read last row then write — must not run concurrently on same sheet
+        nextRow = await withSheetLock(sheetId, async () => {
+            const sheetPrefix = sheetName ? `'${sheetName}'!` : "";
+            const existingRes = await sheets.spreadsheets.values.get({
                 spreadsheetId: sheetId,
-                requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+                range: `${sheetPrefix}A:A`,
             });
-        }
+            const row = (existingRes.data.values?.length ?? 0) + 1;
+
+            const cellMap: Record<string, any> = {};
+            const addCell = (col: string | undefined | null, value: any) => {
+                if (!col || col.trim() === "") return;
+                cellMap[col.toUpperCase()] = value;
+            };
+
+            addCell(mapping.date, data.date ?? "");
+            addCell(mapping.billed_to, data.billed_to ?? "");
+            addCell(mapping.card_last_4, data.card_last_4 ?? "");
+            if (data.paymentSuccess) {
+                addCell(mapping.amount, data.amount ?? 0);
+            } else {
+                addCell(mapping.amountFailed ?? "H", data.amount ?? 0);
+            }
+            addCell(mapping.currency, data.currency ?? "");
+            addCell(mapping.filename, filename);
+            addCell(mapping.driveLink, driveLink);
+
+            if (Object.keys(cellMap).length > 0) {
+                const batchData = Object.entries(cellMap).map(([col, val]) => ({
+                    range: sheetName ? `'${sheetName}'!${col}${row}` : `${col}${row}`,
+                    values: [[val]],
+                }));
+                await sheets.spreadsheets.values.batchUpdate({
+                    spreadsheetId: sheetId,
+                    requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+                });
+            }
+            return row;
+        });
     } else {
+        // values.append with INSERT_ROWS is atomic on Google's side — safe for concurrent calls
         const valuesArray: any[] = [
             data.date ?? "",
             data.billed_to ?? "",

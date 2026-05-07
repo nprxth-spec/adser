@@ -20,8 +20,9 @@ async function getPdfParse() {
 
 /**
  * POST /api/review/[id]/rescan
- * Downloads the existing Drive file and re-runs AI extraction.
- * Returns the freshly extracted invoiceData for the user to review — does NOT approve.
+ * Downloads the existing Drive file, re-runs AI extraction, and resolves
+ * card_prefix from the user's current filenameMapping.
+ * Returns the freshly extracted invoiceData + resolved cardPrefix — does NOT approve.
  */
 export async function POST(
     _req: Request,
@@ -35,9 +36,17 @@ export async function POST(
     const { id } = await params;
     const userId = session.user.id;
 
-    const item = await prisma.processingLog.findFirst({
-        where: { id, userId, status: "review" },
-    });
+    // Fetch the review item AND the user's current filenameMapping in one round-trip
+    const [item, user] = await Promise.all([
+        prisma.processingLog.findFirst({
+            where: { id, userId, status: "review" },
+        }),
+        prisma.user.findUnique({
+            where: { id: userId },
+            select: { filenameMapping: true },
+        }),
+    ]);
+
     if (!item) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -72,5 +81,31 @@ export async function POST(
     const { text: pdfText } = await pdfParse(buffer);
     const invoiceData = await extractInvoiceData(pdfText);
 
-    return NextResponse.json({ success: true, data: { invoiceData } });
+    // Resolve card prefix from the user's CURRENT filenameMapping
+    const filenameMapping = (user?.filenameMapping ?? null) as Record<string, string> | null;
+    const last4 = invoiceData.card_last_4 ?? null;
+    const cardPrefix: string | null =
+        last4 && filenameMapping && typeof filenameMapping === "object" && filenameMapping[last4]
+            ? filenameMapping[last4]
+            : null;
+
+    // Also persist the resolved cardPrefix back into pendingData so future
+    // approve calls can use it without the user having to type it again
+    if (cardPrefix) {
+        await prisma.processingLog.update({
+            where: { id },
+            data: {
+                pendingData: {
+                    ...(pending as object),
+                    invoiceData: { ...(pending.invoiceData ?? {}), ...invoiceData },
+                    cardPrefix,
+                } as any,
+            },
+        });
+    }
+
+    return NextResponse.json({
+        success: true,
+        data: { invoiceData, cardPrefix },
+    });
 }

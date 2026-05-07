@@ -10,6 +10,10 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   if (isMaintenanceModeEnabled()) {
+    if (pathname.startsWith("/api/auth")) {
+      return NextResponse.next();
+    }
+
     if (pathname.startsWith("/api")) {
       return NextResponse.json(
         { error: "Service unavailable: maintenance mode is enabled." },

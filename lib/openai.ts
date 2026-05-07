@@ -59,7 +59,7 @@ const invoiceSchema: Schema = {
         },
         reference_number: {
             type: SchemaType.STRING,
-            description: "Reference number only (e.g., Reference No., Ref, Reference ID). Do not return invoice number here. Return empty string if not present.",
+            description: "Reference number only (e.g., Reference No., Ref, Reference ID, หมายเลขอ้างอิง, เลขอ้างอิง). Do not return invoice number here. Return empty string if not present.",
         },
         transaction_id: {
             type: SchemaType.STRING,
@@ -405,7 +405,22 @@ function detectPaymentSuccessFromText(pdfText: string): boolean | null {
     const textNorm = normalize(pdfText);
     const textNoSpace = textNorm.replace(/\s+/g, "");
 
+    // ── Strong positive indicators — return true immediately ───────────────────
+    // "ชำระแล้ว" = explicit Paid status on the document
     if (textNoSpace.includes("ชำระแล้ว")) return true;
+
+    // ── Strip contextual false-positives before checking failure keywords ───────
+    // Notes like "การชำระเงินก่อนหน้า...ไม่สำเร็จ" refer to a PREVIOUS failed
+    // payment, not the current transaction — remove them so they don't pollute.
+    // Strip ONLY the specific Meta footnote pattern:
+    // "การชำระเงินก่อนหน้าสำหรับค่าใช้จ่าย...ไม่สำเร็จ" — this is a note about a
+    // PRIOR failed charge, NOT about the current payment status.
+    // We do NOT strip standalone "ไม่สำเร็จ" (the current payment status).
+    const cleanedText = textNoSpace
+        .replace(/การชำระเงินก่อนหน้า[^]*?ไม่สำเร็จ/g, "")
+        .replace(/การชำระเงินก่อนหน้า[^]*?ไม่ส\u0e33เร็จ/g, "")
+        .replace(/previous(?:ly)?payment[\s\S]{0,150}?(?:unsuccessful|failed)/g, "")
+        .replace(/priortransaction[\s\S]{0,150}?(?:unsuccessful|failed)/g, "");
 
     const failedKeywords = [
         "ไม่สำเร็จ","ไม่ส\u0e33เร็จ","paymentunsuccessful","failedpayment",
@@ -414,7 +429,7 @@ function detectPaymentSuccessFromText(pdfText: string): boolean | null {
         "couldnotbecompleted","insufficientfunds","yourpaymentdidnotgothrough","unsuccessful",
     ];
     for (const k of failedKeywords) {
-        if (textNoSpace.includes(k.toLowerCase())) return false;
+        if (cleanedText.includes(k.toLowerCase())) return false;
     }
 
     const successKeywords = [
@@ -440,9 +455,10 @@ Rules:
 - If a value is truly missing, return an empty string or 0.
 - For "billed_to": return ONLY the person or company name. If the PDF shows a timezone prefix (e.g. "GMT+12", "+7", "GMT+7") before the name, omit it and return just the name.
 - For "paymentSuccess":
-  * Set FALSE if the document title, header, or body contains words like "Payment Unsuccessful", "Payment Failed", "ไม่สำเร็จ", "รายการไม่สำเร็จ", "Declined", "Transaction Failed", "Could not be processed", or similar failure indicators.
-  * Set TRUE if the document shows a receipt for a completed charge, contains words like "Receipt", "Paid", "Payment Successful", "ชำระเงินสำเร็จ", "Amount Charged", or an amount was actually debited.
-  * When in doubt and no explicit failure indicator is present, set TRUE.
+  * Set TRUE if: the document title/header/status shows "ชำระแล้ว", "Paid", "Receipt", "ใบเสร็จ", "Payment Successful", "ชำระเงินสำเร็จ", "Amount Charged", or an amount was actually debited.
+  * Set FALSE ONLY if the document's PRIMARY status (title, header, or main status label) indicates failure: "Payment Unsuccessful", "Payment Failed", "ไม่สำเร็จ" as the main status, "Declined", "Transaction Failed", "Could not be processed".
+  * IMPORTANT: Ignore failure phrases that describe a PREVIOUS payment attempt (e.g. "การชำระเงินก่อนหน้าสำหรับค่าใช้จ่ายสำหรับโฆษณาเหล่านี้ไม่สำเร็จ", "previous payment was unsuccessful"). These are informational footnotes about an earlier failed charge, NOT the status of the current document.
+  * When in doubt and no explicit failure indicator is present in the MAIN document status, set TRUE.
 - For "amount":
   * If payment is successful, return the final amount actually charged/debited (include VAT/tax/fees).
   * If payment is unsuccessful/failed, return the intended/attempted amount shown on the bill. Do NOT return 0 unless the document truly has no amount.

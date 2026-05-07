@@ -190,11 +190,13 @@ export async function POST(request: Request) {
         }
 
         // Check required fields — if any missing, route to review queue
+        // reference_number is only required when payment succeeded
+        const paymentSucceeded = invoiceData.paymentSuccess !== false;
         const missingFields: string[] = [];
-        if (!cardPrefix)                           missingFields.push("card_prefix");
-        if (!invoiceData.date?.trim())             missingFields.push("date");
-        if (!invoiceData.reference_number?.trim()) missingFields.push("reference_number");
-        if (!invoiceData.billed_to?.trim())        missingFields.push("billed_to");
+        if (!cardPrefix)                                             missingFields.push("card_prefix");
+        if (!invoiceData.date?.trim())                               missingFields.push("date");
+        if (paymentSucceeded && !invoiceData.reference_number?.trim()) missingFields.push("reference_number");
+        if (!invoiceData.billed_to?.trim())                          missingFields.push("billed_to");
 
         if (missingFields.length > 0) {
             const reviewFilename = "REVIEW_" + filename;

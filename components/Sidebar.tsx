@@ -73,8 +73,22 @@ export default function Sidebar() {
                 }
             } catch {}
         };
+
+        // Fetch immediately on mount / pathname change
         fetchCount();
-        return () => { cancelled = true; };
+
+        // Poll every 30 s as a background fallback
+        const interval = setInterval(fetchCount, 30_000);
+
+        // Re-fetch instantly on any in-app action that changes the review queue
+        const handleReviewUpdate = () => { void fetchCount(); };
+        window.addEventListener("filesgo:review-update", handleReviewUpdate);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+            window.removeEventListener("filesgo:review-update", handleReviewUpdate);
+        };
     }, [pathname]);
 
     return (

@@ -370,24 +370,32 @@ export async function appendToSheet(
     let nextRow: number;
 
     const cellMap: Record<string, any> = {};
+    // Only add the cell if both the column letter and the value are non-empty.
+    // Skipping empty strings prevents overwriting formulas in cells that have no
+    // corresponding invoice data (e.g. reference_number on a failed payment).
+    // Numeric 0 is intentionally kept so a zero-amount row is still written.
     const addCell = (col: string | undefined | null, value: any) => {
         if (!col || col.trim() === "") return;
+        if (value === "" || value === null || value === undefined) return;
         cellMap[col.toUpperCase()] = value;
     };
 
     if (mapping) {
-        addCell(mapping.date, data.date ?? "");
-        addCell(mapping.billed_to, data.billed_to ?? "");
-        addCell(mapping.card_last_4, data.card_last_4 ?? "");
+        addCell(mapping.date, data.date);
+        addCell(mapping.billed_to, data.billed_to);
+        addCell(mapping.card_last_4, data.card_last_4);
         if (data.paymentSuccess) {
             addCell(mapping.amount, data.amount ?? 0);
         } else {
-            addCell(mapping.amountFailed ?? "H", data.amount ?? 0);
+            // Only write to amountFailed column if the user explicitly configured it.
+            // Do NOT fall back to a hardcoded column — that would overwrite formulas
+            // in cells the user never intended to be written by FilesGo.
+            addCell(mapping.amountFailed, data.amount ?? 0);
         }
-        addCell(mapping.currency, data.currency ?? "");
-        addCell(mapping.filename, filename);
-        addCell(mapping.driveLink, driveLink);
-        addCell(mapping.reference, data.reference_number ?? "");
+        addCell(mapping.currency, data.currency);
+        addCell(mapping.filename, filename || null);
+        addCell(mapping.driveLink, driveLink || null);
+        addCell(mapping.reference, data.reference_number);
     }
 
     if (mapping) {
@@ -414,7 +422,7 @@ export async function appendToSheet(
             spreadsheetId: sheetId,
             range: anchorRange,
             valueInputOption: "USER_ENTERED",
-            insertDataOption: "INSERT_ROWS",
+            insertDataOption: "OVERWRITE",
             requestBody: { values: [[anchorVal]] },
         });
 
@@ -453,7 +461,7 @@ export async function appendToSheet(
             spreadsheetId: sheetId,
             range: targetRange,
             valueInputOption: "USER_ENTERED",
-            insertDataOption: "INSERT_ROWS",
+            insertDataOption: "OVERWRITE",
             requestBody: { values: [valuesArray] },
         });
         const updatedRange = appendRes.data.updates?.updatedRange ?? "";
@@ -514,24 +522,32 @@ export async function syncToGoogle(
     let nextRow = 0;
 
     const cellMap: Record<string, any> = {};
+    // Only add the cell if both the column letter and the value are non-empty.
+    // Skipping empty strings prevents overwriting formulas in cells that have no
+    // corresponding invoice data (e.g. reference_number on a failed payment).
+    // Numeric 0 is intentionally kept so a zero-amount row is still written.
     const addCell = (col: string | undefined | null, value: any) => {
         if (!col || col.trim() === "") return;
+        if (value === "" || value === null || value === undefined) return;
         cellMap[col.toUpperCase()] = value;
     };
 
     if (mapping) {
-        addCell(mapping.date, data.date ?? "");
-        addCell(mapping.billed_to, data.billed_to ?? "");
-        addCell(mapping.card_last_4, data.card_last_4 ?? "");
+        addCell(mapping.date, data.date);
+        addCell(mapping.billed_to, data.billed_to);
+        addCell(mapping.card_last_4, data.card_last_4);
         if (data.paymentSuccess) {
             addCell(mapping.amount, data.amount ?? 0);
         } else {
-            addCell(mapping.amountFailed ?? "H", data.amount ?? 0);
+            // Only write to amountFailed column if the user explicitly configured it.
+            // Do NOT fall back to a hardcoded column — that would overwrite formulas
+            // in cells the user never intended to be written by FilesGo.
+            addCell(mapping.amountFailed, data.amount ?? 0);
         }
-        addCell(mapping.currency, data.currency ?? "");
-        addCell(mapping.filename, filename);
-        addCell(mapping.driveLink, driveLink);
-        addCell(mapping.reference, data.reference_number ?? "");
+        addCell(mapping.currency, data.currency);
+        addCell(mapping.filename, filename || null);
+        addCell(mapping.driveLink, driveLink || null);
+        addCell(mapping.reference, data.reference_number);
     }
 
     if (mapping) {
@@ -555,7 +571,7 @@ export async function syncToGoogle(
                 spreadsheetId: sheetId,
                 range: anchorRange,
                 valueInputOption: "USER_ENTERED",
-                insertDataOption: "INSERT_ROWS",
+                insertDataOption: "OVERWRITE",
                 requestBody: { values: [[anchorVal]] },
             });
 
@@ -596,7 +612,7 @@ export async function syncToGoogle(
             spreadsheetId: sheetId,
             range: targetRange,
             valueInputOption: "USER_ENTERED",
-            insertDataOption: "INSERT_ROWS",
+            insertDataOption: "OVERWRITE",
             requestBody: { values: [valuesArray] },
         });
 

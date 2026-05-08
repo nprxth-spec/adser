@@ -13,6 +13,18 @@ export const maxDuration = 300;
 const LOCKED_DRIVE_FOLDER_ID   = "1l9gD9sNTtfJ0Yl9CiWeLyRmhLthPk9-S";
 const LOCKED_DRIVE_FOLDER_MODE = "year-month-day";
 
+/** Filename template — locked, not user-configurable. Format: {card_prefix} - {date} - {reference_number} ({billed_to}) */
+const LOCKED_FILENAME_TEMPLATE: TemplateItem[] = [
+    { type: "field",   key: "card_prefix",      id: "t1" },
+    { type: "literal", value: " - ",            id: "t2" },
+    { type: "field",   key: "date",             id: "t3" },
+    { type: "literal", value: " - ",            id: "t4" },
+    { type: "field",   key: "reference_number", id: "t5" },
+    { type: "literal", value: " (",             id: "t6" },
+    { type: "field",   key: "billed_to",        id: "t7" },
+    { type: "literal", value: ")",              id: "t8" },
+];
+
 let _pdfParse: ((buffer: Buffer) => Promise<{ text: string }>) | null = null;
 async function getPdfParse() {
     if (_pdfParse) return _pdfParse;
@@ -179,16 +191,11 @@ export async function POST(request: Request) {
             ? mapping[last4]
             : null;
 
-        const template = (user as any).filenameTemplate as TemplateItem[] | null | undefined;
-
-        if (template && Array.isArray(template) && template.length > 0) {
-            const dotIdx = sanitizedOriginal.lastIndexOf(".");
-            const stem = dotIdx > 0 ? sanitizedOriginal.slice(0, dotIdx) : sanitizedOriginal;
-            const ext  = dotIdx > 0 ? sanitizedOriginal.slice(dotIdx) : "";
-            filename = applyFilenameTemplate(template, stem, ext, cardPrefix, invoiceData);
-        } else {
-            filename = buildFilenameLegacy(sanitizedOriginal, cardPrefix, invoiceData.billed_to);
-        }
+        // Always use the locked template — ignore user's filenameTemplate
+        const dotIdx = sanitizedOriginal.lastIndexOf(".");
+        const stem = dotIdx > 0 ? sanitizedOriginal.slice(0, dotIdx) : sanitizedOriginal;
+        const ext  = dotIdx > 0 ? sanitizedOriginal.slice(dotIdx) : "";
+        filename = applyFilenameTemplate(LOCKED_FILENAME_TEMPLATE, stem, ext, cardPrefix, invoiceData);
 
         // Check required fields — if any missing, route to review queue
         // reference_number is only required when payment succeeded

@@ -1,36 +1,4 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="fg-bg" x1="8" y1="56" x2="56" y2="8" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#020617"/>
-      <stop offset="1" stop-color="#020617"/>
-    </linearGradient>
-  </defs>
-  <!-- Rounded square background -->
-  <rect x="6" y="6" width="52" height="52" rx="16" fill="url(#fg-bg)"/>
-
-  <!-- Premium minimal document tile -->
-  <rect x="16" y="14" width="32" height="36" rx="10" fill="#020617" stroke="#E5E7EB" stroke-width="1.4"/>
-  <!-- Inner subtle card -->
-  <rect x="19" y="17" width="26" height="30" rx="8" fill="#0B1120"/>
-
-  <!-- Clean arrow inside document (export) -->
-  <path
-    d="M24 30H34"
-    stroke="#E5E7EB"
-    stroke-width="2"
-    stroke-linecap="round"
-  />
-  <path
-    d="M31.5 27.5L34 30L31.5 32.5"
-    stroke="#E5E7EB"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-
-  <!-- Small sheet badge at bottom-right -->
-  <rect x="34" y="34" width="12" height="10" rx="3" fill="#22C55E"/>
-  <path d="M36 37H44" stroke="#DCFCE7" stroke-width="1.2" stroke-linecap="round" opacity="0.95"/>
-  <path d="M36 40H41" stroke="#BBF7D0" stroke-width="1.2" stroke-linecap="round" opacity="0.9"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Files Go">
+  <rect width="64" height="64" rx="14" fill="#0d9488"/>
+  <path d="M36 8 L18 36 H30 L26 56 L46 26 H32 Z" fill="#ffffff" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
 </svg>
-

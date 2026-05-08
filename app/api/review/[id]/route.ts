@@ -4,6 +4,13 @@ import { prisma, Prisma } from "@/lib/prisma";
 import { renameDriveFile, appendToSheet } from "@/lib/google";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { InvoiceData } from "@/lib/openai";
+import { google } from "googleapis";
+
+/** Extract the Google Drive file ID from a webViewLink or webContentLink URL. */
+function extractDriveFileId(driveLink: string): string | null {
+    const m = driveLink.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    return m ? m[1] : null;
+}
 
 /** GET /api/review/[id] — get a single review item */
 export async function GET(
@@ -156,7 +163,10 @@ export async function PATCH(
     }
 }
 
-/** DELETE /api/review/[id] — discard a review item (keep Drive file as-is, mark status=error) */
+/**
+ * DELETE /api/review/[id] — remove a review queue item permanently.
+ * Deletes the DB row and attempts to delete the uploaded PDF from Google Drive.
+ */
 export async function DELETE(
     _req: Request,
     { params }: { params: Promise<{ id: string }> },
@@ -167,18 +177,49 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const userId = session.user.id;
 
     const item = await prisma.processingLog.findFirst({
-        where: { id, userId: session.user.id, status: "review" },
+        where: { id, userId, status: "review" },
     });
     if (!item) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await prisma.processingLog.update({
-        where: { id },
-        data: { status: "error", pendingData: Prisma.DbNull },
-    });
+    const warnings: string[] = [];
+    const pending = item.pendingData as { driveFileId?: string } | null;
 
-    return NextResponse.json({ success: true });
+    const accessToken = await getValidGoogleAccessToken(userId);
+    if (accessToken) {
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+        );
+        oauth2Client.setCredentials({ access_token: accessToken });
+
+        let fileId: string | null = item.driveLink ? extractDriveFileId(item.driveLink) : null;
+        if (!fileId && pending?.driveFileId) {
+            fileId = pending.driveFileId;
+        }
+
+        if (fileId) {
+            try {
+                const drive = google.drive({ version: "v3", auth: oauth2Client });
+                await drive.files.delete({ fileId });
+            } catch (err: any) {
+                if (err?.code !== 404 && err?.status !== 404) {
+                    warnings.push(`Drive: ${err.message ?? "Failed to delete file"}`);
+                }
+            }
+        }
+    } else if (item.driveLink || pending?.driveFileId) {
+        warnings.push("Google access token missing — Drive file not deleted");
+    }
+
+    await prisma.processingLog.delete({ where: { id } });
+
+    return NextResponse.json({
+        success: true,
+        ...(warnings.length > 0 && { warnings }),
+    });
 }

@@ -7,13 +7,15 @@ import {
     History,
     Settings,
     CreditCard,
-    Zap,
     FileText,
-    Wrench,
+    Zap,
+    Table2,
     ChevronRight,
+    ChevronDown,
     AlertTriangle,
+    SlidersHorizontal,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 export default function Sidebar() {
@@ -21,6 +23,8 @@ export default function Sidebar() {
     const { t } = useAppPreferences();
     const [collapsed, setCollapsed] = useState(false);
     const [reviewCount, setReviewCount] = useState(0);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const settingsRootRef = useRef<HTMLDivElement>(null);
 
     const navLinks = [
         { href: "/dashboard", label: t("อัปโหลด", "Upload"), icon: Upload },
@@ -31,11 +35,22 @@ export default function Sidebar() {
             badge: reviewCount > 0 ? reviewCount : undefined,
         },
         { href: "/history", label: t("ประวัติ", "History"), icon: History },
-        { href: "/integrations", label: t("การเชื่อมต่อ", "Integrations"), icon: Wrench },
+        { href: "/integrations", label: t("ตั้งค่า Sheet", "Sheet Settings"), icon: Table2 },
         { href: "/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },
-        { href: "/billing", label: t("แพ็กเกจ", "Billing"), icon: CreditCard },
-        { href: "/settings", label: t("ตั้งค่า", "Settings"), icon: Settings },
     ];
+
+    const settingsChildLinks = [
+        { href: "/settings", label: t("ทั่วไป", "General"), icon: SlidersHorizontal },
+        { href: "/billing", label: t("แพ็กเกจ", "Package"), icon: CreditCard },
+    ];
+
+    const isUnderSettings =
+        pathname === "/settings" ||
+        pathname.startsWith("/settings/") ||
+        pathname.startsWith("/dashboard/settings") ||
+        pathname === "/billing" ||
+        pathname.startsWith("/billing/") ||
+        pathname.startsWith("/dashboard/billing");
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -91,27 +106,53 @@ export default function Sidebar() {
         };
     }, [pathname]);
 
+    useEffect(() => {
+        const shouldExpand =
+            pathname === "/settings" ||
+            pathname.startsWith("/settings/") ||
+            pathname.startsWith("/dashboard/settings") ||
+            pathname === "/billing" ||
+            pathname.startsWith("/billing/") ||
+            pathname.startsWith("/dashboard/billing");
+        if (shouldExpand) setSettingsOpen(true);
+    }, [pathname]);
+
+    useEffect(() => {
+        const closeFlyout = (e: MouseEvent) => {
+            const el = settingsRootRef.current;
+            if (el && !el.contains(e.target as Node)) setSettingsOpen(false);
+        };
+        if (collapsed && settingsOpen) {
+            document.addEventListener("mousedown", closeFlyout);
+            return () => document.removeEventListener("mousedown", closeFlyout);
+        }
+    }, [collapsed, settingsOpen]);
+
     return (
         <aside
             className={`${
                 collapsed ? "w-16" : "w-16 md:w-64"
-            } h-screen bg-slate-900 text-white flex flex-col shrink-0 sticky top-0 overflow-x-hidden transition-[width] duration-200`}
+            } h-screen bg-slate-900 text-white flex flex-col shrink-0 sticky top-0 overflow-x-visible transition-[width] duration-200`}
         >
-            <div className="h-14 sm:h-16 px-4 border-b border-slate-800 flex items-center">
-                <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-9 h-9 rounded-xl landing-accent-bg flex items-center justify-center shadow-lg shadow-teal-900/30">
+            <div
+                className={`h-14 sm:h-16 border-b border-slate-800 flex items-center ${
+                    collapsed ? "px-0 justify-center" : "px-4"
+                }`}
+            >
+                <div className={`flex items-center gap-3 min-w-0 ${collapsed ? "justify-center" : ""}`}>
+                    <div className="w-9 h-9 rounded-xl landing-accent-bg flex items-center justify-center shadow-lg shadow-teal-900/30 shrink-0">
                         <Zap className="w-5 h-5 text-white" />
                     </div>
                     {!collapsed && (
-                        <div className="whitespace-nowrap">
-                            <p className="font-bold text-base">Files Go</p>
-                            <p className="text-xs text-slate-400">{t("แปลงใบแจ้งหนี้เข้า Google Sheets", "Invoices to Google Sheets")}</p>
+                        <div className="min-w-0 whitespace-nowrap overflow-hidden">
+                            <p className="font-bold text-base truncate">Files Go</p>
+                            <p className="text-xs text-slate-400 truncate">{t("แปลงใบแจ้งหนี้เข้า Google Sheets", "Invoices to Google Sheets")}</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+            <nav className="flex-1 p-3 space-y-1 overflow-y-auto overflow-x-visible">
                 {navLinks.map(({ href, label, icon: Icon, badge }: any) => {
                     const isActive = pathname === href;
                     return (
@@ -143,12 +184,100 @@ export default function Sidebar() {
                                             {badge > 99 ? "99+" : badge}
                                         </span>
                                     )}
-                                    {isActive && !badge && <ChevronRight className="w-3.5 h-3.5 opacity-60" />}
                                 </>
                             )}
                         </Link>
                     );
                 })}
+
+                {/* Settings: expandable — General + Package */}
+                <div className="relative" ref={settingsRootRef}>
+                    <button
+                        type="button"
+                        onClick={() => setSettingsOpen((v) => !v)}
+                        title={collapsed ? t("ตั้งค่า", "Settings") : undefined}
+                        className={`w-full flex items-center ${
+                            collapsed ? "justify-center" : "gap-3"
+                        } px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left cursor-pointer ${
+                            isUnderSettings
+                                ? "bg-slate-800 text-white"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                        } ${collapsed && settingsOpen ? "ring-2 ring-teal-500/60" : ""}`}
+                    >
+                        <Settings className="w-5 h-5 shrink-0" />
+                        {!collapsed && (
+                            <>
+                                <span className="flex-1 truncate">{t("ตั้งค่า", "Settings")}</span>
+                                {settingsOpen ? (
+                                    <ChevronDown className="w-4 h-4 shrink-0 opacity-70 transition-opacity" />
+                                ) : (
+                                    <ChevronRight className="w-4 h-4 shrink-0 opacity-70 transition-opacity" />
+                                )}
+                            </>
+                        )}
+                    </button>
+
+                    {!collapsed && settingsOpen && (
+                        <div className="mt-0.5 ml-2 pl-3 border-l border-slate-700 space-y-0.5 py-1">
+                            {settingsChildLinks.map(({ href, label, icon: Icon }) => {
+                                const isActive =
+                                    href === "/settings"
+                                        ? pathname === "/settings" ||
+                                          pathname.startsWith("/settings/") ||
+                                          pathname.startsWith("/dashboard/settings")
+                                        : pathname === "/billing" ||
+                                          pathname.startsWith("/billing/") ||
+                                          pathname.startsWith("/dashboard/billing");
+                                return (
+                                    <Link
+                                        key={href}
+                                        href={href}
+                                        prefetch={true}
+                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                            isActive
+                                                ? "landing-accent-bg text-white shadow-md shadow-teal-900/20"
+                                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                        }`}
+                                    >
+                                        <Icon className="w-4 h-4 shrink-0 opacity-90" />
+                                        <span className="truncate">{label}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {collapsed && settingsOpen && (
+                        <div className="absolute left-full top-0 ml-1.5 z-50 min-w-[168px] rounded-xl border border-slate-700 bg-slate-800 py-1 shadow-xl shadow-black/40">
+                            {settingsChildLinks.map(({ href, label, icon: Icon }) => {
+                                const isActive =
+                                    href === "/settings"
+                                        ? pathname === "/settings" ||
+                                          pathname.startsWith("/settings/") ||
+                                          pathname.startsWith("/dashboard/settings")
+                                        : pathname === "/billing" ||
+                                          pathname.startsWith("/billing/") ||
+                                          pathname.startsWith("/dashboard/billing");
+                                return (
+                                    <Link
+                                        key={href}
+                                        href={href}
+                                        prefetch={true}
+                                        onClick={() => setSettingsOpen(false)}
+                                        className={`flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors ${
+                                            isActive
+                                                ? "bg-teal-600/30 text-white"
+                                                : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                                        }`}
+                                    >
+                                        <Icon className="w-4 h-4 shrink-0" />
+                                        <span>{label}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </nav>
         </aside>
     );

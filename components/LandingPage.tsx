@@ -199,7 +199,7 @@ export default function LandingPage() {
       <footer className="py-8 sm:py-10 px-4 sm:px-6 border-t border-neutral-100 bg-white">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 text-neutral-700 hover:text-neutral-900 transition-colors">
-            <div className="w-7 h-7 rounded-lg landing-accent-bg flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg landing-accent-bg flex items-center justify-center shrink-0">
               <Zap className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="font-heading font-bold text-neutral-900">Files Go</span>

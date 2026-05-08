@@ -212,13 +212,14 @@ html[data-theme="dark"] .text-slate-300 {
   background-color: #0f766e;
 }
 
-/* Scrollbar */
+/* Scrollbar — applied globally (both axes) */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -228,4 +229,58 @@ html[data-theme="dark"] .text-slate-300 {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+html[data-theme="dark"] * {
+  scrollbar-color: #334155 transparent;
+}
+
+/* Extra-thin scrollbar — for inner scroll containers (e.g. wide tables). */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+html[data-theme="dark"] .scrollbar-thin {
+  scrollbar-color: #334155 transparent;
 }

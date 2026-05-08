@@ -259,7 +259,7 @@ export default function IntegrationsPage() {
     return (
         <div className="max-w-3xl mx-auto pb-12 w-full min-w-0">
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-slate-900 mb-1">{t("การเชื่อมต่อ", "Integrations")}</h1>
+                <h1 className="text-2xl font-bold text-slate-900 mb-1">{t("ตั้งค่า Sheet", "Sheet Settings")}</h1>
                 <p className="text-slate-500">{t("เชื่อมต่อ Google Sheets เพื่อรับข้อมูลใบแจ้งหนี้", "Connect Google Sheets to receive invoice data.")}</p>
             </div>
 
@@ -274,12 +274,14 @@ export default function IntegrationsPage() {
                 )}
                 <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
                     <div className="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
-                            <rect x="3" y="2" width="18" height="20" rx="2" fill="#34A853" />
-                            <rect x="6" y="6" width="12" height="1.5" rx=".75" fill="white" />
-                            <rect x="6" y="9.5" width="12" height="1.5" rx=".75" fill="white" />
-                            <rect x="6" y="13" width="8" height="1.5" rx=".75" fill="white" />
-                        </svg>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src="/sheet.svg"
+                            alt="Google Sheets"
+                            width={22}
+                            height={22}
+                            className="w-[22px] h-[22px]"
+                        />
                     </div>
                     <div>
                         <p className="font-semibold text-slate-900">{t("การเชื่อมต่อ Google Sheets", "Google Sheets Connection")}</p>
@@ -389,15 +391,33 @@ export default function IntegrationsPage() {
                     <div>
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div className="md:col-span-3 relative" ref={sheetMenuRef}>
-                                <label className="block text-sm font-medium text-slate-800 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-slate-800 mb-2">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src="/sheet.webp"
+                                        alt=""
+                                        width={18}
+                                        height={18}
+                                        className="shrink-0 rounded-sm"
+                                    />
                                     1. Google Sheet
                                 </label>
                                 <button
                                     type="button"
                                     onClick={() => setSheetMenuOpen((v) => !v)}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white text-left flex items-center justify-between hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent cursor-pointer"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white text-left flex items-center gap-2 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent cursor-pointer"
                                 >
-                                    <span className={sheetId ? "text-slate-800" : "text-slate-400"}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src="/sheet.webp"
+                                        alt=""
+                                        width={16}
+                                        height={16}
+                                        className="shrink-0"
+                                    />
+                                    <span
+                                        className={`min-w-0 flex-1 truncate ${sheetId ? "text-slate-800" : "text-slate-400"}`}
+                                    >
                                         {loadingSheets
                                             ? "Loading sheets..."
                                             : sheets.length === 0
@@ -417,11 +437,19 @@ export default function IntegrationsPage() {
                                                     setSheetId(s.id);
                                                     setSheetMenuOpen(false);
                                                 }}
-                                                className={`w-full px-4 py-2 text-left hover:bg-slate-50 cursor-pointer ${
+                                                className={`w-full px-4 py-2 text-left hover:bg-slate-50 cursor-pointer flex items-center gap-2 min-w-0 ${
                                                     sheetId === s.id ? "bg-slate-50 font-medium" : ""
                                                 }`}
                                             >
-                                                {s.name}
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src="/sheet.webp"
+                                                    alt=""
+                                                    width={16}
+                                                    height={16}
+                                                    className="shrink-0"
+                                                />
+                                                <span className="truncate">{s.name}</span>
                                             </button>
                                         ))}
                                     </div>

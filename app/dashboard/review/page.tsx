@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   CheckCircle, XCircle, ExternalLink, Loader2, AlertTriangle,
   FileText, RefreshCw, Eye, Trash2, ScanSearch, X as XIcon,
+  AlertCircle,
 } from "lucide-react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
@@ -45,12 +46,12 @@ function ReviewDialog({
   item,
   onClose,
   onApprove,
-  onDiscard,
+  onRequestDeleteConfirm,
 }: {
   item: ReviewItem;
   onClose: () => void;
   onApprove: (id: string, invoiceData: Record<string, any>, cardPrefix: string) => Promise<void>;
-  onDiscard: (id: string) => Promise<void>;
+  onRequestDeleteConfirm: (item: ReviewItem) => void;
 }) {
   const { t } = useAppPreferences();
   const pending = item.pendingData;
@@ -67,7 +68,6 @@ function ReviewDialog({
   });
 
   const [approving, setApproving] = useState(false);
-  const [discarding, setDiscarding] = useState(false);
   const [rescanning, setRescanning] = useState(false);
   const [error, setError] = useState("");
   const [rescanNotice, setRescanNotice] = useState("");
@@ -129,19 +129,9 @@ function ReviewDialog({
     }
   };
 
-  const handleDiscard = async () => {
-    setDiscarding(true);
-    setError("");
-    try {
-      await onDiscard(item.id);
-      onClose();
-    } catch (e: any) {
-      setError(e.message ?? "Error");
-    } finally {
-      setDiscarding(false);
-    }
+  const handleDiscardClick = () => {
+    onRequestDeleteConfirm(item);
   };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -254,7 +244,7 @@ function ReviewDialog({
           {/* Re-scan */}
           <button
             onClick={handleRescan}
-            disabled={rescanning || approving || discarding}
+            disabled={rescanning || approving}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer"
           >
             {rescanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ScanSearch className="w-3.5 h-3.5" />}
@@ -265,18 +255,18 @@ function ReviewDialog({
 
           {/* Discard */}
           <button
-            onClick={handleDiscard}
-            disabled={discarding || approving || rescanning}
+            onClick={handleDiscardClick}
+            disabled={approving || rescanning}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 disabled:opacity-50 transition-colors cursor-pointer"
           >
-            {discarding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+            <XCircle className="w-3.5 h-3.5" />
             {t("ยกเลิก", "Discard")}
           </button>
 
           {/* Approve */}
           <button
             onClick={handleApprove}
-            disabled={approving || discarding || rescanning || !allFilled}
+            disabled={approving || rescanning || !allFilled}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl landing-accent-bg text-white text-xs font-medium hover:opacity-95 disabled:opacity-50 transition-colors cursor-pointer"
           >
             {approving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
@@ -292,12 +282,12 @@ function ReviewDialog({
 function ReviewRow({
   item,
   onReview,
-  onDiscard,
+  onRequestDelete,
   discarding,
 }: {
   item: ReviewItem;
   onReview: (item: ReviewItem) => void;
-  onDiscard: (id: string) => Promise<void>;
+  onRequestDelete: (item: ReviewItem) => void;
   discarding: boolean;
 }) {
   const { t } = useAppPreferences();
@@ -381,7 +371,7 @@ function ReviewRow({
             {t("ตรวจสอบ", "Review")}
           </button>
           <button
-            onClick={() => onDiscard(item.id)}
+            onClick={() => onRequestDelete(item)}
             disabled={discarding}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 disabled:opacity-50 transition-colors cursor-pointer"
           >
@@ -402,6 +392,9 @@ export default function ReviewPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ReviewItem | null>(null);
   const [discardingId, setDiscardingId] = useState<string | null>(null);
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<ReviewItem | null>(null);
+  const [deleteWarnings, setDeleteWarnings] = useState<string[]>([]);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchItems = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
@@ -416,6 +409,21 @@ export default function ReviewPage() {
   }, []);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
+
+  useEffect(() => {
+    if (!deleteConfirmItem) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !discardingId) setDeleteConfirmItem(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [deleteConfirmItem, discardingId]);
+
+  const requestDeleteConfirm = (item: ReviewItem) => {
+    setDeleteError(null);
+    setSelectedItem(null);
+    setDeleteConfirmItem(item);
+  };
 
   const handleApprove = async (
     id: string,
@@ -433,15 +441,21 @@ export default function ReviewPage() {
     window.dispatchEvent(new Event("filesgo:review-update"));
   };
 
-  const handleDiscard = async (id: string) => {
+  const executeDelete = async (id: string) => {
     setDiscardingId(id);
+    setDeleteWarnings([]);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/review/${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to discard");
+      if (!res.ok) throw new Error(data.error ?? t("ลบไม่สำเร็จ", "Failed to delete"));
       setItems((prev) => prev.filter((i) => i.id !== id));
-      if (selectedItem?.id === id) setSelectedItem(null);
+      setDeleteConfirmItem(null);
+      setSelectedItem(null);
+      if (data.warnings?.length) setDeleteWarnings(data.warnings);
       window.dispatchEvent(new Event("filesgo:review-update"));
+    } catch (e: any) {
+      setDeleteError(e?.message ?? t("ลบรายการไม่สำเร็จ", "Failed to delete record"));
     } finally {
       setDiscardingId(null);
     }
@@ -472,6 +486,27 @@ export default function ReviewPage() {
           {t("รีเฟรช", "Refresh")}
         </button>
       </div>
+
+      {deleteWarnings.length > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-amber-800">
+              {t("ลบจากฐานข้อมูลแล้ว แต่มีข้อควรระวัง:", "Deleted from database, but note:")}
+            </p>
+            {deleteWarnings.map((w, i) => (
+              <p key={i} className="text-xs text-amber-700 mt-0.5">{w}</p>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setDeleteWarnings([])}
+            className="text-amber-600 hover:text-amber-800 text-xs shrink-0 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20 gap-2 text-slate-400">
@@ -531,12 +566,116 @@ export default function ReviewPage() {
                     key={item.id}
                     item={item}
                     onReview={setSelectedItem}
-                    onDiscard={handleDiscard}
+                    onRequestDelete={requestDeleteConfirm}
                     discarding={discardingId === item.id}
                   />
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteConfirmItem && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+          onClick={() => !discardingId && setDeleteConfirmItem(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 sm:px-6 pt-5 pb-3 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-semibold text-slate-900">
+                  {t("ยืนยันการลบรายการ", "Delete this item?")}
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  {t(
+                    "ระบบจะลบรายการจากฐานข้อมูลและพยายามลบไฟล์บน Google Drive การกระทำนี้ไม่สามารถย้อนกลับได้",
+                    "This removes the record from the database and tries to delete the file from Google Drive. This cannot be undone."
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !discardingId && setDeleteConfirmItem(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer disabled:opacity-50"
+                aria-label="Close"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mx-5 sm:mx-6 mb-4 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                <span
+                  className="text-xs font-medium text-slate-700 truncate"
+                  title={deleteConfirmItem.originalFilename ?? deleteConfirmItem.filename}
+                >
+                  {deleteConfirmItem.originalFilename ?? deleteConfirmItem.filename}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+                {deleteConfirmItem.invoiceDate && (
+                  <span>
+                    <span className="text-slate-400">{t("วันที่: ", "Date: ")}</span>
+                    {deleteConfirmItem.invoiceDate}
+                  </span>
+                )}
+                {deleteConfirmItem.cardLast4 && (
+                  <span className="font-mono">
+                    <span className="text-slate-400 font-sans">{t("บัตร: ", "Card: ")}</span>
+                    •••• {deleteConfirmItem.cardLast4}
+                  </span>
+                )}
+                {deleteConfirmItem.amount != null && (
+                  <span>
+                    <span className="text-slate-400">{t("ยอด: ", "Amount: ")}</span>
+                    {deleteConfirmItem.currency ? `${deleteConfirmItem.currency} ` : ""}
+                    {deleteConfirmItem.amount.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="mx-5 sm:mx-6 mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {deleteError}
+              </div>
+            )}
+              <button
+                type="button"
+                onClick={() => !discardingId && setDeleteConfirmItem(null)}
+                disabled={!!discardingId}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+              >
+                {t("ยกเลิก", "Cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void executeDelete(deleteConfirmItem.id)}
+                disabled={!!discardingId}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 cursor-pointer disabled:opacity-60"
+              >
+                {discardingId === deleteConfirmItem.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t("กำลังลบ...", "Deleting...")}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    {t("ลบรายการ", "Delete")}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -547,7 +686,7 @@ export default function ReviewPage() {
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
           onApprove={handleApprove}
-          onDiscard={handleDiscard}
+          onRequestDeleteConfirm={requestDeleteConfirm}
         />
       )}
     </div>

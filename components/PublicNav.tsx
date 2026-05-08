@@ -11,7 +11,7 @@ export default function PublicNav() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-neutral-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-2 text-neutral-900 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 rounded-lg landing-accent-bg flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg landing-accent-bg flex items-center justify-center shrink-0">
             <Zap className="w-4 h-4 text-white" />
           </div>
           <span className="font-heading font-bold text-lg">Files Go</span>

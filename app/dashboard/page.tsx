@@ -321,21 +321,23 @@ export default function DashboardPage() {
     const [effectiveSheetName, setEffectiveSheetName] = useState<string>("");
     const [effectiveSheetGid, setEffectiveSheetGid] = useState<number | null>(null);
 
+    // Cache of titles already resolved per sheetId — prevents re-flashing "Loading…" between re-renders
+    const titleCacheRef = useRef<Map<string, string>>(new Map());
+    const userId = (session?.user as any)?.id as string | undefined;
+    const sessionSheetId = ((session?.user as any)?.sheetId as string | undefined) ?? "";
+    const sessionSheetName = ((session?.user as any)?.sheetName as string | undefined) ?? "";
+    const sessionSheetGid = ((session?.user as any)?.sheetGid as number | null | undefined) ?? null;
 
-
-
-    // Resolve current sheet destination from active integrations profile (fallback to session fields)
+    // Resolve current sheet destination from active integrations profile (fallback to session fields).
+    // Re-runs only when the user changes — not on every NextAuth session refresh — so the sheet
+    // pill doesn't flicker when the tab regains focus.
     useEffect(() => {
+        if (!userId) return;
         let cancelled = false;
+        const setIfChanged = <T,>(setter: (v: T) => void, prev: T, next: T) => {
+            if (prev !== next) setter(next);
+        };
         const loadSheetDestination = async () => {
-            const sessionSheetId = ((session?.user as any)?.sheetId as string | undefined) ?? "";
-            const sessionSheetName = ((session?.user as any)?.sheetName as string | undefined) ?? "";
-            const sessionSheetGid = ((session?.user as any)?.sheetGid as number | null | undefined) ?? null;
-
-            setEffectiveSheetId(sessionSheetId);
-            setEffectiveSheetName(sessionSheetName);
-            setEffectiveSheetGid(sessionSheetGid);
-
             try {
                 const res = await fetch("/api/integrations", { method: "GET" });
                 const data = await res.json();
@@ -347,14 +349,24 @@ export default function DashboardPage() {
                     profiles[0] ??
                     null;
 
-                if (!activeProfile) return;
-                setEffectiveSheetId(String(activeProfile.sheetId ?? ""));
-                setEffectiveSheetName(String(activeProfile.sheetName ?? ""));
-                setEffectiveSheetGid(
-                    typeof activeProfile.sheetGid === "number" ? activeProfile.sheetGid : null
-                );
+                if (activeProfile) {
+                    const nextId = String(activeProfile.sheetId ?? "");
+                    const nextName = String(activeProfile.sheetName ?? "");
+                    const nextGid = typeof activeProfile.sheetGid === "number" ? activeProfile.sheetGid : null;
+                    setEffectiveSheetId((cur) => (cur === nextId ? cur : nextId));
+                    setEffectiveSheetName((cur) => (cur === nextName ? cur : nextName));
+                    setEffectiveSheetGid((cur) => (cur === nextGid ? cur : nextGid));
+                    return;
+                }
+                // No active integration profile — fall back to session values.
+                setIfChanged(setEffectiveSheetId, effectiveSheetId, sessionSheetId);
+                setIfChanged(setEffectiveSheetName, effectiveSheetName, sessionSheetName);
+                setIfChanged(setEffectiveSheetGid, effectiveSheetGid, sessionSheetGid);
             } catch {
-                // Keep session-based fallback
+                // On network error, only seed from session if we have nothing yet.
+                setEffectiveSheetId((cur) => (cur ? cur : sessionSheetId));
+                setEffectiveSheetName((cur) => (cur ? cur : sessionSheetName));
+                setEffectiveSheetGid((cur) => (cur != null ? cur : sessionSheetGid));
             }
         };
 
@@ -362,24 +374,37 @@ export default function DashboardPage() {
         return () => {
             cancelled = true;
         };
-    }, [session?.user]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId]);
 
-    // Load spreadsheet title
+    // Load spreadsheet title — uses an in-memory cache so re-renders don't flash "Loading…".
     useEffect(() => {
         const sheetId = effectiveSheetId || undefined;
         if (!sheetId) { setSpreadsheetTitle(null); return; }
+        const cached = titleCacheRef.current.get(sheetId);
+        if (cached !== undefined) {
+            setSpreadsheetTitle(cached);
+            return;
+        }
         let cancelled = false;
         (async () => {
             try {
                 const res = await fetch(`/api/google/sheets/title?sheetId=${encodeURIComponent(sheetId)}`);
                 const data = await res.json();
-                if (!cancelled && res.ok && data?.data?.title !== undefined) {
-                    setSpreadsheetTitle(data.data.title as string);
-                } else if (!cancelled) {
+                if (cancelled) return;
+                if (res.ok && data?.data?.title !== undefined) {
+                    const title = data.data.title as string;
+                    titleCacheRef.current.set(sheetId, title);
+                    setSpreadsheetTitle(title);
+                } else {
+                    titleCacheRef.current.set(sheetId, "");
                     setSpreadsheetTitle("");
                 }
             } catch {
-                if (!cancelled) setSpreadsheetTitle("");
+                if (!cancelled) {
+                    titleCacheRef.current.set(sheetId, "");
+                    setSpreadsheetTitle("");
+                }
             }
         })();
         return () => { cancelled = true; };
@@ -489,7 +514,7 @@ export default function DashboardPage() {
                             <div className="flex flex-wrap items-center gap-1.5 text-xs">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                    src="https://img.icons8.com/color/20/folder-invoices--v1.png"
+                                    src="/drive.svg"
                                     alt="Google Drive folder"
                                     width={16}
                                     height={16}
@@ -516,7 +541,7 @@ export default function DashboardPage() {
                                 <div className="flex flex-wrap items-center gap-1 text-xs">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
-                                        src="https://img.icons8.com/color/20/google-sheets.png"
+                                        src="/sheet.webp"
                                         alt="Google Sheets"
                                         width={16}
                                         height={16}

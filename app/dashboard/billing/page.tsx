@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { CheckCircle2, Zap, ArrowRight } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
@@ -15,8 +15,6 @@ const stripePromise =
 export default function BillingCompositePage() {
   const { t } = useAppPreferences();
   const { data: session } = useSession();
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [pmError, setPmError] = useState<string | null>(null);
   const [loadingPm, setLoadingPm] = useState(false);
@@ -25,7 +23,6 @@ export default function BillingCompositePage() {
   const [invError, setInvError] = useState<string | null>(null);
   const [loadingInv, setLoadingInv] = useState(false);
   const [openingPortal, setOpeningPortal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -37,25 +34,6 @@ export default function BillingCompositePage() {
   const credits = (session?.user as any)?.credits ?? 0;
   const plan = (session?.user as any)?.plan ?? "free";
   const isPro = plan === "pro";
-
-  const handleDeleteAccount = async () => {
-    if (deleting) return;
-    try {
-      setDeleting(true);
-      setDeleteError(null);
-      const res = await fetch("/api/account/delete", { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error ?? "Failed to delete account");
-      }
-      // After deleting account, immediately sign the user out and redirect to homepage
-      await signOut({ callbackUrl: "/" });
-    } catch (err: any) {
-      setDeleteError(err.message ?? "Unexpected error while deleting account.");
-      setDeleting(false);
-      setShowDeleteConfirm(false);
-    }
-  };
 
   const loadPaymentMethods = async () => {
     setLoadingPm(true);
@@ -595,67 +573,6 @@ export default function BillingCompositePage() {
                 disabled={loadingCheckout}
               >
                 {loadingCheckout ? "Redirecting..." : "Confirm upgrade"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Danger zone */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-red-600 uppercase tracking-wide">
-          Danger zone
-        </h2>
-        <div className="bg-white rounded-2xl border border-red-100 p-4">
-          <p className="text-sm font-medium text-slate-900 mb-1">
-            Delete account
-          </p>
-          <p className="text-xs text-slate-500 mb-3">
-            Permanently delete your Files Go account, history, and integration
-            settings. This action cannot be undone.
-          </p>
-          {deleteError && (
-            <p className="text-xs text-red-600 mb-2">{deleteError}</p>
-          )}
-          <button
-            type="button"
-            onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-semibold hover:bg-red-700 cursor-pointer disabled:opacity-60"
-          >
-            Delete my account
-          </button>
-        </div>
-      </section>
-
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
-            <p className="text-base font-semibold text-slate-900 mb-2">
-              Delete account?
-            </p>
-            <p className="text-sm text-slate-500 mb-4">
-              This will permanently delete your Files Go account, history, and integration
-              settings. This action cannot be undone.
-            </p>
-            {deleteError && (
-              <p className="text-xs text-red-600 mb-3">{deleteError}</p>
-            )}
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => !deleting && setShowDeleteConfirm(false)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-60"
-                disabled={deleting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 cursor-pointer disabled:opacity-60"
-                disabled={deleting}
-              >
-                {deleting ? "Deleting..." : "Delete account"}
               </button>
             </div>
           </div>

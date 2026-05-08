@@ -177,10 +177,14 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                                             log.status === "success"
                                                 ? "bg-green-50 text-green-700"
+                                                : log.status === "review"
+                                                ? "bg-amber-50 text-amber-700"
                                                 : "bg-red-50 text-red-600"
                                         }`}>
                                             {log.status === "error" && <AlertCircle className="w-3 h-3" />}
-                                            {log.status}
+                                            {log.status === "success" ? t("สำเร็จ", "Success")
+                                                : log.status === "review" ? t("รอตรวจสอบ", "Review")
+                                                : t("ผิดพลาด", "Error")}
                                         </span>
                                     </td>
 

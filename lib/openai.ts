@@ -98,8 +98,8 @@ function normalizeBilledTo(raw: string): string {
         .replace(/^\s*customer(?:\s*name)?\s*/i, "")
         .replace(/^\s*recipient\s*/i, "")
         .replace(/^\s*[+\-＋﹣−]?\d{1,2}\s*/, "")
-        .replace(/^[\s:|,;.-]+/, "")
-        .replace(/[\s:|,;.-]+$/, "")
+        .replace(/^[\s:|,;.\-/\\]+/, "")   // also strip leading / and \
+        .replace(/[\s:|,;.\-/\\]+$/, "")   // also strip trailing / and \
         .replace(/\s{2,}/g, " ")
         .trim();
 }
@@ -116,7 +116,8 @@ function isLikelyNotPersonOrCompany(line: string): boolean {
     // Looks like long id/hash/account number.
     if (/[A-Z0-9]{10,}/i.test(t) && !/\s/.test(t)) return true;
     // Mostly digits/symbols with too few letters -> likely not a person/company name.
-    const letters = (t.match(/[A-Za-z\u0E00-\u0E7F]/g) || []).length;
+    // Include Thai, CJK (Chinese/Japanese Kanji), Hiragana, Katakana, Khmer, Korean
+    const letters = (t.match(/[A-Za-z\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\u1780-\u17FF\uAC00-\uD7AF]/g) || []).length;
     const digits = (t.match(/\d/g) || []).length;
     if (digits >= 6 && letters <= 2) return true;
     return false;
@@ -139,11 +140,12 @@ function billedToFromText(pdfText: string): string {
 
     const scoreBilledToCandidate = (value: string, isInline: boolean): number => {
         let score = isInline ? 30 : 10;
-        const letters = (value.match(/[A-Za-z\u0E00-\u0E7F]/g) || []).length;
+        // Count letters across Latin, Thai, CJK, Hiragana/Katakana, Khmer, Korean
+        const letters = (value.match(/[A-Za-z\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\u1780-\u17FF\uAC00-\uD7AF]/g) || []).length;
         const digits = (value.match(/\d/g) || []).length;
         if (letters > 0) score += Math.min(letters, 20);
         if (digits > 0) score -= Math.min(digits * 2, 20);
-        if (/[A-Za-z\u0E00-\u0E7F].*[A-Za-z\u0E00-\u0E7F]/.test(value)) score += 10;
+        if (/[A-Za-z\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\u1780-\u17FF\uAC00-\uD7AF].*[A-Za-z\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\u1780-\u17FF\uAC00-\uD7AF]/.test(value)) score += 10;
         if (/^(?:id|account|ref|reference)\b/i.test(value)) score -= 30;
         return score;
     };

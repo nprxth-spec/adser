@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
       { source: "/integrations", destination: "/dashboard/integrations" },
       { source: "/naming", destination: "/dashboard/naming" },
       { source: "/review", destination: "/dashboard/review" },
+      { source: "/analytics", destination: "/dashboard/analytics" },
     ];
   },
 };

@@ -10,6 +10,7 @@ import {
     FileText,
     Zap,
     Table2,
+    BarChart3,
     ChevronRight,
     ChevronDown,
     AlertTriangle,
@@ -36,6 +37,7 @@ export default function Sidebar() {
             badge: reviewCount > 0 ? reviewCount : undefined,
         },
         { href: "/history", label: t("ประวัติ", "History"), icon: History },
+        { href: "/analytics", label: t("วิเคราะห์", "Analytics"), icon: BarChart3 },
         { href: "/integrations", label: t("ตั้งค่า Sheet", "Sheet Settings"), icon: Table2 },
         { href: "/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },
     ];

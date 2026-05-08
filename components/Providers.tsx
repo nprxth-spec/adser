@@ -19,7 +19,7 @@ function LogLoginOnMount() {
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
-        <SessionProvider>
+        <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
             <AppPreferencesProvider>
                 <LogLoginOnMount />
                 {children}

@@ -29,20 +29,10 @@ export default function GoogleReauthDialog() {
       }
     };
 
-    const onFocus = () => {
-      void check();
-    };
-
     void check();
-    const timer = window.setInterval(() => {
-      void check();
-    }, 120000);
-    window.addEventListener("focus", onFocus);
 
     return () => {
       active = false;
-      window.clearInterval(timer);
-      window.removeEventListener("focus", onFocus);
     };
   }, [t]);
 

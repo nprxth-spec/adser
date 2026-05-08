@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, Sparkles, Wrench, Bug, X } from "lucide-react";
 import { CHANGELOG, LATEST_VERSION, type ChangelogEntryType } from "@/lib/changelog";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
@@ -46,6 +47,11 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
   const { t, language } = useAppPreferences();
   const [open, setOpen] = useState(false);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Load last-seen version from localStorage on mount
   useEffect(() => {
@@ -108,7 +114,7 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
         )}
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4"
           onClick={() => setOpen(false)}
@@ -193,7 +199,8 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

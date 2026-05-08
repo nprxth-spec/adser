@@ -120,7 +120,7 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col max-h-[85vh]"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 overflow-hidden flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 flex items-start gap-3 shrink-0">

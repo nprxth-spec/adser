@@ -3,6 +3,7 @@ import AdminAddCreditsForm from "./AdminAddCreditsForm";
 import AdminUserScopesCell from "./AdminUserScopesCell";
 import AdminDeleteUserButton from "./AdminDeleteUserButton";
 import AdminTruncatedCell from "./AdminTruncatedCell";
+import AdminFilenameMappingEditor from "./AdminFilenameMappingEditor";
 import LogsRangeSelect from "../logs/LogsRangeSelect";
 import { LogsSearchClient } from "../logs/LogsSearchClient";
 
@@ -194,7 +195,11 @@ export default async function AdminUsersPage({
                       <AdminTruncatedCell value={user.sheetName} />
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
-                      <AdminTruncatedCell value={user.filenameMapping} />
+                      <AdminFilenameMappingEditor
+                        userId={user.id}
+                        userLabel={user.email ?? user.name ?? user.id}
+                        value={user.filenameMapping}
+                      />
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       <AdminTruncatedCell value={user.driveFolderId} />

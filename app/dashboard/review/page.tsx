@@ -649,6 +649,8 @@ export default function ReviewPage() {
                 {deleteError}
               </div>
             )}
+
+            <div className="px-5 sm:px-6 pb-5 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => !discardingId && setDeleteConfirmItem(null)}

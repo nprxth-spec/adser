@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
+import ChangelogBell from "@/components/ChangelogBell";
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -279,6 +280,10 @@ export default function Sidebar() {
                     )}
                 </div>
             </nav>
+
+            <div className="p-3 border-t border-slate-800">
+                <ChangelogBell collapsed={collapsed} />
+            </div>
         </aside>
     );
 }

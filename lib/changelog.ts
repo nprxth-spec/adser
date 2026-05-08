@@ -18,7 +18,7 @@ export type ChangelogEntry = {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.3.1",
+    version: "1.4.0",
     date: "2026-05-08",
     items: [
       {
@@ -26,17 +26,6 @@ export const CHANGELOG: ChangelogEntry[] = [
         th: "หน้าวิเคราะห์การใช้จ่ายใหม่ — ดูยอดรวม จำนวนใบแจ้งหนี้ ค่าเฉลี่ยต่อใบ พร้อมกราฟรายเดือน (เลือกปีได้) กราฟรายวัน และโดนัทสัดส่วนบัตร",
         en: "New Spend Analytics page — total spend, invoice count, average per invoice, plus a year-selectable monthly chart, daily chart, and a per-card donut",
       },
-      {
-        type: "improvement",
-        th: "ปรับปรุงไดอะล็อก 'มีอะไรใหม่' ให้แสดงทับ element อื่นเสมอ",
-        en: "The 'What's new' dialog now reliably renders above other elements",
-      },
-    ],
-  },
-  {
-    version: "1.3.0",
-    date: "2026-05-08",
-    items: [
       {
         type: "feature",
         th: "อัปโหลดหลายไฟล์พร้อมกัน — ประมวลผลแบบขนาน รวดเร็วกว่าเดิมหลายเท่า ไม่ต้องรอทีละไฟล์อีกต่อไป",
@@ -71,6 +60,11 @@ export const CHANGELOG: ChangelogEntry[] = [
         type: "improvement",
         th: "ปุ่มลบในหน้า Dashboard ใช้ไดอะล็อกยืนยันแบบเดียวกับหน้า History เพื่อความสม่ำเสมอ",
         en: "Delete button on Dashboard now uses the same confirmation dialog as History for a consistent experience",
+      },
+      {
+        type: "improvement",
+        th: "ปรับปรุงไดอะล็อก 'มีอะไรใหม่' ให้แสดงทับ element อื่นเสมอ",
+        en: "The 'What's new' dialog now reliably renders above other elements",
       },
       {
         type: "fix",

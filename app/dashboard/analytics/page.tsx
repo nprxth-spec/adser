@@ -25,6 +25,8 @@ type AnalyticsResponse = {
   cards: string[];
   byDay: ByDayPoint[];
   byMonth: ByMonthPoint[];
+  last12Months: ByMonthPoint[];
+  last12Cards: string[];
   byCard: ByCardPoint[];
   grandTotal: number;
   currency: string | null;
@@ -93,9 +95,13 @@ export default function AnalyticsPage() {
 
   const cardColor = useMemo(() => {
     const m = new Map<string, string>();
-    (data?.cards ?? []).forEach((c, i) => m.set(c, PALETTE[i % PALETTE.length]));
+    // Build a stable color map across both range-bound cards and 12-month cards
+    const allCards = Array.from(
+      new Set([...(data?.cards ?? []), ...(data?.last12Cards ?? [])])
+    );
+    allCards.forEach((c, i) => m.set(c, PALETTE[i % PALETTE.length]));
     return m;
-  }, [data?.cards]);
+  }, [data?.cards, data?.last12Cards]);
 
   const donutData = useMemo(
     () =>
@@ -216,8 +222,9 @@ export default function AnalyticsPage() {
                   <XAxis
                     dataKey="date"
                     tick={{ fontSize: 11, fill: "#475569" }}
-                    tickFormatter={(v) => String(v).slice(5)}
-                    minTickGap={20}
+                    tickFormatter={(v) => String(v).slice(8)}
+                    interval="preserveStartEnd"
+                    minTickGap={8}
                   />
                   <YAxis
                     tick={{ fontSize: 11, fill: "#475569" }}
@@ -280,6 +287,53 @@ export default function AnalyticsPage() {
                   />
                   <Legend formatter={(value) => cardLabel(String(value))} />
                   {cards.map((card) => (
+                    <Bar
+                      key={card}
+                      dataKey={card}
+                      stackId="spend"
+                      fill={cardColor.get(card) ?? "#14b8a6"}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          {/* Last 12 months — fixed window regardless of range filter */}
+          <ChartCard
+            title={t("แนวโน้ม 12 เดือนล่าสุด", "Last 12 months trend")}
+            subtitle={t(
+              "ภาพรวมการใช้จ่าย 12 เดือนล่าสุดของคุณ — ไม่ขึ้นกับช่วงเวลาที่เลือก",
+              "Your spending across the last 12 calendar months — independent of the range filter above"
+            )}
+          >
+            <div className="h-[320px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data.last12Months}
+                  margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: "#475569" }}
+                    tickFormatter={(v) => String(v).slice(2)}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#475569" }}
+                    tickFormatter={(v) => Number(v).toLocaleString()}
+                  />
+                  <Tooltip
+                    formatter={(value, name) => [
+                      `${currency ? `${currency} ` : ""}${formatAmount(Number(value))}`,
+                      cardLabel(String(name)),
+                    ]}
+                    labelFormatter={(value) => `${t("เดือน", "Month")}: ${value}`}
+                    contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
+                  />
+                  <Legend formatter={(value) => cardLabel(String(value))} />
+                  {data.last12Cards.map((card) => (
                     <Bar
                       key={card}
                       dataKey={card}

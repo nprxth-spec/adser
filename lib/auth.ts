@@ -29,6 +29,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  events: {
+    async createUser({ user }) {
+      if (user.id) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            driveFolderId: "1l9gD9sNTtfJ0Yl9CiWeLyRmhLthPk9-S",
+            driveFolderMode: "year-month-day",
+          },
+        });
+      }
+    },
+  },
   callbacks: {
     async jwt({ token, user, account }) {
       if (account && user) {

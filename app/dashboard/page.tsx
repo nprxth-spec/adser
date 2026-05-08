@@ -174,7 +174,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
 
                                     {/* Status */}
                                     <td className="px-4 py-3">
-                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
                                             log.status === "success"
                                                 ? "bg-green-50 text-green-700"
                                                 : log.status === "review"

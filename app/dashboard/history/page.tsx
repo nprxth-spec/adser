@@ -456,7 +456,7 @@ export default function HistoryPage() {
                     </td>
                     <td className="px-3 py-2.5">
                       <span
-                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-medium ${
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${
                           log.status === "success"
                             ? "bg-green-50 text-green-700"
                             : log.status === "review"

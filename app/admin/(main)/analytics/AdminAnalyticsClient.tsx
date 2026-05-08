@@ -398,13 +398,13 @@ export default function AdminAnalyticsClient({ users }: { users: UserOption[] })
                     {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                   </Pie>
                   <Tooltip content={<CustomPieTooltip />} />
-                  {pieData.length <= 6 && (
+                  {(userId || pieData.length <= 6) && (
                     <Legend formatter={(value) => cardLabel(String(value))} wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
                   )}
                 </PieChart>
               </ResponsiveContainer>
             )}
-            {pieData.length > 6 && (
+            {!userId && pieData.length > 6 && (
               <p className="text-xs text-slate-400 text-center mt-1">Hover slices to see card details</p>
             )}
           </div>

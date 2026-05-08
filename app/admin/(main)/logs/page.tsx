@@ -169,7 +169,7 @@ export default async function AdminLogsPage({
 
       <p className="text-sm text-slate-500">{total} รายการในระยะนี้</p>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full table-auto text-sm">
             <thead>
@@ -258,7 +258,7 @@ export default async function AdminLogsPage({
               {page > 1 && (
                 <Link
                   href={`/admin/logs${buildQuery({ page: page - 1, range, userId: userId || undefined, q: query || undefined, limit: pageSize })}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
                 >
                   <ChevronLeft className="w-4 h-4" /> Previous
                 </Link>
@@ -266,7 +266,7 @@ export default async function AdminLogsPage({
               {page < totalPages && (
                 <Link
                   href={`/admin/logs${buildQuery({ page: page + 1, range, userId: userId || undefined, q: query || undefined, limit: pageSize })}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
                 >
                   Next <ChevronRight className="w-4 h-4" />
                 </Link>

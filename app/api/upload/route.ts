@@ -7,6 +7,7 @@ import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { ensureFreeCreditsReset } from "@/lib/credits";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 /** Drive folder that all uploads go into — locked, not user-configurable. */
 const LOCKED_DRIVE_FOLDER_ID   = "1l9gD9sNTtfJ0Yl9CiWeLyRmhLthPk9-S";

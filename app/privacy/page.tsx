@@ -15,7 +15,7 @@ export default function PrivacyPage() {
             href="/"
             className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors"
           >
-            <div className="w-8 h-8 rounded-lg landing-accent-bg flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-md landing-accent-bg flex items-center justify-center shrink-0">
               <Zap className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-lg">Files Go</span>

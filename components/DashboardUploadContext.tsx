@@ -286,18 +286,6 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         setCompletedCount(0);
     }, []);
 
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isProcessingRef.current) {
-                // Both lines required: preventDefault for Firefox, returnValue for Chrome/Edge
-                e.preventDefault();
-                e.returnValue = "";
-            }
-        };
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, []);
-
     const isProcessing = fileStages.size > 0 || (isProcessingRef.current);
 
     // Build sorted activeFiles array for UI consumption
@@ -346,7 +334,7 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
             {/* Floating upload progress — persists across in-app navigation */}
             {(showFloat || floatDone) && (
                 <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className={`bg-white rounded-2xl shadow-2xl border px-4 py-3 flex items-center gap-3 min-w-[220px] max-w-xs ${floatDone ? "border-emerald-200" : "border-slate-200"}`}>
+                    <div className={`bg-white rounded-xl shadow-2xl border px-4 py-3 flex items-center gap-3 min-w-[220px] max-w-xs ${floatDone ? "border-emerald-200" : "border-slate-200"}`}>
                         {floatDone ? (
                             <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
                                 <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

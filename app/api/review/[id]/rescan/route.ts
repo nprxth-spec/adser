@@ -5,6 +5,7 @@ import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { extractInvoiceData } from "@/lib/openai";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 let _pdfParse: ((buffer: Buffer) => Promise<{ text: string }>) | null = null;
 async function getPdfParse() {

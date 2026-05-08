@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div className="w-full max-w-sm bg-white rounded-lg shadow-sm border border-slate-200 p-6">
         <h1 className="text-lg font-bold text-slate-900 mb-1">Files Go Admin</h1>
         <p className="text-sm text-slate-500 mb-6">Sign in with admin password</p>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="w-full px-3 py-2 rounded-md border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
               placeholder="Admin password"
               required
               autoFocus
@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-slate-800 text-white font-medium hover:bg-slate-700 disabled:opacity-50"
+            className="w-full py-2.5 rounded-md bg-slate-800 text-white font-medium hover:bg-slate-700 disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>

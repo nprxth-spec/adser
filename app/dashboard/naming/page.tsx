@@ -145,20 +145,20 @@ export default function NamingRulesPage() {
       </div>
 
       {saved && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
           <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold">✓</span>
           <span>{t("บันทึกกฎชื่อไฟล์สำเร็จ", "Filename rules saved successfully")}</span>
         </div>
       )}
       {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">{error}</div>
+        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-600">{error}</div>
       )}
 
       {/* ── Locked Template Display ── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5 mb-5">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-5 mb-5">
 
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 mt-0.5">
+          <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center shrink-0 mt-0.5">
             <FileText className="w-5 h-5 text-violet-500" />
           </div>
           <div className="flex-1 min-w-0">
@@ -179,13 +179,13 @@ export default function NamingRulesPage() {
         </div>
 
         {/* ── Read-only template chips ── */}
-        <div className="min-h-[52px] p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap gap-y-2 items-center">
+        <div className="min-h-[52px] p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-wrap gap-y-2 items-center">
           {LOCKED_TEMPLATE.map((item) => {
             const field = item.type === "field" ? FIELD_MAP[item.key] : null;
             return (
               <div key={item.id} className="flex items-center">
                 {item.type === "field" ? (
-                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium ${field?.color ?? "bg-slate-100 text-slate-700 border-slate-200"}`}>
+                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-medium ${field?.color ?? "bg-slate-100 text-slate-700 border-slate-200"}`}>
                     <Lock className="w-2.5 h-2.5 opacity-50" />
                     {t(field?.label ?? item.key, field?.labelEn ?? item.key)}
                   </span>
@@ -198,7 +198,7 @@ export default function NamingRulesPage() {
         </div>
 
         {/* ── Live preview ── */}
-        <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+        <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
           <div className="flex items-center gap-2 mb-1.5">
             <Eye className="w-4 h-4 text-slate-400" />
             <p className="text-xs font-medium text-slate-500">{t("ตัวอย่างชื่อไฟล์", "Filename preview")}</p>
@@ -211,9 +211,9 @@ export default function NamingRulesPage() {
       </div>
 
       {/* ── Card name mapping ── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 mb-6">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4 mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5 text-indigo-500" />
           </div>
           <div>
@@ -229,7 +229,7 @@ export default function NamingRulesPage() {
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
           rows={5}
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-y"
+          className="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-y"
           placeholder={"5991=WF-0004-1;\n5821=WF-0004-2;\n9649=WF-0004-9;"}
         />
         <p className="text-xs text-slate-400">
@@ -245,7 +245,7 @@ export default function NamingRulesPage() {
         <button
           onClick={handleSave}
           disabled={saving || loading}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl landing-accent-bg text-white text-sm font-medium hover:opacity-95 disabled:opacity-50 transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-lg landing-accent-bg text-white text-sm font-medium hover:opacity-95 disabled:opacity-50 transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 shrink-0" />}
           <span>{saved ? t("บันทึกแล้ว", "Saved") : t("บันทึกกฎ", "Save Rules")}</span>

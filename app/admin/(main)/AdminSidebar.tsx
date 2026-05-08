@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ScrollText, Users, LogOut, ClipboardList } from "lucide-react";
+import { LayoutDashboard, ScrollText, Users, LogOut, ClipboardList, BarChart3 } from "lucide-react";
 
 const navLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/analytics", label: "วิเคราะห์การใช้จ่าย", icon: BarChart3 },
   { href: "/admin/logs", label: "ประมวลผลใบแจ้งหนี้", icon: ScrollText },
   { href: "/admin/audit-logs", label: "การล็อกอิน / Config", icon: ClipboardList },
   { href: "/admin/users", label: "Users & Credits", icon: Users },
@@ -39,7 +40,7 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
               prefetch={true}
               title={label}
               aria-label={label}
-              className={`flex items-center px-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center px-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
                 isOpen ? "justify-start gap-3" : "justify-center"
               } ${
                 isActive
@@ -60,7 +61,7 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
             type="submit"
             title="Log out"
             aria-label="Log out"
-            className={`w-full flex items-center px-2 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/70 transition-colors cursor-pointer ${
+            className={`w-full flex items-center px-2 py-2.5 rounded-md text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/70 transition-colors cursor-pointer ${
               isOpen ? "justify-start gap-3" : "justify-center"
             }`}
           >

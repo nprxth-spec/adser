@@ -119,7 +119,7 @@ export function DashboardHeader({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-48 sm:w-52 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 text-sm z-20">
+            <div className="absolute right-0 top-full mt-1 w-48 sm:w-52 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 text-sm z-20">
               <div className="px-3 py-2 border-b border-slate-100">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   {t("บัญชี", "Account")}
@@ -146,7 +146,7 @@ export function DashboardHeader({
 
       {showSignOutConfirm && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6">
             <p className="text-base font-semibold text-slate-900 mb-2">
               {t("ออกจากระบบ?", "Sign out?")}
             </p>
@@ -157,14 +157,14 @@ export function DashboardHeader({
               <button
                 type="button"
                 onClick={() => setShowSignOutConfirm(false)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
                 {t("ยกเลิก", "Cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmSignOut}
-                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 cursor-pointer"
               >
                 {t("ออกจากระบบ", "Sign out")}
               </button>

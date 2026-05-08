@@ -189,25 +189,25 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link
           href="/admin/logs"
-          className="block p-4 bg-white rounded-xl border border-slate-200 hover:border-slate-300"
+          className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300"
         >
           <p className="text-2xl font-bold text-slate-900">{logCount}</p>
           <p className="text-sm text-slate-500">Uploads ({selectedUserId ? "selected user" : "all users"})</p>
         </Link>
         <Link
           href="/admin/users"
-          className="block p-4 bg-white rounded-xl border border-slate-200 hover:border-slate-300"
+          className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300"
         >
           <p className="text-2xl font-bold text-slate-900">{userCount}</p>
           <p className="text-sm text-slate-500">Users</p>
         </Link>
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
+        <div className="p-4 bg-white rounded-lg border border-slate-200">
           <p className="text-2xl font-bold text-slate-900">{formatAmount(totalAmount)}</p>
           <p className="text-sm text-slate-500">Total bill amount</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-900">Per-user uploads and amount</h2>
           <span className="text-xs text-slate-500">{statsRows.length} users</span>
@@ -245,7 +245,7 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
+      <div className="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-slate-900">
             Trend by {interval === "month" ? "day (current month)" : "day"}

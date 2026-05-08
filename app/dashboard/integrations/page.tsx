@@ -15,7 +15,11 @@ const defaultMapping = {
     amountFailed: "H",
     currency: "",
     driveLink: "J",
+    reference: "T",
 };
+
+const mergeMapping = (stored: unknown): typeof defaultMapping =>
+    ({ ...defaultMapping, ...(stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {}) } as typeof defaultMapping);
 
 
 
@@ -77,14 +81,14 @@ export default function IntegrationsPage() {
                         sheetId: user?.sheetId ?? "",
                         sheetName: user?.sheetName ?? "",
                         sheetGid: null,
-                        sheetMapping: (user?.sheetMapping as typeof defaultMapping | null) ?? defaultMapping,
+                        sheetMapping: mergeMapping(user?.sheetMapping),
                     };
                     setProfiles([initial]);
                     setActiveProfileId(initial.id);
                     setSheetId(initial.sheetId);
                     setSheetName(initial.sheetName || "");
                     setSheetGid(null);
-                    setSheetMapping(initial.sheetMapping || defaultMapping);
+                    setSheetMapping(mergeMapping(initial.sheetMapping));
                 } else {
                     setProfiles(serverProfiles);
                     const useId = serverActiveId || serverProfiles[0].id;
@@ -93,7 +97,7 @@ export default function IntegrationsPage() {
                     setSheetId(p.sheetId || "");
                     setSheetName(p.sheetName || "");
                     setSheetGid(p.sheetGid ?? null);
-                    setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
+                    setSheetMapping(mergeMapping(p.sheetMapping));
                 }
             } catch (err: any) {
                 setError(err.message ?? "Failed to load integrations");
@@ -142,41 +146,35 @@ export default function IntegrationsPage() {
         };
     }, []);
 
-    // Whenever sheetId changes, automatically load its tabs
+    // Clear tabs when sheetId changes so stale tabs from previous sheet don't show
+    const prevSheetIdRef = useRef<string>("");
     useEffect(() => {
-        const loadTabs = async () => {
-            if (!sheetId) {
-                setTabs([]);
-                return;
-            }
-            setLoadingTabs(true);
-            setError("");
-            try {
-                const res = await fetch(`/api/google/sheets?sheetId=${sheetId}`);
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error ?? "Failed to load sheets");
-                
-                const loadedTabs = (data.data as { id: number; title: string }[]) ?? [];
-                setTabs(loadedTabs);
-
-                if (loadedTabs.length > 0) {
-                    const existingTab = loadedTabs.find((t: any) => t.title === sheetName);
-                    if (!existingTab) {
-                        setSheetName(loadedTabs[0].title);
-                        setSheetGid(loadedTabs[0].id ?? null);
-                    } else {
-                        // รีเฟรช GID ให้ตรงกับ tab ที่เลือกอยู่
-                        setSheetGid(existingTab.id ?? null);
-                    }
-                }
-            } catch (err: any) {
-                setError(err.message);
-            }
-            setLoadingTabs(false);
-        };
-        loadTabs();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (prevSheetIdRef.current !== sheetId) {
+            prevSheetIdRef.current = sheetId;
+            setTabs([]);
+        }
     }, [sheetId]);
+
+    // Load tabs on demand (called when user opens the tab dropdown)
+    const loadTabsOnDemand = async () => {
+        if (!sheetId || loadingTabs) return;
+        setLoadingTabs(true);
+        setError("");
+        try {
+            const res = await fetch(`/api/google/sheets?sheetId=${sheetId}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Failed to load sheets");
+            const loadedTabs = (data.data as { id: number; title: string }[]) ?? [];
+            setTabs(loadedTabs);
+            if (loadedTabs.length > 0 && !sheetName) {
+                setSheetName(loadedTabs[0].title);
+                setSheetGid(loadedTabs[0].id ?? null);
+            }
+        } catch (err: any) {
+            setError(err.message);
+        }
+        setLoadingTabs(false);
+    };
 
     const syncActiveProfileState = (nextProfiles: SheetProfile[], nextActiveId: string) => {
         const p = nextProfiles.find(p => p.id === nextActiveId);
@@ -184,7 +182,7 @@ export default function IntegrationsPage() {
         setSheetId(p.sheetId || "");
         setSheetName(p.sheetName || "");
         setSheetGid(p.sheetGid ?? null);
-        setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
+        setSheetMapping(mergeMapping(p.sheetMapping));
     };
 
     const handleChangeActiveProfile = (profileId: string) => {
@@ -194,7 +192,7 @@ export default function IntegrationsPage() {
         setSheetId(p.sheetId || "");
         setSheetName(p.sheetName || "");
         setSheetGid(p.sheetGid ?? null);
-        setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
+        setSheetMapping(mergeMapping(p.sheetMapping));
     };
 
     const handleCreateProfile = (mode: "blank" | "duplicate") => {
@@ -214,7 +212,7 @@ export default function IntegrationsPage() {
             sheetId: base.sheetId || "",
             sheetName: base.sheetName || "",
             sheetGid: (base as SheetProfile).sheetGid ?? null,
-            sheetMapping: (base.sheetMapping as typeof defaultMapping | null) || defaultMapping,
+            sheetMapping: mergeMapping(base.sheetMapping),
         };
 
         const nextProfiles = [...profiles, newProfile];
@@ -265,7 +263,7 @@ export default function IntegrationsPage() {
 
             <div className="bg-white rounded-3xl border border-slate-100 shadow-lg shadow-slate-200/60 p-6 space-y-6">
                 {saved && (
-                    <div className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
                         <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold">
                             ✓
                         </span>
@@ -273,7 +271,7 @@ export default function IntegrationsPage() {
                     </div>
                 )}
                 <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
-                    <div className="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="/sheet.svg"
@@ -301,14 +299,14 @@ export default function IntegrationsPage() {
                                     <button
                                         type="button"
                                         onClick={() => setProfileMenuOpen((v) => !v)}
-                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 flex items-center justify-between cursor-pointer hover:bg-slate-50"
+                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 flex items-center justify-between cursor-pointer hover:bg-slate-50"
                                     >
                                         <span className="truncate">
                                             {profiles.find((p) => p.id === activeProfileId)?.name ?? t("เลือกโปรไฟล์", "Select profile")}
                                         </span>
                                     </button>
                                     {profileMenuOpen && (
-                                        <div className="absolute left-0 right-0 mt-2 rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 text-sm overflow-hidden z-20">
+                                        <div className="absolute left-0 right-0 mt-2 rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 text-sm overflow-hidden z-20">
                                             {profiles.map((p) => (
                                                 <button
                                                     key={p.id}
@@ -337,7 +335,7 @@ export default function IntegrationsPage() {
                                             );
                                             setProfiles(nextProfiles);
                                         }}
-                                        className="mt-2 sm:mt-0 w-full max-w-xs px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                        className="mt-2 sm:mt-0 w-full max-w-xs px-3 py-2 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                                         placeholder={t("ชื่อโปรไฟล์", "Profile name")}
                                     />
                                 )}
@@ -347,14 +345,14 @@ export default function IntegrationsPage() {
                             <button
                                 type="button"
                                 onClick={() => handleCreateProfile("blank")}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
                             >
                                 <Plus className="w-3.5 h-3.5" /> {t("สร้างใหม่", "New blank")}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleCreateProfile("duplicate")}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
                             >
                                 <Copy className="w-3.5 h-3.5" /> {t("คัดลอก", "Duplicate")}
                             </button>
@@ -371,7 +369,7 @@ export default function IntegrationsPage() {
                                         setActiveProfileId(nextActive.id);
                                         syncActiveProfileState(filtered, nextActive.id);
                                     }}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     {t("ลบ", "Delete")}
                                 </button>
@@ -381,7 +379,7 @@ export default function IntegrationsPage() {
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-xs text-red-600">
+                    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-100 text-xs text-red-600">
                         {error}
                     </div>
                 )}
@@ -405,7 +403,7 @@ export default function IntegrationsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setSheetMenuOpen((v) => !v)}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white text-left flex items-center gap-2 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent cursor-pointer"
+                                    className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white text-left flex items-center gap-2 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent cursor-pointer"
                                 >
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
@@ -428,7 +426,7 @@ export default function IntegrationsPage() {
                                     </span>
                                 </button>
                                 {sheetMenuOpen && !loadingSheets && sheets.length > 0 && (
-                                    <div className="absolute z-20 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 max-h-64 overflow-auto text-sm">
+                                    <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 max-h-64 overflow-auto text-sm">
                                         {sheets.map((s) => (
                                             <button
                                                 key={s.id}
@@ -464,20 +462,20 @@ export default function IntegrationsPage() {
                                 </label>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        if (tabs.length > 0) setTabMenuOpen((v) => !v);
+                                    onClick={async () => {
+                                        if (tabMenuOpen) { setTabMenuOpen(false); return; }
+                                        if (tabs.length === 0) await loadTabsOnDemand();
+                                        setTabMenuOpen(true);
                                     }}
-                                    disabled={tabs.length === 0}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white text-left hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
+                                    disabled={!sheetId || loadingTabs}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white text-left hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
                                 >
-                                    <span className={sheetName && tabs.length > 0 ? "text-slate-800" : "text-slate-400"}>
-                                        {tabs.length === 0
-                                            ? "No tabs loaded"
-                                            : sheetName || "Select a tab"}
+                                    <span className={sheetName ? "text-slate-800" : "text-slate-400"}>
+                                        {loadingTabs ? "Loading…" : sheetName || "Click to load tabs"}
                                     </span>
                                 </button>
                                 {tabMenuOpen && tabs.length > 0 && (
-                                    <div className="absolute z-20 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 max-h-56 overflow-auto text-sm">
+                                    <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 max-h-56 overflow-auto text-sm">
                                         {tabs.map((t) => (
                                             <button
                                                 key={t.id}
@@ -505,7 +503,7 @@ export default function IntegrationsPage() {
                         <label className="block text-sm font-medium text-slate-800 mb-2">
                             3. Column Mapping
                         </label>
-                        <div className="bg-slate-50 rounded-xl border border-slate-100 p-5">
+                        <div className="bg-slate-50 rounded-lg border border-slate-100 p-5">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-5 gap-x-4">
                                 {[
                                     { label: "File Name", key: "filename" },
@@ -516,6 +514,7 @@ export default function IntegrationsPage() {
                                     { label: "Amount (unsuccessful)", key: "amountFailed" },
                                     { label: "Currency", key: "currency" },
                                     { label: "Drive Link", key: "driveLink" },
+                                    { label: "หมายเลขอ้างอิง", key: "reference" },
                                 ].map((field) => (
                                     <div key={field.key} className="flex flex-col gap-1.5">
                                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -524,7 +523,7 @@ export default function IntegrationsPage() {
                                         <select
                                             value={(sheetMapping as any)[field.key] ?? (defaultMapping as any)[field.key] ?? ""}
                                             onChange={e => updateMapping(field.key as any, e.target.value)}
-                                            className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono text-slate-700 w-full"
+                                            className="px-3 py-2 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono text-slate-700 w-full"
                                         >
                                             <option value="">- Skip -</option>
                                             {colOptions.map(col => (
@@ -555,7 +554,7 @@ export default function IntegrationsPage() {
                         <button
                             onClick={handleSave}
                             disabled={saving || !sheetId}
-                            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl landing-accent-bg text-white text-sm font-medium hover:opacity-95 disabled:opacity-50 transition-all shadow-sm order-1 sm:order-2 w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed"
+                            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg landing-accent-bg text-white text-sm font-medium hover:opacity-95 disabled:opacity-50 transition-all shadow-sm order-1 sm:order-2 w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed"
                         >
                             {saving ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />

@@ -6,17 +6,17 @@ export default function BillingLoading() {
         <div className="h-4 w-80 rounded bg-slate-200" />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="h-28 rounded-2xl bg-slate-100" />
-          <div className="h-28 rounded-2xl bg-slate-100" />
+          <div className="h-28 rounded-xl bg-slate-100" />
+          <div className="h-28 rounded-xl bg-slate-100" />
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-3">
         <div className="h-4 w-48 rounded bg-slate-200" />
-        <div className="h-10 rounded-xl bg-slate-100" />
-        <div className="h-10 rounded-xl bg-slate-100" />
+        <div className="h-10 rounded-lg bg-slate-100" />
+        <div className="h-10 rounded-lg bg-slate-100" />
       </div>
     </div>
   );

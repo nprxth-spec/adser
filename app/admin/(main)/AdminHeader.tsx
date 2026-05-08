@@ -30,7 +30,7 @@ export default function AdminHeader({
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
             aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
             title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >

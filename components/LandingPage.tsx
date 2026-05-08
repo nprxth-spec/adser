@@ -43,7 +43,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl landing-accent-bg text-white font-semibold hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-lg landing-accent-bg text-white font-semibold hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -55,7 +55,7 @@ export default function LandingPage() {
             </button>
             <Link
               href="/how-it-works"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border-2 border-neutral-200 text-neutral-700 font-semibold hover:border-teal-300 hover:text-teal-700 transition-colors"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg border-2 border-neutral-200 text-neutral-700 font-semibold hover:border-teal-300 hover:text-teal-700 transition-colors"
             >
               {t("วิธีการทำงาน", "How it works")} <ArrowRight className="w-4 h-4" />
             </Link>
@@ -77,23 +77,23 @@ export default function LandingPage() {
       {/* Mini flow visual */}
       <section className="px-4 sm:px-6 pb-16 sm:pb-24">
         <div className="max-w-3xl mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 py-8 px-6 rounded-2xl bg-white/80 border border-neutral-200/80 shadow-sm">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 py-8 px-6 rounded-xl bg-white/80 border border-neutral-200/80 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center">
                 <FileText className="w-6 h-6 text-red-600" />
               </div>
               <span className="font-heading font-semibold text-neutral-800">PDF invoice</span>
             </div>
             <ArrowRight className="w-5 h-5 text-neutral-300 hidden sm:block" />
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-teal-50 flex items-center justify-center">
                 <Sparkles className="w-6 h-6 text-teal-600" />
               </div>
               <span className="font-heading font-semibold text-neutral-800">AI extracts</span>
             </div>
             <ArrowRight className="w-5 h-5 text-neutral-300 hidden sm:block" />
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-teal-50 flex items-center justify-center">
                 <Table className="w-6 h-6 text-teal-600" />
               </div>
               <span className="font-heading font-semibold text-neutral-800">Sheet + Drive</span>
@@ -109,8 +109,8 @@ export default function LandingPage() {
             Built for media buyers
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-neutral-100 shadow-sm hover:shadow-md hover:border-teal-100 transition-all">
-              <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center mb-5">
+            <div className="bg-white rounded-xl p-6 sm:p-8 border border-neutral-100 shadow-sm hover:shadow-md hover:border-teal-100 transition-all">
+              <div className="w-11 h-11 rounded-lg bg-teal-50 flex items-center justify-center mb-5">
                 <Zap className="w-5 h-5 text-teal-600" />
               </div>
               <h3 className="font-heading font-semibold text-lg text-neutral-900 mb-2">Instant extraction</h3>
@@ -120,8 +120,8 @@ export default function LandingPage() {
               <p className="text-xs text-neutral-400 uppercase tracking-wide">Example</p>
               <p className="text-xs text-neutral-500">1 PDF → ~5 sec → row in Sheet</p>
             </div>
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-neutral-100 shadow-sm hover:shadow-md hover:border-teal-100 transition-all">
-              <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center mb-5">
+            <div className="bg-white rounded-xl p-6 sm:p-8 border border-neutral-100 shadow-sm hover:shadow-md hover:border-teal-100 transition-all">
+              <div className="w-11 h-11 rounded-lg bg-teal-50 flex items-center justify-center mb-5">
                 <Shield className="w-5 h-5 text-teal-600" />
               </div>
               <h3 className="font-heading font-semibold text-lg text-neutral-900 mb-2">Secure & private</h3>
@@ -131,8 +131,8 @@ export default function LandingPage() {
               <p className="text-xs text-neutral-400 uppercase tracking-wide">Example</p>
               <p className="text-xs text-neutral-500">Your file → your folder only</p>
             </div>
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-neutral-100 shadow-sm hover:shadow-md hover:border-teal-100 transition-all">
-              <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center mb-5">
+            <div className="bg-white rounded-xl p-6 sm:p-8 border border-neutral-100 shadow-sm hover:shadow-md hover:border-teal-100 transition-all">
+              <div className="w-11 h-11 rounded-lg bg-teal-50 flex items-center justify-center mb-5">
                 <Clock className="w-5 h-5 text-teal-600" />
               </div>
               <h3 className="font-heading font-semibold text-lg text-neutral-900 mb-2">Full audit trail</h3>
@@ -155,7 +155,7 @@ export default function LandingPage() {
           <p className="text-neutral-500 text-center mb-12">Start free. Upgrade when you need more.</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            <div className="rounded-2xl p-8 border-2 border-neutral-200 bg-neutral-50/50">
+            <div className="rounded-xl p-8 border-2 border-neutral-200 bg-neutral-50/50">
               <p className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-2">Free</p>
               <p className="text-3xl font-heading font-bold text-neutral-900 mb-6">$0<span className="text-lg font-normal text-neutral-400">/month</span></p>
               <ul className="space-y-3 mb-8 text-sm text-neutral-600">
@@ -167,13 +167,13 @@ export default function LandingPage() {
               </ul>
               <button
                 onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-                className="w-full py-3.5 rounded-xl border-2 border-neutral-300 text-neutral-700 font-semibold hover:border-teal-400 hover:text-teal-700 transition-colors cursor-pointer"
+                className="w-full py-3.5 rounded-lg border-2 border-neutral-300 text-neutral-700 font-semibold hover:border-teal-400 hover:text-teal-700 transition-colors cursor-pointer"
               >
                 Get started free
               </button>
             </div>
 
-            <div className="rounded-2xl p-8 border-2 border-teal-200 bg-teal-50/50 relative">
+            <div className="rounded-xl p-8 border-2 border-teal-200 bg-teal-50/50 relative">
               <span className="absolute top-5 right-5 px-2.5 py-1 rounded-full bg-teal-200/80 text-teal-800 text-xs font-bold">Popular</span>
               <p className="text-sm font-semibold text-teal-700 uppercase tracking-wide mb-2">Pro</p>
               <p className="text-3xl font-heading font-bold text-teal-800 mb-6">$19<span className="text-lg font-normal text-teal-600">/month</span></p>
@@ -186,7 +186,7 @@ export default function LandingPage() {
               </ul>
               <button
                 onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-                className="w-full py-3.5 rounded-xl landing-accent-bg text-white font-semibold hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
+                className="w-full py-3.5 rounded-lg landing-accent-bg text-white font-semibold hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
               >
                 Start free trial
               </button>
@@ -199,7 +199,7 @@ export default function LandingPage() {
       <footer className="py-8 sm:py-10 px-4 sm:px-6 border-t border-neutral-100 bg-white">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 text-neutral-700 hover:text-neutral-900 transition-colors">
-            <div className="w-7 h-7 rounded-lg landing-accent-bg flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-md landing-accent-bg flex items-center justify-center shrink-0">
               <Zap className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="font-heading font-bold text-neutral-900">Files Go</span>

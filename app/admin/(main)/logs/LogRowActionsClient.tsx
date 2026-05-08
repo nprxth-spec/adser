@@ -34,7 +34,7 @@ export function LogRowActionsClient({ logId }: { logId: string }) {
       type="button"
       onClick={handleDelete}
       disabled={isPending}
-      className="inline-flex items-center justify-center px-2 py-1 rounded-md border border-red-200 text-[11px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+      className="inline-flex items-center justify-center px-2 py-1 rounded border border-red-200 text-[11px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
     >
       Delete
     </button>

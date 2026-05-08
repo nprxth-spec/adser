@@ -9,7 +9,7 @@ export default function MaintenancePage() {
         <div className="absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-teal-300/20 animate-maintenance-spin-slow" />
       </div>
 
-      <div className="relative w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900/75 p-8 shadow-2xl backdrop-blur animate-maintenance-float">
+      <div className="relative w-full max-w-xl rounded-xl border border-slate-800 bg-slate-900/75 p-8 shadow-2xl backdrop-blur animate-maintenance-float">
         <div className="mb-6 flex items-center justify-center">
           <div className="relative h-24 w-24">
             <Cog className="absolute left-1 top-1 h-14 w-14 text-teal-300 animate-spin" />
@@ -42,7 +42,7 @@ export default function MaintenancePage() {
         <div className="mt-8 border-t border-slate-800 pt-5 animate-fade-in-up-delay-3">
           <Link
             href="/"
-            className="inline-flex items-center rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-teal-400 transition-all duration-300 hover:-translate-y-0.5"
+            className="inline-flex items-center rounded-md bg-teal-500 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-teal-400 transition-all duration-300 hover:-translate-y-0.5"
           >
             ลองรีเฟรชอีกครั้ง
           </Link>

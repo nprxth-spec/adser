@@ -39,7 +39,7 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
               prefetch={true}
               title={label}
               aria-label={label}
-              className={`flex items-center px-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center px-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
                 isOpen ? "justify-start gap-3" : "justify-center"
               } ${
                 isActive
@@ -60,7 +60,7 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
             type="submit"
             title="Log out"
             aria-label="Log out"
-            className={`w-full flex items-center px-2 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/70 transition-colors cursor-pointer ${
+            className={`w-full flex items-center px-2 py-2.5 rounded-md text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/70 transition-colors cursor-pointer ${
               isOpen ? "justify-start gap-3" : "justify-center"
             }`}
           >

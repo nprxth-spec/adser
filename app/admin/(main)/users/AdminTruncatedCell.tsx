@@ -40,7 +40,7 @@ export default function AdminTruncatedCell({
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-lg bg-white p-4 shadow-xl"
+            className="w-full max-w-2xl rounded-md bg-white p-4 shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">

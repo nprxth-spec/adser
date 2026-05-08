@@ -166,7 +166,7 @@ export default function BillingCompositePage() {
       {/* Billing section */}
       <section className="space-y-4">
         {/* Current plan & credits + plans */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-6 space-y-5">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 sm:p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
@@ -207,7 +207,7 @@ export default function BillingCompositePage() {
             {/* Plan options */}
             <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Free plan card */}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 flex flex-col gap-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-slate-900">
                     {t("ฟรี", "Free")}
@@ -236,7 +236,7 @@ export default function BillingCompositePage() {
                   }
                 }}
                 disabled={loadingCheckout || isPro}
-                className={`rounded-2xl border px-4 py-3 text-left flex flex-col gap-2 cursor-pointer disabled:opacity-70 ${
+                className={`rounded-xl border px-4 py-3 text-left flex flex-col gap-2 cursor-pointer disabled:opacity-70 ${
                   isPro
                     ? "border-emerald-500 bg-emerald-50"
                     : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
@@ -273,7 +273,7 @@ export default function BillingCompositePage() {
           </div>
 
         {/* Payment methods card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-6 space-y-4">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 sm:p-6 space-y-4">
           <p className="text-base font-semibold text-slate-900">
             Payment methods
           </p>
@@ -296,7 +296,7 @@ export default function BillingCompositePage() {
               {paymentMethods.map((pm) => (
                 <li
                   key={pm.id}
-                  className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2 gap-3"
+                  className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 gap-3"
                 >
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
@@ -318,7 +318,7 @@ export default function BillingCompositePage() {
                       <button
                         type="button"
                         onClick={() => handleSetDefaultPaymentMethod(pm.id)}
-                        className="px-2 py-1 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-40"
+                        className="px-2 py-1 rounded-md border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-40"
                         disabled={deletingPmId === pm.id}
                       >
                         Set default
@@ -328,7 +328,7 @@ export default function BillingCompositePage() {
                       type="button"
                       onClick={() => handleDeletePaymentMethod(pm.id)}
                       disabled={pm.is_default || deletingPmId === pm.id}
-                      className="px-2 py-1 rounded-lg border border-red-100 text-xs font-medium text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-40"
+                      className="px-2 py-1 rounded-md border border-red-100 text-xs font-medium text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-40"
                     >
                       {deletingPmId === pm.id ? "Removing..." : "Remove"}
                     </button>
@@ -350,7 +350,7 @@ export default function BillingCompositePage() {
                 setShowAddCardFirstHint(false);
                 setShowAddCard(true);
               }}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-60"
             >
               Add new card
             </button>
@@ -358,7 +358,7 @@ export default function BillingCompositePage() {
               type="button"
               onClick={handleOpenStripePortal}
               disabled={openingPortal}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-60"
             >
               {openingPortal ? "Opening Stripe portal..." : "Open in Stripe"}
             </button>
@@ -366,7 +366,7 @@ export default function BillingCompositePage() {
         </div>
 
         {/* Receipts / invoices card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-6 space-y-4">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 sm:p-6 space-y-4">
           <p className="text-base font-semibold text-slate-900">
             Receipts &amp; invoices
           </p>
@@ -385,7 +385,7 @@ export default function BillingCompositePage() {
               No invoices found for this account yet.
             </p>
           ) : (
-            <div className="border border-slate-100 rounded-xl overflow-hidden max-h-72 overflow-y-auto overflow-x-auto">
+            <div className="border border-slate-100 rounded-lg overflow-hidden max-h-72 overflow-y-auto overflow-x-auto">
               <table className="min-w-full border-collapse text-xs">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
@@ -448,7 +448,7 @@ export default function BillingCompositePage() {
       {/* Add card modal */}
       {showAddCard && stripePromise && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <p className="text-base font-semibold text-slate-900">
                 Add payment method
@@ -460,7 +460,7 @@ export default function BillingCompositePage() {
                   setShowAddCardFirstHint(false);
                   setAddingCardError(null);
                 }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -469,7 +469,7 @@ export default function BillingCompositePage() {
               </button>
             </div>
             {showAddCardFirstHint && (
-              <p className="text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+              <p className="text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-4">
                 Add a payment method first to upgrade to Files Go Pro.
               </p>
             )}
@@ -494,7 +494,7 @@ export default function BillingCompositePage() {
       {/* Upgrade confirmation modal */}
       {showUpgradeConfirm && !isPro && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6">
             <p className="text-base font-semibold text-slate-900 mb-2">
               Upgrade to Files Go Pro?
             </p>
@@ -520,7 +520,7 @@ export default function BillingCompositePage() {
                         key={id}
                         type="button"
                         onClick={() => setSelectedPaymentMethodId(id)}
-                        className={`w-full flex items-center justify-between rounded-xl border px-3 py-2 text-xs cursor-pointer ${
+                        className={`w-full flex items-center justify-between rounded-lg border px-3 py-2 text-xs cursor-pointer ${
                           isSelected
                             ? "border-slate-900 bg-slate-900/5"
                             : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
@@ -558,7 +558,7 @@ export default function BillingCompositePage() {
               <button
                 type="button"
                 onClick={() => !loadingCheckout && setShowUpgradeConfirm(false)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-60"
+                className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-60"
                 disabled={loadingCheckout}
               >
                 Cancel
@@ -569,7 +569,7 @@ export default function BillingCompositePage() {
                   if (loadingCheckout) return;
                   await handleUpgrade();
                 }}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 cursor-pointer disabled:opacity-60"
+                className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 cursor-pointer disabled:opacity-60"
                 disabled={loadingCheckout}
               >
                 {loadingCheckout ? "Redirecting..." : "Confirm upgrade"}
@@ -651,7 +651,7 @@ function AddCardForm({ onSuccess, onError }: AddCardFormProps) {
       {loadingIntent && (
         <p className="text-xs text-slate-500">Preparing secure card form...</p>
       )}
-      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
         <CardElement
           options={{
             style: {
@@ -668,7 +668,7 @@ function AddCardForm({ onSuccess, onError }: AddCardFormProps) {
         <button
           type="submit"
           disabled={!stripe || !elements || !clientSecret || submitting}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 cursor-pointer disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 cursor-pointer disabled:opacity-60"
         >
           {submitting ? "Saving..." : "Save card"}
         </button>

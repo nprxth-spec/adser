@@ -143,7 +143,7 @@ export default function Sidebar() {
                 }`}
             >
                 <div className={`flex items-center gap-3 min-w-0 ${collapsed ? "justify-center" : ""}`}>
-                    <div className="w-9 h-9 rounded-xl landing-accent-bg flex items-center justify-center shadow-lg shadow-teal-900/30 shrink-0">
+                    <div className="w-9 h-9 rounded-lg landing-accent-bg flex items-center justify-center shadow-lg shadow-teal-900/30 shrink-0">
                         <Zap className="w-5 h-5 text-white" />
                     </div>
                     {!collapsed && (
@@ -165,7 +165,7 @@ export default function Sidebar() {
                             prefetch={true}
                             className={`flex items-center ${
                                 collapsed ? "justify-center" : "gap-3"
-                            } px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                            } px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
                                 isActive
                                     ? "landing-accent-bg text-white shadow-lg shadow-teal-900/30"
                                     : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -201,7 +201,7 @@ export default function Sidebar() {
                         title={collapsed ? t("ตั้งค่า", "Settings") : undefined}
                         className={`w-full flex items-center ${
                             collapsed ? "justify-center" : "gap-3"
-                        } px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left cursor-pointer ${
+                        } px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left cursor-pointer ${
                             isUnderSettings
                                 ? "bg-slate-800 text-white"
                                 : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -236,7 +236,7 @@ export default function Sidebar() {
                                         key={href}
                                         href={href}
                                         prefetch={true}
-                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                             isActive
                                                 ? "landing-accent-bg text-white shadow-md shadow-teal-900/20"
                                                 : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -251,7 +251,7 @@ export default function Sidebar() {
                     )}
 
                     {collapsed && settingsOpen && (
-                        <div className="absolute left-full top-0 ml-1.5 z-50 min-w-[168px] rounded-xl border border-slate-700 bg-slate-800 py-1 shadow-xl shadow-black/40">
+                        <div className="absolute left-full top-0 ml-1.5 z-50 min-w-[168px] rounded-lg border border-slate-700 bg-slate-800 py-1 shadow-xl shadow-black/40">
                             {settingsChildLinks.map(({ href, label, icon: Icon }) => {
                                 const isActive =
                                     href === "/settings"

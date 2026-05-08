@@ -36,7 +36,7 @@ export function LogsPageSizeSelect({
         value={currentLimit}
         onChange={(e) => handleChange(Number(e.target.value))}
         disabled={isPending}
-        className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 cursor-pointer"
+        className="px-2.5 py-1.5 rounded-md border border-slate-200 bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 cursor-pointer"
         aria-label="Items per page"
       >
         {LIMIT_OPTIONS.map((n) => (

@@ -169,13 +169,13 @@ export default function SettingsPage() {
         <p className="text-slate-500 text-sm mt-1">{t("จัดการบัญชี ธีม ภาษา และสถานะการเชื่อมต่อ", "Manage account, theme, language, and connection status.")}</p>
       </div>
       {notice && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
           {notice}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <section className="bg-white rounded-2xl border border-slate-100 p-5 lg:col-span-3">
+        <section className="bg-white rounded-xl border border-slate-100 p-5 lg:col-span-3">
           <div className="flex items-center gap-2 mb-3">
             <User className="w-4 h-4 text-slate-500" />
             <h2 className="font-semibold text-slate-900">{t("โปรไฟล์บัญชี", "Account profile")}</h2>
@@ -186,14 +186,14 @@ export default function SettingsPage() {
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-slate-200 text-sm flex-1"
+                className="px-3 py-2 rounded-md border border-slate-200 text-sm flex-1"
                 placeholder={t("ชื่อที่แสดง", "Display name")}
               />
               <button
                 type="button"
                 onClick={handleSaveProfile}
                 disabled={savingProfile}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl landing-accent-bg text-white text-sm font-medium disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg landing-accent-bg text-white text-sm font-medium disabled:opacity-50 cursor-pointer"
               >
                 {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {t("บันทึกชื่อ", "Save name")}
@@ -204,7 +204,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <section className="bg-white rounded-2xl border border-slate-100 p-5">
+        <section className="bg-white rounded-xl border border-slate-100 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Paintbrush className="w-4 h-4 text-slate-500" />
             <h2 className="font-semibold text-slate-900">{t("การแสดงผล", "Appearance")}</h2>
@@ -222,7 +222,7 @@ export default function SettingsPage() {
                 setTheme(e.target.value as "light" | "dark");
                 setNotice(t("บันทึกธีมอัตโนมัติแล้ว", "Theme saved automatically"));
               }}
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+              className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm"
             >
               <option value="light">{t("สว่าง", "Light")}</option>
               <option value="dark">{t("มืด", "Dark")}</option>
@@ -230,7 +230,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-slate-100 p-5">
+        <section className="bg-white rounded-xl border border-slate-100 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Languages className="w-4 h-4 text-slate-500" />
             <h2 className="font-semibold text-slate-900">{t("ภาษา", "Language")}</h2>
@@ -242,7 +242,7 @@ export default function SettingsPage() {
               setLanguage(e.target.value as "th" | "en");
               setNotice(e.target.value === "th" ? "บันทึกภาษาอัตโนมัติแล้ว" : "Language saved automatically");
             }}
-            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+            className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm"
           >
             <option value="th">ไทย</option>
             <option value="en">English</option>
@@ -250,7 +250,7 @@ export default function SettingsPage() {
         </section>
       </div>
 
-      <section className="bg-white rounded-2xl border border-slate-100 p-5">
+      <section className="bg-white rounded-xl border border-slate-100 p-5">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <LinkIcon className="w-4 h-4 text-slate-500" />
@@ -260,7 +260,7 @@ export default function SettingsPage() {
             type="button"
             onClick={refreshConnection}
             disabled={loadingStatus}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
           >
             <RefreshCcw className={`w-3.5 h-3.5 ${loadingStatus ? "animate-spin" : ""}`} />
             {t("รีเฟรช", "Refresh")}
@@ -296,7 +296,7 @@ export default function SettingsPage() {
         )}
       </section>
 
-      <section className="bg-white rounded-2xl border border-red-100 p-5">
+      <section className="bg-white rounded-xl border border-red-100 p-5">
         <h2 className="font-semibold text-red-700 mb-3">{t("ลบบัญชี", "Delete Account")}</h2>
         <p className="text-sm text-red-600 mb-3">
           {t("การลบบัญชีจะลบข้อมูลทั้งหมดแบบถาวร รวมถึงประวัติการประมวลผล", "Deleting your account permanently removes all associated data, including processing history.")}
@@ -305,7 +305,7 @@ export default function SettingsPage() {
           type="button"
           onClick={handleDeleteAccount}
           disabled={deleting}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 cursor-pointer"
         >
           {deleting ? (
             <Loader2 className="w-4 h-4 animate-spin" />

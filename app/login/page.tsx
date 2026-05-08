@@ -19,7 +19,7 @@ export default function LoginPage() {
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
                     {/* Logo */}
                     <div className="flex items-center justify-center gap-3 mb-8">
-                        <div className="w-10 h-10 rounded-xl landing-accent-bg flex items-center justify-center shadow-lg shrink-0">
+                        <div className="w-10 h-10 rounded-lg landing-accent-bg flex items-center justify-center shadow-lg shrink-0">
                             <Zap className="w-5 h-5 text-white" />
                         </div>
                         <span className="text-xl font-bold text-white">Files Go</span>
@@ -36,7 +36,7 @@ export default function LoginPage() {
                     {/* Google Button */}
                     <button
                         onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-                        className="w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-xl bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 active:scale-95 transition-all shadow-lg mb-6 cursor-pointer"
+                        className="w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-lg bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 active:scale-95 transition-all shadow-lg mb-6 cursor-pointer"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path
@@ -87,9 +87,9 @@ export default function LoginPage() {
                         ].map(({ icon: Icon, title, desc }) => (
                             <div
                                 key={title}
-                                className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5"
+                                className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5"
                             >
-                                <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
+                                <div className="w-8 h-8 rounded-md bg-teal-500/10 flex items-center justify-center shrink-0">
                                     <Icon className="w-4 h-4 text-teal-500" />
                                 </div>
                                 <div>

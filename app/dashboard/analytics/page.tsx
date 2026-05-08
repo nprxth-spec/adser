@@ -92,7 +92,7 @@ function CustomBarTooltip({ active, payload, label }: TooltipProps) {
   if (!active || !payload || !payload.length) return null;
   const item = payload[0];
   return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-4 py-3 text-sm">
+    <div className="bg-white border border-slate-200 rounded-md shadow-lg px-4 py-3 text-sm">
       <p className="font-semibold text-slate-700 mb-1">{label}</p>
       <p className="text-teal-600 font-bold tabular-nums">{fmtMoney(item.value)}</p>
       {(item.payload.count ?? 0) > 0 && (
@@ -106,7 +106,7 @@ function CustomPieTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload || !payload.length) return null;
   const item = payload[0];
   return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-4 py-3 text-sm">
+    <div className="bg-white border border-slate-200 rounded-md shadow-lg px-4 py-3 text-sm">
       <p className="font-semibold text-slate-700">{cardLabel(String(item.name ?? ""))}</p>
       <p className="font-bold tabular-nums" style={{ color: item.payload.fill }}>
         {fmtMoney(item.value)}
@@ -130,8 +130,8 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-5 flex gap-4 items-start">
-      <div className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+    <div className="bg-white rounded-md border border-slate-100 shadow-sm p-5 flex gap-4 items-start">
+      <div className={`w-11 h-11 rounded-md flex items-center justify-center shrink-0 ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
       <div className="min-w-0">
@@ -248,7 +248,7 @@ export default function AnalyticsPage() {
           <select
             value={range}
             onChange={(e) => setRange(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 rounded-md border border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
           >
             {RANGE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -303,7 +303,7 @@ export default function AnalyticsPage() {
 
         {/* Monthly + Donut row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-lg border border-slate-100 shadow-sm p-5">
+          <div className="lg:col-span-2 bg-white rounded-md border border-slate-100 shadow-sm p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <p className="font-semibold text-slate-800">
                 {t("ยอดใช้จ่ายรายเดือน", "Monthly Spend")}
@@ -312,7 +312,7 @@ export default function AnalyticsPage() {
                 <select
                   value={chartYear}
                   onChange={(e) => setChartYear(Number(e.target.value))}
-                  className="appearance-none pl-3 pr-7 py-1 rounded-md border border-slate-200 bg-white text-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                  className="appearance-none pl-3 pr-7 py-1 rounded border border-slate-200 bg-white text-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
                 >
                   {yearOptions.map((y) => (
                     <option key={y} value={y}>
@@ -363,7 +363,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-5">
+          <div className="bg-white rounded-md border border-slate-100 shadow-sm p-5">
             <p className="font-semibold text-slate-800 mb-4">
               {t("สัดส่วนตามบัตร", "Spend by Card")}
             </p>
@@ -401,7 +401,7 @@ export default function AnalyticsPage() {
 
         {/* Daily chart + per-card breakdown row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-lg border border-slate-100 shadow-sm p-5">
+          <div className="lg:col-span-2 bg-white rounded-md border border-slate-100 shadow-sm p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <p className="font-semibold text-slate-800">
                 {t("ยอดใช้จ่ายรายวัน", "Daily Spend")}
@@ -447,7 +447,7 @@ export default function AnalyticsPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-5">
+          <div className="bg-white rounded-md border border-slate-100 shadow-sm p-5">
             <p className="font-semibold text-slate-800 mb-4">
               {t("รายละเอียดต่อบัตร", "Per-card Breakdown")}
             </p>

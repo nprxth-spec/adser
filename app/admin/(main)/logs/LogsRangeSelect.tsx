@@ -45,7 +45,7 @@ export default function LogsRangeSelect({
           value={currentRange}
           onChange={(e) => handleChange(e.target.value)}
           disabled={isPending}
-          className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-400 min-w-[140px] cursor-pointer disabled:opacity-50"
+          className="appearance-none pl-3 pr-8 py-2 rounded-md border border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-400 min-w-[140px] cursor-pointer disabled:opacity-50"
         >
           {RANGE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>

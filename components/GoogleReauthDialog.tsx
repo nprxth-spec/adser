@@ -40,7 +40,7 @@ export default function GoogleReauthDialog() {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
             <AlertCircle className="w-5 h-5 text-amber-700" />
@@ -54,7 +54,7 @@ export default function GoogleReauthDialog() {
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 cursor-pointer"
           >
             {t("เข้าสู่ระบบใหม่", "Login again")}
           </button>

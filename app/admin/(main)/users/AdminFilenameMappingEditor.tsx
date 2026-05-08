@@ -108,7 +108,7 @@ export default function AdminFilenameMappingEditor({
           onClick={closeDialog}
         >
           <div
-            className="w-full max-w-2xl rounded-lg bg-white p-4 shadow-xl"
+            className="w-full max-w-2xl rounded-md bg-white p-4 shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-start justify-between gap-3">

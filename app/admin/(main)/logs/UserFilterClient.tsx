@@ -73,7 +73,7 @@ export function UserFilterClient({
       <select
         value={currentUserId ?? ""}
         onChange={(e) => handleChangeUser(e.target.value)}
-        className="w-full sm:w-64 px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+        className="w-full sm:w-64 px-3 py-1.5 rounded-md border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
         disabled={isPending}
       >
         <option value="">All users</option>
@@ -88,7 +88,7 @@ export function UserFilterClient({
           type="button"
           onClick={handleDeleteLogs}
           disabled={!currentUserId || isPending}
-          className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="inline-flex items-center justify-center px-3 py-1.5 rounded-md border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           {isPending ? "Deleting..." : "Delete logs for user"}
         </button>

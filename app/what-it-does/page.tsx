@@ -32,7 +32,7 @@ export default function WhatItDoesPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map(({ title, desc }) => (
-              <div key={title} className="p-5 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-teal-100 hover:bg-teal-50/30 transition-all">
+              <div key={title} className="p-5 rounded-lg border border-slate-100 bg-slate-50/50 hover:border-teal-100 hover:bg-teal-50/30 transition-all">
                 <h2 className="font-semibold text-slate-900 mb-2">{title}</h2>
                 <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
               </div>
@@ -41,13 +41,13 @@ export default function WhatItDoesPage() {
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/how-it-works"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl landing-accent-bg text-white font-medium hover:opacity-95 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg landing-accent-bg text-white font-medium hover:opacity-95 transition-colors"
             >
               How it works <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium hover:border-teal-300 hover:text-teal-600 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-medium hover:border-teal-300 hover:text-teal-600 transition-colors"
             >
               Back to home
             </Link>

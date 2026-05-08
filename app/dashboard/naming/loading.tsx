@@ -6,15 +6,15 @@ export default function NamingLoading() {
         <div className="h-4 w-96 rounded bg-slate-200" />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
-        <div className="h-14 rounded-xl bg-slate-100" />
-        <div className="h-24 rounded-xl bg-slate-100" />
-        <div className="h-20 rounded-xl bg-slate-100" />
+      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-4">
+        <div className="h-14 rounded-lg bg-slate-100" />
+        <div className="h-24 rounded-lg bg-slate-100" />
+        <div className="h-20 rounded-lg bg-slate-100" />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 space-y-3">
         <div className="h-4 w-60 rounded bg-slate-200" />
-        <div className="h-28 rounded-xl bg-slate-100" />
+        <div className="h-28 rounded-lg bg-slate-100" />
       </div>
     </div>
   );

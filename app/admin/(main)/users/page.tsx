@@ -131,7 +131,7 @@ export default async function AdminUsersPage({
         />
       </div>
       <p className="text-sm text-slate-500">Add credits for users to test. Changes apply immediately.</p>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>

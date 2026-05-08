@@ -60,7 +60,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
     }, [refreshKey]);
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <h2 className="font-semibold text-slate-900">{t("ไฟล์ล่าสุด", "Recent Files")}</h2>
@@ -79,7 +79,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                 </div>
             ) : files.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-3">
                         <FileText className="w-6 h-6 text-slate-400" />
                     </div>
                     <p className="text-slate-500 text-sm font-medium">{t("ยังไม่มีไฟล์ที่ประมวลผล", "No files processed yet")}</p>
@@ -138,7 +138,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                     {/* Filename */}
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-md bg-teal-50 flex items-center justify-center shrink-0">
+                                            <div className="w-6 h-6 rounded bg-teal-50 flex items-center justify-center shrink-0">
                                                 <FileText className="w-3 h-3 text-teal-500" />
                                             </div>
                                             <span
@@ -377,7 +377,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto w-full space-y-6">
                 {/* ── Duplicate Alert ── */}
                 {duplicateAlertFilename && (
-                    <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+                    <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
                         <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
                         <p className="flex-1 text-sm font-medium">
                             ไฟล์ <span className="font-semibold">{duplicateAlertFilename}</span> ซ้ำแล้ว — ประมวลผลไปแล้ว ไม่มีการอัปโหลดซ้ำ
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                         <button
                             type="button"
                             onClick={dismissDuplicateAlert}
-                            className="shrink-0 rounded-lg p-1.5 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"
+                            className="shrink-0 rounded-md p-1.5 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"
                             aria-label={t("ปิด", "Close")}
                         >
                             <X className="w-4 h-4" />
@@ -405,7 +405,7 @@ export default function DashboardPage() {
                         {isProcessing && (
                             <button
                                 onClick={cancelUpload}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-red-50 rounded-xl border border-red-200 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors shadow-sm cursor-pointer"
+                                className="flex items-center gap-1.5 px-4 py-2 bg-red-50 rounded-lg border border-red-200 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors shadow-sm cursor-pointer"
                             >
                                 <X className="w-4 h-4" /> {t("ยกเลิกอัปโหลด", "Cancel Upload")}
                             </button>
@@ -413,7 +413,7 @@ export default function DashboardPage() {
                         {(stage === "done" || results.length > 0) && (
                             <button
                                 onClick={resetState}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-white rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                                className="flex items-center gap-1.5 px-4 py-2 bg-white rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
                             >
                                 <X className="w-4 h-4" /> {t("ล้าง", "Clear")}
                             </button>
@@ -426,10 +426,10 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
                     {/* Drive destination — locked */}
-                    <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <div className="bg-white rounded-lg border border-slate-200 p-4">
                         <p className="text-sm font-semibold text-slate-800 mb-1">{t("ปลายทาง Drive", "Drive destination")}</p>
 
-                        <div className="mt-2 rounded-lg bg-slate-50 border border-slate-100 px-3.5 py-2.5 space-y-1.5">
+                        <div className="mt-2 rounded-md bg-slate-50 border border-slate-100 px-3.5 py-2.5 space-y-1.5">
                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{t("ปลายทางซิงก์", "Sync destination")}</p>
 
                             {/* Drive folder row — auto-managed */}
@@ -513,7 +513,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col gap-4 h-full">
                         <div
                             {...getRootProps()}
-                            className={`flex-1 flex flex-col items-center justify-center min-h-[220px] relative rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200 ${
+                            className={`flex-1 flex flex-col items-center justify-center min-h-[220px] relative rounded-lg border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200 ${
                                 isDragActive
                                     ? "border-teal-500 bg-teal-50"
                                     : stage === "done"
@@ -525,7 +525,7 @@ export default function DashboardPage() {
 
                             {stage === "idle" && (
                                 <div>
-                                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mx-auto mb-3">
+                                    <div className="w-12 h-12 rounded-lg bg-teal-50 flex items-center justify-center mx-auto mb-3">
                                         <Upload className="w-6 h-6 text-teal-500" />
                                     </div>
                                     <p className="text-sm font-semibold text-slate-700 mb-1">
@@ -554,7 +554,7 @@ export default function DashboardPage() {
                                         const pct = af.stage === "uploading" ? 25 : af.stage === "extracting" ? 60 : af.stage === "drive" ? 85 : af.stage === "sheets" ? 95 : 100;
                                         const stageLabel = af.stage === "uploading" ? t("อัปโหลด", "Uploading") : af.stage === "extracting" ? t("AI ดึงข้อมูล", "AI Extract") : af.stage === "drive" ? t("Drive", "Drive") : af.stage === "sheets" ? t("Sheets", "Sheets") : t("เสร็จ", "Done");
                                         return (
-                                            <div key={af.index} className="bg-slate-50 rounded-lg px-3 py-2">
+                                            <div key={af.index} className="bg-slate-50 rounded-md px-3 py-2">
                                                 <div className="flex items-center justify-between gap-2 mb-1.5">
                                                     <p className="text-[11px] font-medium text-slate-700 truncate flex-1">{af.file.name}</p>
                                                     <span className="text-[10px] text-teal-600 font-semibold shrink-0">{stageLabel}</span>
@@ -596,7 +596,7 @@ export default function DashboardPage() {
                                 {results.map((res, idx) => {
                                     if ("error" in res) {
                                         return (
-                                            <div key={idx} className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start gap-3">
+                                            <div key={idx} className="bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-3">
                                                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-semibold text-red-900 truncate">{res.filename}</p>
@@ -606,7 +606,7 @@ export default function DashboardPage() {
                                         );
                                     }
                                     return (
-                                        <div key={idx} className="bg-white border border-slate-100 rounded-xl p-3 flex items-center gap-3 shadow-sm">
+                                        <div key={idx} className="bg-white border border-slate-100 rounded-lg p-3 flex items-center gap-3 shadow-sm">
                                             <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center shrink-0">
                                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
                                             </div>
@@ -621,7 +621,7 @@ export default function DashboardPage() {
                                                     href={res.driveLink}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border border-teal-100 bg-teal-50 text-teal-600 text-xs font-semibold hover:bg-teal-100"
+                                                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border border-teal-100 bg-teal-50 text-teal-600 text-xs font-semibold hover:bg-teal-100"
                                                 >
                                                     <HardDrive className="w-3 h-3" /> Drive
                                                 </a>
@@ -640,7 +640,7 @@ export default function DashboardPage() {
                 {/* ── Batch Complete Modal ── */}
                 {showBatchComplete && (
                     <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40">
-                        <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
+                        <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
                                     <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -656,7 +656,7 @@ export default function DashboardPage() {
                                 <button
                                     type="button"
                                     onClick={acknowledgeBatchComplete}
-                                    className="px-4 py-2 rounded-xl landing-accent-bg text-white text-sm font-medium hover:opacity-95 cursor-pointer"
+                                    className="px-4 py-2 rounded-lg landing-accent-bg text-white text-sm font-medium hover:opacity-95 cursor-pointer"
                                 >
                                     {t("ตกลง", "OK")}
                                 </button>

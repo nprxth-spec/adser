@@ -2,7 +2,14 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-type RangePreset = "this_month" | "last_month" | "this_year" | "last_12_months" | "all";
+type RangePreset =
+  | "today"
+  | "yesterday"
+  | "this_week"
+  | "this_month"
+  | "last_month"
+  | "this_year"
+  | "all";
 
 function getInvoiceDateRange(range: RangePreset): { from: string | null; to: string | null } {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -10,6 +17,24 @@ function getInvoiceDateRange(range: RangePreset): { from: string | null; to: str
   const now = new Date();
 
   switch (range) {
+    case "today": {
+      const today = fmt(now);
+      return { from: today, to: today };
+    }
+    case "yesterday": {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      const ystr = fmt(y);
+      return { from: ystr, to: ystr };
+    }
+    case "this_week": {
+      const day = now.getDay(); // 0 = Sun
+      const start = new Date(now);
+      start.setDate(now.getDate() - day);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      return { from: fmt(start), to: fmt(end) };
+    }
     case "this_month": {
       const from = new Date(now.getFullYear(), now.getMonth(), 1);
       const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -25,15 +50,28 @@ function getInvoiceDateRange(range: RangePreset): { from: string | null; to: str
       const to = new Date(now.getFullYear(), 11, 31);
       return { from: fmt(from), to: fmt(to) };
     }
-    case "last_12_months": {
-      const from = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      return { from: fmt(from), to: fmt(to) };
-    }
     default:
       return { from: null, to: null };
   }
 }
+
+const isValidDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+function enumerateDays(fromIso: string, toIso: string): string[] {
+  const out: string[] = [];
+  const [fy, fm, fd] = fromIso.split("-").map(Number);
+  const [ty, tm, td] = toIso.split("-").map(Number);
+  const cur = new Date(Date.UTC(fy, fm - 1, fd));
+  const end = new Date(Date.UTC(ty, tm - 1, td));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  while (cur.getTime() <= end.getTime()) {
+    out.push(`${cur.getUTCFullYear()}-${pad(cur.getUTCMonth() + 1)}-${pad(cur.getUTCDate())}`);
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return out;
+}
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -42,7 +80,12 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const range = (searchParams.get("range") ?? "this_year") as RangePreset;
+  const range = (searchParams.get("range") ?? "this_month") as RangePreset;
+  const chartYearParam = parseInt(searchParams.get("chartYear") ?? "", 10);
+  const chartYear = Number.isFinite(chartYearParam) && chartYearParam > 1970
+    ? chartYearParam
+    : new Date().getFullYear();
+
   const { from, to } = getInvoiceDateRange(range);
 
   const logs = await prisma.processingLog.findMany({
@@ -60,145 +103,89 @@ export async function GET(request: Request) {
     },
   });
 
-  // Always-on 12-month window (independent of selected range)
-  const last12 = getInvoiceDateRange("last_12_months");
-
-  // Filter by string-date range and validity (YYYY-MM-DD)
-  const isValidDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-  const filtered = logs.filter((l) => {
+  // ── Range-bound stats / per-card breakdown / per-day series ───────────────
+  const inRange = logs.filter((l) => {
     if (!l.invoiceDate || !isValidDate(l.invoiceDate)) return false;
     if (from && l.invoiceDate < from) return false;
     if (to && l.invoiceDate > to) return false;
     return true;
   });
 
-  // Aggregations
+  const totalSpendByCurrency: Record<string, number> = {};
+  const cardSpend: Record<string, number> = {};
   const cardSet = new Set<string>();
-  const byDayMap = new Map<string, Map<string, number>>(); // date -> card -> amount
-  const byMonthMap = new Map<string, Map<string, number>>(); // YYYY-MM -> card -> amount
-  const byCardTotal = new Map<string, number>(); // card -> total
-  const currencySet = new Set<string>();
+  const byDayMap = new Map<string, number>(); // date -> total
 
-  for (const log of filtered) {
+  for (const log of inRange) {
     if (log.amount == null || !log.invoiceDate) continue;
+    const cur = log.currency ?? "USD";
+    totalSpendByCurrency[cur] = (totalSpendByCurrency[cur] ?? 0) + log.amount;
     const card = log.cardLast4 || "—";
     cardSet.add(card);
-    if (log.currency) currencySet.add(log.currency);
-
-    const day = log.invoiceDate;
-    const month = day.slice(0, 7);
-
-    const dayCards = byDayMap.get(day) ?? new Map<string, number>();
-    dayCards.set(card, (dayCards.get(card) ?? 0) + log.amount);
-    byDayMap.set(day, dayCards);
-
-    const monthCards = byMonthMap.get(month) ?? new Map<string, number>();
-    monthCards.set(card, (monthCards.get(card) ?? 0) + log.amount);
-    byMonthMap.set(month, monthCards);
-
-    byCardTotal.set(card, (byCardTotal.get(card) ?? 0) + log.amount);
+    cardSpend[card] = (cardSpend[card] ?? 0) + log.amount;
+    byDayMap.set(log.invoiceDate, (byDayMap.get(log.invoiceDate) ?? 0) + log.amount);
   }
 
-  const cards = Array.from(cardSet).sort();
+  const invoiceCount = inRange.length;
+  const cardsUsed = Array.from(cardSet).filter((c) => c !== "—").length;
 
-  // Build the day-axis: for single-month ranges fill every day from 1..end-of-month
-  // so the chart always renders the full calendar month, even if some days are empty.
+  const cardBreakdown = Object.entries(cardSpend)
+    .map(([card, total]) => ({ card, total }))
+    .sort((a, b) => b.total - a.total);
+
+  // Daily series — fill every day for single-month ranges
   let dayKeys: string[];
   if ((range === "this_month" || range === "last_month") && from && to) {
+    dayKeys = enumerateDays(from, to);
+  } else if (from && to) {
     dayKeys = enumerateDays(from, to);
   } else {
     dayKeys = Array.from(byDayMap.keys()).sort((a, b) => a.localeCompare(b));
   }
-  const byDay = dayKeys.map((date) => {
-    const cardMap = byDayMap.get(date);
-    const point: Record<string, string | number> = { date };
-    for (const card of cards) point[card] = cardMap?.get(card) ?? 0;
-    return point;
-  });
+  const byDay = dayKeys.map((date) => ({
+    date,
+    total: byDayMap.get(date) ?? 0,
+  }));
 
-  const byMonth = Array.from(byMonthMap.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, cardMap]) => {
-      const point: Record<string, string | number> = { month };
-      for (const card of cards) point[card] = cardMap.get(card) ?? 0;
-      return point;
+  // ── Monthly (year-bound) skeleton — independent of the range filter ───────
+  const monthSkeleton: { month: string; monthKey: string; total: number; count: number }[] = [];
+  for (let m = 0; m < 12; m++) {
+    monthSkeleton.push({
+      month: MONTH_LABELS[m],
+      monthKey: `${chartYear}-${String(m + 1).padStart(2, "0")}`,
+      total: 0,
+      count: 0,
     });
-
-  // Independent last-12-months series — always covers the same 12 calendar months
-  // regardless of the selected range, with zero-fill for empty months.
-  const last12CardSet = new Set<string>();
-  const last12Map = new Map<string, Map<string, number>>();
+  }
   for (const log of logs) {
     if (log.amount == null || !log.invoiceDate || !isValidDate(log.invoiceDate)) continue;
-    if (last12.from && log.invoiceDate < last12.from) continue;
-    if (last12.to && log.invoiceDate > last12.to) continue;
-    const card = log.cardLast4 || "—";
-    last12CardSet.add(card);
-    const month = log.invoiceDate.slice(0, 7);
-    const m = last12Map.get(month) ?? new Map<string, number>();
-    m.set(card, (m.get(card) ?? 0) + log.amount);
-    last12Map.set(month, m);
-  }
-  const last12Cards = Array.from(last12CardSet).sort();
-  const last12MonthKeys =
-    last12.from && last12.to ? enumerateMonths(last12.from, last12.to) : [];
-  const last12Months = last12MonthKeys.map((month) => {
-    const cardMap = last12Map.get(month);
-    const point: Record<string, string | number> = { month };
-    for (const card of last12Cards) point[card] = cardMap?.get(card) ?? 0;
-    return point;
-  });
-  const byCard = Array.from(byCardTotal.entries())
-    .map(([card, total]) => ({ card, total }))
-    .sort((a, b) => b.total - a.total);
-
-  const grandTotal = byCard.reduce((sum, c) => sum + c.total, 0);
-  const currency = currencySet.size === 1 ? Array.from(currencySet)[0] : null;
-
-  return NextResponse.json({
-    cards,
-    byDay,
-    byMonth,
-    last12Months,
-    last12Cards,
-    byCard,
-    grandTotal,
-    currency,
-    txCount: filtered.length,
-    range,
-  });
-}
-
-function enumerateDays(fromIso: string, toIso: string): string[] {
-  const out: string[] = [];
-  const [fy, fm, fd] = fromIso.split("-").map(Number);
-  const [ty, tm, td] = toIso.split("-").map(Number);
-  const cur = new Date(Date.UTC(fy, fm - 1, fd));
-  const end = new Date(Date.UTC(ty, tm - 1, td));
-  const pad = (n: number) => String(n).padStart(2, "0");
-  while (cur.getTime() <= end.getTime()) {
-    out.push(
-      `${cur.getUTCFullYear()}-${pad(cur.getUTCMonth() + 1)}-${pad(cur.getUTCDate())}`
-    );
-    cur.setUTCDate(cur.getUTCDate() + 1);
-  }
-  return out;
-}
-
-function enumerateMonths(fromIso: string, toIso: string): string[] {
-  const out: string[] = [];
-  const [fy, fm] = fromIso.split("-").map(Number);
-  const [ty, tm] = toIso.split("-").map(Number);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  let y = fy;
-  let m = fm;
-  while (y < ty || (y === ty && m <= tm)) {
-    out.push(`${y}-${pad(m)}`);
-    m += 1;
-    if (m > 12) {
-      m = 1;
-      y += 1;
+    const monthKey = log.invoiceDate.slice(0, 7);
+    const slot = monthSkeleton.find((s) => s.monthKey === monthKey);
+    if (slot) {
+      slot.total += log.amount;
+      slot.count += 1;
     }
   }
-  return out;
+
+  // Available years (for the chart year selector)
+  const yearSet = new Set<number>();
+  for (const log of logs) {
+    if (log.invoiceDate && isValidDate(log.invoiceDate)) {
+      yearSet.add(parseInt(log.invoiceDate.slice(0, 4), 10));
+    }
+  }
+  yearSet.add(new Date().getFullYear());
+  const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+
+  return NextResponse.json({
+    range,
+    chartYear,
+    availableYears,
+    totalSpendByCurrency,
+    invoiceCount,
+    cardsUsed,
+    cardBreakdown,
+    byDay,
+    monthlyData: monthSkeleton,
+  });
 }

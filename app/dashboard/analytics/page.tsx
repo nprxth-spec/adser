@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -14,53 +14,66 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { BarChart3, ChevronDown, CreditCard, Loader2, TrendingUp } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart2,
+  ChevronDown,
+  CreditCard,
+  FileText,
+  TrendingUp,
+} from "lucide-react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
-type ByDayPoint = Record<string, string | number> & { date: string };
-type ByMonthPoint = Record<string, string | number> & { month: string };
-type ByCardPoint = { card: string; total: number };
+type CardBreakdown = { card: string; total: number };
+type MonthlyPoint = { month: string; monthKey: string; total: number; count: number };
+type DayPoint = { date: string; total: number };
 
 type AnalyticsResponse = {
-  cards: string[];
-  byDay: ByDayPoint[];
-  byMonth: ByMonthPoint[];
-  last12Months: ByMonthPoint[];
-  last12Cards: string[];
-  byCard: ByCardPoint[];
-  grandTotal: number;
-  currency: string | null;
-  txCount: number;
+  range: string;
+  chartYear: number;
+  availableYears: number[];
+  totalSpendByCurrency: Record<string, number>;
+  invoiceCount: number;
+  cardsUsed: number;
+  cardBreakdown: CardBreakdown[];
+  byDay: DayPoint[];
+  monthlyData: MonthlyPoint[];
 };
 
-const PALETTE = [
-  "#14b8a6",
-  "#0ea5e9",
-  "#8b5cf6",
-  "#f59e0b",
-  "#ef4444",
-  "#22c55e",
-  "#6366f1",
-  "#f97316",
-  "#06b6d4",
-  "#84cc16",
-  "#ec4899",
-  "#a855f7",
-];
-
 const RANGE_OPTIONS = [
+  { value: "today", th: "วันนี้", en: "Today" },
+  { value: "yesterday", th: "เมื่อวาน", en: "Yesterday" },
+  { value: "this_week", th: "สัปดาห์นี้", en: "This week" },
   { value: "this_month", th: "เดือนนี้", en: "This month" },
   { value: "last_month", th: "เดือนที่แล้ว", en: "Last month" },
   { value: "this_year", th: "ปีนี้", en: "This year" },
-  { value: "last_12_months", th: "12 เดือนล่าสุด", en: "Last 12 months" },
   { value: "all", th: "ทั้งหมด", en: "All time" },
 ];
 
-function formatAmount(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+const CARD_COLORS = [
+  "#465fff",
+  "#0d9488",
+  "#f59e0b",
+  "#ec4899",
+  "#8b5cf6",
+  "#10b981",
+  "#f97316",
+  "#3b82f6",
+  "#06b6d4",
+  "#84cc16",
+];
+
+function fmtMoney(n: number): string {
+  return n.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  });
+}
+
+function fmtCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}k`;
+  return String(n);
 }
 
 function cardLabel(card: string): string {
@@ -68,22 +81,93 @@ function cardLabel(card: string): string {
   return `•••• ${card}`;
 }
 
+type TooltipPayload = {
+  name?: string;
+  value: number;
+  payload: { count?: number; fill?: string; pct?: number };
+};
+type TooltipProps = { active?: boolean; payload?: TooltipPayload[]; label?: string };
+
+function CustomBarTooltip({ active, payload, label }: TooltipProps) {
+  if (!active || !payload || !payload.length) return null;
+  const item = payload[0];
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-4 py-3 text-sm">
+      <p className="font-semibold text-slate-700 mb-1">{label}</p>
+      <p className="text-teal-600 font-bold tabular-nums">{fmtMoney(item.value)}</p>
+      {(item.payload.count ?? 0) > 0 && (
+        <p className="text-slate-400 text-xs">{item.payload.count} invoices</p>
+      )}
+    </div>
+  );
+}
+
+function CustomPieTooltip({ active, payload }: TooltipProps) {
+  if (!active || !payload || !payload.length) return null;
+  const item = payload[0];
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-4 py-3 text-sm">
+      <p className="font-semibold text-slate-700">{cardLabel(String(item.name ?? ""))}</p>
+      <p className="font-bold tabular-nums" style={{ color: item.payload.fill }}>
+        {fmtMoney(item.value)}
+      </p>
+      <p className="text-slate-400 text-xs">{item.payload.pct ?? 0}% of total</p>
+    </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  color,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sub?: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-5 flex gap-4 items-start">
+      <div className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">{label}</p>
+        <p className="text-2xl font-bold text-slate-900 leading-none tabular-nums truncate">{value}</p>
+        {sub && <p className="text-xs text-slate-400 mt-1 truncate">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const { t, language } = useAppPreferences();
-  const [range, setRange] = useState("this_year");
+  const [range, setRange] = useState("this_month");
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [chartYear, setChartYear] = useState<number>(new Date().getFullYear());
+  const [chartLoading, setChartLoading] = useState(false);
+  const isFirstChartFetch = useRef(true);
+  const [chartMonthly, setChartMonthly] = useState<MonthlyPoint[]>([]);
+
+  // Range-bound fetch (stat cards, donut, daily, year list)
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/analytics?range=${encodeURIComponent(range)}`)
+    fetch(`/api/analytics?range=${encodeURIComponent(range)}&chartYear=${chartYear}`)
       .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled) {
-          setData(d);
-          setLoading(false);
+      .then((d: AnalyticsResponse) => {
+        if (cancelled) return;
+        setData(d);
+        if (isFirstChartFetch.current) {
+          setChartMonthly(d.monthlyData ?? []);
+          isFirstChartFetch.current = false;
         }
+        setLoading(false);
       })
       .catch(() => {
         if (!cancelled) setLoading(false);
@@ -91,394 +175,320 @@ export default function AnalyticsPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]);
 
-  const cardColor = useMemo(() => {
-    const m = new Map<string, string>();
-    // Build a stable color map across both range-bound cards and 12-month cards
-    const allCards = Array.from(
-      new Set([...(data?.cards ?? []), ...(data?.last12Cards ?? [])])
-    );
-    allCards.forEach((c, i) => m.set(c, PALETTE[i % PALETTE.length]));
-    return m;
-  }, [data?.cards, data?.last12Cards]);
+  // Year-bound fetch (just for the monthly chart)
+  useEffect(() => {
+    if (isFirstChartFetch.current) return;
+    let cancelled = false;
+    setChartLoading(true);
+    fetch(`/api/analytics?range=${encodeURIComponent(range)}&chartYear=${chartYear}`)
+      .then((r) => r.json())
+      .then((d: AnalyticsResponse) => {
+        if (!cancelled) setChartMonthly(d.monthlyData ?? []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setChartLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartYear]);
 
-  const donutData = useMemo(
+  const currencyEntries = useMemo(
     () =>
-      (data?.byCard ?? []).map((c) => ({
-        name: cardLabel(c.card),
-        rawCard: c.card,
-        value: c.total,
-      })),
-    [data?.byCard]
+      Object.entries(data?.totalSpendByCurrency ?? {}).sort((a, b) => b[1] - a[1]),
+    [data?.totalSpendByCurrency]
   );
+  const primary = currencyEntries[0];
+  const others = currencyEntries.slice(1);
 
-  const grandTotal = data?.grandTotal ?? 0;
-  const currency = data?.currency ?? "";
-  const txCount = data?.txCount ?? 0;
-  const cards = data?.cards ?? [];
-  const topCard = data?.byCard[0];
+  const totalSpendDisplay = primary ? `${primary[0]} ${fmtMoney(primary[1])}` : "0.00";
+  const avgPerInvoice =
+    primary && (data?.invoiceCount ?? 0) > 0
+      ? `${primary[0]} ${fmtMoney(primary[1] / (data?.invoiceCount ?? 1))}`
+      : "0.00";
+
+  const pieTotal = (data?.cardBreakdown ?? []).reduce((s, c) => s + c.total, 0);
+  const pieData = (data?.cardBreakdown ?? []).map((c, i) => ({
+    name: c.card,
+    value: c.total,
+    fill: CARD_COLORS[i % CARD_COLORS.length],
+    pct: pieTotal > 0 ? Math.round((c.total / pieTotal) * 100) : 0,
+  }));
+
+  const yearOptions = useMemo(() => {
+    const set = new Set<number>(data?.availableYears ?? []);
+    set.add(new Date().getFullYear());
+    set.add(chartYear);
+    return Array.from(set).sort((a, b) => b - a);
+  }, [data?.availableYears, chartYear]);
+
+  const allMonthlyEmpty = chartMonthly.every((m) => m.total === 0);
 
   return (
-    <div className="max-w-7xl mx-auto w-full min-w-0 space-y-6">
+    <div className="max-w-7xl mx-auto w-full min-w-0 pb-3">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
-            {t("วิเคราะห์การใช้จ่าย", "Spending Analytics")}
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">
+            {t("วิเคราะห์การใช้จ่าย", "Spend Analytics")}
           </h1>
-          <p className="text-slate-500 text-sm">
+          <p className="text-sm text-slate-500">
             {t(
-              "กราฟแสดงการใช้จ่ายตามบัตร — คำนวณจากวันที่เรียกเก็บ",
-              "Spending by card — based on invoice date"
+              "สรุปยอดใช้จ่ายจากใบแจ้งหนี้ที่ประมวลผลแล้ว",
+              "Spending summary from processed invoices"
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="range" className="text-sm font-medium text-slate-600 shrink-0">
-            {t("ช่วงเวลา:", "Range:")}
-          </label>
-          <div className="relative">
-            <select
-              id="range"
-              value={range}
-              onChange={(e) => setRange(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 cursor-pointer min-w-[160px]"
-            >
-              {RANGE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {language === "th" ? opt.th : opt.en}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          </div>
-        </div>
-      </div>
-
-      {/* Stat tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatTile
-          icon={TrendingUp}
-          label={t("ยอดรวม", "Total spend")}
-          value={`${currency ? `${currency} ` : ""}${formatAmount(grandTotal)}`}
-          accent="teal"
-        />
-        <StatTile
-          icon={BarChart3}
-          label={t("จำนวนรายการ", "Transactions")}
-          value={String(txCount)}
-          accent="violet"
-        />
-        <StatTile
-          icon={CreditCard}
-          label={t("บัตรที่ใช้บ่อยที่สุด", "Most used card")}
-          value={topCard ? cardLabel(topCard.card) : "—"}
-          subValue={
-            topCard
-              ? `${currency ? `${currency} ` : ""}${formatAmount(topCard.total)}`
-              : undefined
-          }
-          accent="amber"
-        />
-      </div>
-
-      {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-center py-32">
-          <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
-        </div>
-      ) : !data || txCount === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center py-24 text-center px-4">
-          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-            <BarChart3 className="w-7 h-7 text-slate-400" />
-          </div>
-          <p className="font-semibold text-slate-700 mb-1">
-            {t("ยังไม่มีข้อมูลในช่วงเวลานี้", "No data in this period")}
-          </p>
-          <p className="text-slate-400 text-sm">
-            {t(
-              "ลองเปลี่ยนช่วงเวลาหรืออัปโหลดใบแจ้งหนี้เพิ่มเติม",
-              "Try another range or upload more invoices."
-            )}
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Daily chart */}
-          <ChartCard
-            title={t("ใช้จ่ายรายวัน (ตามบัตร)", "Daily spend (by card)")}
-            subtitle={t(
-              "แกน X = วันที่เรียกเก็บ · แต่ละสีแทนหนึ่งบัตร",
-              "X-axis = invoice date · each color is one card"
-            )}
+        <div className="relative shrink-0">
+          <select
+            value={range}
+            onChange={(e) => setRange(e.target.value)}
+            className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
           >
-            <div className="h-[320px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.byDay}
-                  margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+            {RANGE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {language === "th" ? o.th : o.en}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+        </div>
+      </div>
+
+      <div
+        className={`space-y-6 transition-opacity duration-200 ${
+          loading && data ? "opacity-40 pointer-events-none" : "opacity-100"
+        }`}
+      >
+        {/* Stat tiles */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            icon={TrendingUp}
+            label={t("ยอดใช้จ่ายรวม", "Total Spend")}
+            value={totalSpendDisplay}
+            sub={
+              others.length > 0
+                ? others.map(([c, v]) => `${c} ${fmtMoney(v)}`).join(", ")
+                : undefined
+            }
+            color="bg-teal-50 text-teal-600"
+          />
+          <StatCard
+            icon={FileText}
+            label={t("จำนวนใบแจ้งหนี้", "Total Invoices")}
+            value={(data?.invoiceCount ?? 0).toLocaleString()}
+            sub={t("ในช่วงเวลานี้", "in this period")}
+            color="bg-sky-50 text-sky-600"
+          />
+          <StatCard
+            icon={CreditCard}
+            label={t("จำนวนบัตรที่ใช้", "Cards Used")}
+            value={String(data?.cardsUsed ?? 0)}
+            sub={t("บัตรที่แตกต่างกัน", "unique cards")}
+            color="bg-violet-50 text-violet-600"
+          />
+          <StatCard
+            icon={AlertCircle}
+            label={t("ยอดต่อใบ (เฉลี่ย)", "Avg per Invoice")}
+            value={avgPerInvoice}
+            sub={t("เฉลี่ยต่อใบแจ้งหนี้", "average per invoice")}
+            color="bg-amber-50 text-amber-600"
+          />
+        </div>
+
+        {/* Monthly + Donut row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white rounded-lg border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <p className="font-semibold text-slate-800">
+                {t("ยอดใช้จ่ายรายเดือน", "Monthly Spend")}
+              </p>
+              <div className="relative shrink-0">
+                <select
+                  value={chartYear}
+                  onChange={(e) => setChartYear(Number(e.target.value))}
+                  className="appearance-none pl-3 pr-7 py-1 rounded-md border border-slate-200 bg-white text-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+            <div
+              className={`transition-opacity duration-200 ${
+                chartLoading ? "opacity-40 pointer-events-none" : "opacity-100"
+              }`}
+            >
+              {allMonthlyEmpty ? (
+                <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-center">
+                  <BarChart2 className="w-8 h-8 text-slate-300" />
+                  <p className="text-sm text-slate-400">
+                    {t(`ไม่มีข้อมูลยอดใช้จ่ายในปี ${chartYear}`, `No spend data for ${chartYear}`)}
+                  </p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart
+                    data={chartMonthly}
+                    barSize={22}
+                    margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v) => fmtCompact(Number(v))}
+                    />
+                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "#f8fafc" }} />
+                    <Bar dataKey="total" fill="#14b8a6" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-5">
+            <p className="font-semibold text-slate-800 mb-4">
+              {t("สัดส่วนตามบัตร", "Spend by Card")}
+            </p>
+            {pieData.length === 0 ? (
+              <div className="flex items-center justify-center h-[260px] text-slate-400 text-sm">
+                {t("ไม่มีข้อมูลบัตร", "No card data")}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={3}
+                  >
+                    {pieData.map((entry, i) => (
+                      <Cell key={i} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomPieTooltip />} />
+                  <Legend
+                    formatter={(value) => cardLabel(String(value))}
+                    wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Daily chart + per-card breakdown row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white rounded-lg border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <p className="font-semibold text-slate-800">
+                {t("ยอดใช้จ่ายรายวัน", "Daily Spend")}
+              </p>
+              <span className="text-xs text-slate-400">
+                {t("ในช่วงเวลาที่เลือก", "Within selected range")}
+              </span>
+            </div>
+            {(data?.byDay ?? []).every((d) => d.total === 0) ? (
+              <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-center">
+                <BarChart2 className="w-8 h-8 text-slate-300" />
+                <p className="text-sm text-slate-400">
+                  {t("ไม่มีข้อมูลในช่วงเวลานี้", "No data in this period")}
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart
+                  data={data?.byDay ?? []}
+                  barSize={14}
+                  margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 11, fill: "#475569" }}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
                     tickFormatter={(v) => String(v).slice(8)}
                     interval="preserveStartEnd"
-                    minTickGap={8}
+                    minTickGap={6}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: "#475569" }}
-                    tickFormatter={(v) => Number(v).toLocaleString()}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => fmtCompact(Number(v))}
                   />
-                  <Tooltip
-                    formatter={(value, name) => [
-                      `${currency ? `${currency} ` : ""}${formatAmount(Number(value))}`,
-                      cardLabel(String(name)),
-                    ]}
-                    labelFormatter={(value) => `${t("วันที่", "Date")}: ${value}`}
-                    contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                  />
-                  <Legend formatter={(value) => cardLabel(String(value))} />
-                  {cards.map((card) => (
-                    <Bar
-                      key={card}
-                      dataKey={card}
-                      stackId="spend"
-                      fill={cardColor.get(card) ?? "#14b8a6"}
-                      radius={[2, 2, 0, 0]}
-                    />
-                  ))}
+                  <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "#f8fafc" }} />
+                  <Bar dataKey="total" fill="#465fff" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </ChartCard>
-
-          {/* Monthly chart */}
-          <ChartCard
-            title={t("ใช้จ่ายรายเดือน (ตามบัตร)", "Monthly spend (by card)")}
-            subtitle={t(
-              "รวมยอดในแต่ละเดือนตามวันที่เรียกเก็บ",
-              "Totals per calendar month based on invoice date"
             )}
-          >
-            <div className="h-[320px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.byMonth}
-                  margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 11, fill: "#475569" }}
-                    tickFormatter={(v) => String(v).slice(2)}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: "#475569" }}
-                    tickFormatter={(v) => Number(v).toLocaleString()}
-                  />
-                  <Tooltip
-                    formatter={(value, name) => [
-                      `${currency ? `${currency} ` : ""}${formatAmount(Number(value))}`,
-                      cardLabel(String(name)),
-                    ]}
-                    labelFormatter={(value) => `${t("เดือน", "Month")}: ${value}`}
-                    contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                  />
-                  <Legend formatter={(value) => cardLabel(String(value))} />
-                  {cards.map((card) => (
-                    <Bar
-                      key={card}
-                      dataKey={card}
-                      stackId="spend"
-                      fill={cardColor.get(card) ?? "#14b8a6"}
-                      radius={[4, 4, 0, 0]}
-                    />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-
-          {/* Last 12 months — fixed window regardless of range filter */}
-          <ChartCard
-            title={t("แนวโน้ม 12 เดือนล่าสุด", "Last 12 months trend")}
-            subtitle={t(
-              "ภาพรวมการใช้จ่าย 12 เดือนล่าสุดของคุณ — ไม่ขึ้นกับช่วงเวลาที่เลือก",
-              "Your spending across the last 12 calendar months — independent of the range filter above"
-            )}
-          >
-            <div className="h-[320px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.last12Months}
-                  margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 11, fill: "#475569" }}
-                    tickFormatter={(v) => String(v).slice(2)}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: "#475569" }}
-                    tickFormatter={(v) => Number(v).toLocaleString()}
-                  />
-                  <Tooltip
-                    formatter={(value, name) => [
-                      `${currency ? `${currency} ` : ""}${formatAmount(Number(value))}`,
-                      cardLabel(String(name)),
-                    ]}
-                    labelFormatter={(value) => `${t("เดือน", "Month")}: ${value}`}
-                    contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                  />
-                  <Legend formatter={(value) => cardLabel(String(value))} />
-                  {data.last12Cards.map((card) => (
-                    <Bar
-                      key={card}
-                      dataKey={card}
-                      stackId="spend"
-                      fill={cardColor.get(card) ?? "#14b8a6"}
-                      radius={[4, 4, 0, 0]}
-                    />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-
-          {/* Donut + breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard
-              title={t("สัดส่วนการใช้บัตร", "Card usage share")}
-              subtitle={t("เปอร์เซ็นต์ของยอดรวมต่อบัตร", "Percentage of total spend per card")}
-            >
-              <div className="h-[320px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={donutData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={70}
-                      outerRadius={110}
-                      paddingAngle={2}
-                    >
-                      {donutData.map((entry) => (
-                        <Cell
-                          key={entry.rawCard}
-                          fill={cardColor.get(entry.rawCard) ?? "#14b8a6"}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [
-                        `${currency ? `${currency} ` : ""}${formatAmount(Number(value))}`,
-                        String(name),
-                      ]}
-                      contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
-
-            <ChartCard
-              title={t("รายละเอียดต่อบัตร", "Per-card breakdown")}
-              subtitle={t("เรียงจากใช้มากไปน้อย", "Ranked from highest to lowest")}
-            >
-              <ul className="divide-y divide-slate-100">
-                {data.byCard.map((c) => {
-                  const pct = grandTotal > 0 ? (c.total / grandTotal) * 100 : 0;
-                  const color = cardColor.get(c.card) ?? "#14b8a6";
-                  return (
-                    <li key={c.card} className="py-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="text-sm font-medium text-slate-800 truncate font-mono">
-                            {cardLabel(c.card)}
-                          </span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-sm font-semibold text-slate-900">
-                            {currency ? `${currency} ` : ""}
-                            {formatAmount(c.total)}
-                          </div>
-                          <div className="text-xs text-slate-400">{pct.toFixed(1)}%</div>
-                        </div>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${pct}%`, backgroundColor: color }}
-                        />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </ChartCard>
           </div>
-        </>
-      )}
-    </div>
-  );
-}
 
-function StatTile({
-  icon: Icon,
-  label,
-  value,
-  subValue,
-  accent,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  subValue?: string;
-  accent: "teal" | "violet" | "amber";
-}) {
-  const accentCls =
-    accent === "teal"
-      ? "bg-teal-50 text-teal-600"
-      : accent === "violet"
-        ? "bg-violet-50 text-violet-600"
-        : "bg-amber-50 text-amber-600";
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accentCls}`}>
-        <Icon className="w-5 h-5" />
+          <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-5">
+            <p className="font-semibold text-slate-800 mb-4">
+              {t("รายละเอียดต่อบัตร", "Per-card Breakdown")}
+            </p>
+            {pieData.length === 0 ? (
+              <div className="flex items-center justify-center h-[200px] text-slate-400 text-sm">
+                {t("ไม่มีข้อมูลบัตร", "No card data")}
+              </div>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {pieData.map((c) => (
+                  <li key={c.name} className="py-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: c.fill }}
+                        />
+                        <span className="text-sm font-medium text-slate-800 truncate font-mono">
+                          {cardLabel(c.name)}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-semibold text-slate-900 tabular-nums">
+                          {fmtMoney(c.value)}
+                        </div>
+                        <div className="text-xs text-slate-400">{c.pct}%</div>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${c.pct}%`, backgroundColor: c.fill }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-slate-500 truncate">{label}</p>
-        <p className="text-base font-semibold text-slate-900 truncate font-mono">{value}</p>
-        {subValue && <p className="text-xs text-slate-400 truncate">{subValue}</p>}
-      </div>
-    </div>
-  );
-}
-
-function ChartCard({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100">
-        <h3 className="font-semibold text-slate-900">{title}</h3>
-        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
-      </div>
-      <div className="p-5">{children}</div>
     </div>
   );
 }

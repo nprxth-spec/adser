@@ -18,6 +18,22 @@ export type ChangelogEntry = {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.1",
+    date: "2026-05-08",
+    items: [
+      {
+        type: "feature",
+        th: "หน้าวิเคราะห์การใช้จ่ายใหม่ — ดูยอดรวม จำนวนใบแจ้งหนี้ ค่าเฉลี่ยต่อใบ พร้อมกราฟรายเดือน (เลือกปีได้) กราฟรายวัน และโดนัทสัดส่วนบัตร",
+        en: "New Spend Analytics page — total spend, invoice count, average per invoice, plus a year-selectable monthly chart, daily chart, and a per-card donut",
+      },
+      {
+        type: "improvement",
+        th: "ปรับปรุงไดอะล็อก 'มีอะไรใหม่' ให้แสดงทับ element อื่นเสมอ",
+        en: "The 'What's new' dialog now reliably renders above other elements",
+      },
+    ],
+  },
+  {
     version: "1.3.0",
     date: "2026-05-08",
     items: [

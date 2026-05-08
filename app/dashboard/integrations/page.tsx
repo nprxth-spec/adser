@@ -18,6 +18,9 @@ const defaultMapping = {
     reference: "T",
 };
 
+const mergeMapping = (stored: unknown): typeof defaultMapping =>
+    ({ ...defaultMapping, ...(stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {}) } as typeof defaultMapping);
+
 
 
 export default function IntegrationsPage() {
@@ -78,14 +81,14 @@ export default function IntegrationsPage() {
                         sheetId: user?.sheetId ?? "",
                         sheetName: user?.sheetName ?? "",
                         sheetGid: null,
-                        sheetMapping: (user?.sheetMapping as typeof defaultMapping | null) ?? defaultMapping,
+                        sheetMapping: mergeMapping(user?.sheetMapping),
                     };
                     setProfiles([initial]);
                     setActiveProfileId(initial.id);
                     setSheetId(initial.sheetId);
                     setSheetName(initial.sheetName || "");
                     setSheetGid(null);
-                    setSheetMapping(initial.sheetMapping || defaultMapping);
+                    setSheetMapping(mergeMapping(initial.sheetMapping));
                 } else {
                     setProfiles(serverProfiles);
                     const useId = serverActiveId || serverProfiles[0].id;
@@ -94,7 +97,7 @@ export default function IntegrationsPage() {
                     setSheetId(p.sheetId || "");
                     setSheetName(p.sheetName || "");
                     setSheetGid(p.sheetGid ?? null);
-                    setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
+                    setSheetMapping(mergeMapping(p.sheetMapping));
                 }
             } catch (err: any) {
                 setError(err.message ?? "Failed to load integrations");
@@ -185,7 +188,7 @@ export default function IntegrationsPage() {
         setSheetId(p.sheetId || "");
         setSheetName(p.sheetName || "");
         setSheetGid(p.sheetGid ?? null);
-        setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
+        setSheetMapping(mergeMapping(p.sheetMapping));
     };
 
     const handleChangeActiveProfile = (profileId: string) => {
@@ -195,7 +198,7 @@ export default function IntegrationsPage() {
         setSheetId(p.sheetId || "");
         setSheetName(p.sheetName || "");
         setSheetGid(p.sheetGid ?? null);
-        setSheetMapping((p.sheetMapping as typeof defaultMapping | null) || defaultMapping);
+        setSheetMapping(mergeMapping(p.sheetMapping));
     };
 
     const handleCreateProfile = (mode: "blank" | "duplicate") => {
@@ -215,7 +218,7 @@ export default function IntegrationsPage() {
             sheetId: base.sheetId || "",
             sheetName: base.sheetName || "",
             sheetGid: (base as SheetProfile).sheetGid ?? null,
-            sheetMapping: (base.sheetMapping as typeof defaultMapping | null) || defaultMapping,
+            sheetMapping: mergeMapping(base.sheetMapping),
         };
 
         const nextProfiles = [...profiles, newProfile];

@@ -284,20 +284,35 @@ function ReviewRow({
   onReview,
   onRequestDelete,
   discarding,
+  selected,
+  onToggleSelect,
 }: {
   item: ReviewItem;
   onReview: (item: ReviewItem) => void;
   onRequestDelete: (item: ReviewItem) => void;
   discarding: boolean;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
 }) {
   const { t } = useAppPreferences();
   const pending = item.pendingData;
   const missingFields = pending?.missingFields ?? [];
 
   return (
-    <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors group">
+    <tr className={`border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors group ${selected ? "bg-teal-50/40" : ""}`}>
+      {/* Checkbox */}
+      <td className="py-3 pl-4 pr-2 w-10">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(item.id)}
+          className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+          aria-label={t("เลือกรายการ", "Select item")}
+        />
+      </td>
+
       {/* File */}
-      <td className="py-3 pl-4 pr-3">
+      <td className="py-3 pr-3">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-md bg-amber-50 flex items-center justify-center shrink-0">
             <FileText className="w-3.5 h-3.5 text-amber-500" />
@@ -395,6 +410,9 @@ export default function ReviewPage() {
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<ReviewItem | null>(null);
   const [deleteWarnings, setDeleteWarnings] = useState<string[]>([]);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   const fetchItems = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
@@ -439,6 +457,70 @@ export default function ReviewPage() {
     if (!res.ok) throw new Error(data.error ?? "Failed to approve");
     setItems((prev) => prev.filter((i) => i.id !== id));
     window.dispatchEvent(new Event("filesgo:review-update"));
+  };
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === items.length && items.length > 0) return new Set();
+      return new Set(items.map((i) => i.id));
+    });
+  }, [items]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const executeBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    setDeleteError(null);
+    setDeleteWarnings([]);
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) => fetch(`/api/review/${id}`, { method: "DELETE" }).then(async (r) => ({ id, ok: r.ok, data: await r.json().catch(() => ({})) })))
+      );
+      const deletedIds: string[] = [];
+      const warnings: string[] = [];
+      const failed: string[] = [];
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value.ok) {
+          deletedIds.push(r.value.id);
+          if (Array.isArray(r.value.data?.warnings)) warnings.push(...r.value.data.warnings);
+        } else if (r.status === "fulfilled") {
+          failed.push(r.value.data?.error ?? r.value.id);
+        } else {
+          failed.push("network error");
+        }
+      }
+      if (deletedIds.length > 0) {
+        const deletedSet = new Set(deletedIds);
+        setItems((prev) => prev.filter((i) => !deletedSet.has(i.id)));
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          for (const id of deletedIds) next.delete(id);
+          return next;
+        });
+        window.dispatchEvent(new Event("filesgo:review-update"));
+      }
+      if (warnings.length > 0) setDeleteWarnings(warnings);
+      if (failed.length > 0) {
+        setDeleteError(t(
+          `ลบไม่สำเร็จ ${failed.length} รายการ`,
+          `Failed to delete ${failed.length} item${failed.length !== 1 ? "s" : ""}`
+        ));
+      }
+      setBulkConfirmOpen(false);
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const executeDelete = async (id: string) => {
@@ -530,14 +612,38 @@ export default function ReviewPage() {
         </div>
       ) : (
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-            <p className="text-sm text-slate-600">
-              {t(
-                `${items.length} รายการรอตรวจสอบ`,
-                `${items.length} item${items.length !== 1 ? "s" : ""} awaiting review`
-              )}
-            </p>
+          <div className="flex items-center justify-between gap-2 mb-3 min-h-[28px]">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              <p className="text-sm text-slate-600">
+                {t(
+                  `${items.length} รายการรอตรวจสอบ`,
+                  `${items.length} item${items.length !== 1 ? "s" : ""} awaiting review`
+                )}
+              </p>
+            </div>
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-150">
+                <span className="text-xs text-slate-500">
+                  {t(`เลือก ${selectedIds.size} รายการ`, `${selectedIds.size} selected`)}
+                </span>
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-md hover:bg-slate-100 cursor-pointer"
+                >
+                  {t("ล้าง", "Clear")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDeleteError(null); setBulkConfirmOpen(true); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-500 text-white text-xs font-medium hover:bg-red-600 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {t(`ลบที่เลือก (${selectedIds.size})`, `Delete selected (${selectedIds.size})`)}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Table */}
@@ -545,7 +651,19 @@ export default function ReviewPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide py-3 pl-4 pr-3">
+                  <th className="py-3 pl-4 pr-2 w-10">
+                    <input
+                      type="checkbox"
+                      checked={items.length > 0 && selectedIds.size === items.length}
+                      ref={(el) => {
+                        if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < items.length;
+                      }}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                      aria-label={t("เลือกทั้งหมด", "Select all")}
+                    />
+                  </th>
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide py-3 pr-3">
                     {t("ไฟล์", "File")}
                   </th>
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide py-3 px-3 hidden sm:table-cell">
@@ -568,10 +686,88 @@ export default function ReviewPage() {
                     onReview={setSelectedItem}
                     onRequestDelete={requestDeleteConfirm}
                     discarding={discardingId === item.id}
+                    selected={selectedIds.has(item.id)}
+                    onToggleSelect={toggleSelect}
                   />
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk delete confirmation */}
+      {bulkConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+          onClick={() => !bulkDeleting && setBulkConfirmOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 sm:px-6 pt-5 pb-3 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-semibold text-slate-900">
+                  {t(
+                    `ยืนยันการลบ ${selectedIds.size} รายการ`,
+                    `Delete ${selectedIds.size} item${selectedIds.size !== 1 ? "s" : ""}?`
+                  )}
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  {t(
+                    "ระบบจะลบรายการที่เลือกจากฐานข้อมูลและพยายามลบไฟล์บน Google Drive การกระทำนี้ไม่สามารถย้อนกลับได้",
+                    "This removes the selected records from the database and tries to delete the files from Google Drive. This cannot be undone."
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !bulkDeleting && setBulkConfirmOpen(false)}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer disabled:opacity-50"
+                aria-label="Close"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            {deleteError && (
+              <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="px-5 sm:px-6 pb-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => !bulkDeleting && setBulkConfirmOpen(false)}
+                disabled={bulkDeleting}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+              >
+                {t("ยกเลิก", "Cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void executeBulkDelete()}
+                disabled={bulkDeleting}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 cursor-pointer disabled:opacity-60"
+              >
+                {bulkDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t("กำลังลบ...", "Deleting...")}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    {t(`ลบ ${selectedIds.size} รายการ`, `Delete ${selectedIds.size}`)}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

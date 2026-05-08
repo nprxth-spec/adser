@@ -286,22 +286,6 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
         setCompletedCount(0);
     }, []);
 
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            // Only warn if files are actually in flight — not just because the
-            // batch-complete modal hasn't been dismissed yet.
-            const hasActiveUploads =
-                isProcessingRef.current && abortControllersRef.current.size > 0;
-            if (hasActiveUploads) {
-                // Both lines required: preventDefault for Firefox, returnValue for Chrome/Edge
-                e.preventDefault();
-                e.returnValue = "";
-            }
-        };
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, []);
-
     const isProcessing = fileStages.size > 0 || (isProcessingRef.current);
 
     // Build sorted activeFiles array for UI consumption

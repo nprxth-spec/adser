@@ -15,6 +15,7 @@ const defaultMapping = {
     amountFailed: "H",
     currency: "",
     driveLink: "J",
+    reference: "T",
 };
 
 
@@ -516,6 +517,7 @@ export default function IntegrationsPage() {
                                     { label: "Amount (unsuccessful)", key: "amountFailed" },
                                     { label: "Currency", key: "currency" },
                                     { label: "Drive Link", key: "driveLink" },
+                                    { label: "หมายเลขอ้างอิง", key: "reference" },
                                 ].map((field) => (
                                     <div key={field.key} className="flex flex-col gap-1.5">
                                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">

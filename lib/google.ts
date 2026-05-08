@@ -231,6 +231,7 @@ export interface SheetMapping {
     filename: string;
     driveLink: string;
     billed_to: string;
+    reference?: string;
 }
 
 export async function getSpreadsheetTitle(
@@ -379,6 +380,7 @@ export async function appendToSheet(
             addCell(mapping.currency, data.currency ?? "");
             addCell(mapping.filename, filename);
             addCell(mapping.driveLink, driveLink);
+            addCell(mapping.reference, data.reference_number ?? "");
 
             if (Object.keys(cellMap).length > 0) {
                 const batchData = Object.entries(cellMap).map(([col, val]) => ({
@@ -492,6 +494,7 @@ export async function syncToGoogle(
             addCell(mapping.currency, data.currency ?? "");
             addCell(mapping.filename, filename);
             addCell(mapping.driveLink, driveLink);
+            addCell(mapping.reference, data.reference_number ?? "");
 
             if (Object.keys(cellMap).length > 0) {
                 const batchData = Object.entries(cellMap).map(([col, val]) => ({

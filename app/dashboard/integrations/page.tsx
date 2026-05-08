@@ -146,41 +146,35 @@ export default function IntegrationsPage() {
         };
     }, []);
 
-    // Whenever sheetId changes, automatically load its tabs
+    // Clear tabs when sheetId changes so stale tabs from previous sheet don't show
+    const prevSheetIdRef = useRef<string>("");
     useEffect(() => {
-        const loadTabs = async () => {
-            if (!sheetId) {
-                setTabs([]);
-                return;
-            }
-            setLoadingTabs(true);
-            setError("");
-            try {
-                const res = await fetch(`/api/google/sheets?sheetId=${sheetId}`);
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error ?? "Failed to load sheets");
-                
-                const loadedTabs = (data.data as { id: number; title: string }[]) ?? [];
-                setTabs(loadedTabs);
-
-                if (loadedTabs.length > 0) {
-                    const existingTab = loadedTabs.find((t: any) => t.title === sheetName);
-                    if (!existingTab) {
-                        setSheetName(loadedTabs[0].title);
-                        setSheetGid(loadedTabs[0].id ?? null);
-                    } else {
-                        // รีเฟรช GID ให้ตรงกับ tab ที่เลือกอยู่
-                        setSheetGid(existingTab.id ?? null);
-                    }
-                }
-            } catch (err: any) {
-                setError(err.message);
-            }
-            setLoadingTabs(false);
-        };
-        loadTabs();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (prevSheetIdRef.current !== sheetId) {
+            prevSheetIdRef.current = sheetId;
+            setTabs([]);
+        }
     }, [sheetId]);
+
+    // Load tabs on demand (called when user opens the tab dropdown)
+    const loadTabsOnDemand = async () => {
+        if (!sheetId || loadingTabs) return;
+        setLoadingTabs(true);
+        setError("");
+        try {
+            const res = await fetch(`/api/google/sheets?sheetId=${sheetId}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Failed to load sheets");
+            const loadedTabs = (data.data as { id: number; title: string }[]) ?? [];
+            setTabs(loadedTabs);
+            if (loadedTabs.length > 0 && !sheetName) {
+                setSheetName(loadedTabs[0].title);
+                setSheetGid(loadedTabs[0].id ?? null);
+            }
+        } catch (err: any) {
+            setError(err.message);
+        }
+        setLoadingTabs(false);
+    };
 
     const syncActiveProfileState = (nextProfiles: SheetProfile[], nextActiveId: string) => {
         const p = nextProfiles.find(p => p.id === nextActiveId);
@@ -468,16 +462,16 @@ export default function IntegrationsPage() {
                                 </label>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        if (tabs.length > 0) setTabMenuOpen((v) => !v);
+                                    onClick={async () => {
+                                        if (tabMenuOpen) { setTabMenuOpen(false); return; }
+                                        if (tabs.length === 0) await loadTabsOnDemand();
+                                        setTabMenuOpen(true);
                                     }}
-                                    disabled={tabs.length === 0}
+                                    disabled={!sheetId || loadingTabs}
                                     className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white text-left hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
                                 >
-                                    <span className={sheetName && tabs.length > 0 ? "text-slate-800" : "text-slate-400"}>
-                                        {tabs.length === 0
-                                            ? "No tabs loaded"
-                                            : sheetName || "Select a tab"}
+                                    <span className={sheetName ? "text-slate-800" : "text-slate-400"}>
+                                        {loadingTabs ? "Loading…" : sheetName || "Click to load tabs"}
                                     </span>
                                 </button>
                                 {tabMenuOpen && tabs.length > 0 && (

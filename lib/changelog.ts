@@ -23,18 +23,38 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       {
         type: "feature",
-        th: "เพิ่มศูนย์แจ้งเตือน — ดูสิ่งที่อัปเดตในแต่ละเวอร์ชัน",
-        en: "Added notification center — see what's new in each release",
+        th: "อัปโหลดหลายไฟล์พร้อมกัน — ประมวลผลแบบขนาน รวดเร็วกว่าเดิมหลายเท่า ไม่ต้องรอทีละไฟล์อีกต่อไป",
+        en: "Parallel uploads — multiple files now process at the same time, dramatically faster than the old one-at-a-time flow",
       },
       {
         type: "feature",
-        th: "แอดมินสามารถแก้ไขค่า filenameMapping ของผู้ใช้ได้จากหน้า Users",
-        en: "Admins can now edit a user's filenameMapping from the Users page",
+        th: "จัดเก็บไฟล์ใน Google Drive อัตโนมัติ — ระบบสร้างโฟลเดอร์ ปี / เดือน / วัน ให้ตามวันที่ใบเสร็จ ไม่ต้องเลือกปลายทางเอง",
+        en: "Auto-organized Google Drive — files are filed under year / month / day folders by receipt date, no manual destination needed",
+      },
+      {
+        type: "feature",
+        th: "ตั้งชื่อไฟล์อัตโนมัติ — ระบบจัดรูปแบบชื่อให้สม่ำเสมอและอ่านง่าย โดยไม่ต้องตั้งค่ารูปแบบเอง",
+        en: "Auto filename formatting — clean, consistent filenames generated for you with zero configuration",
+      },
+      {
+        type: "feature",
+        th: "คิวตรวจสอบใบแจ้งหนี้ — ไฟล์ที่ข้อมูลไม่ครบจะรอให้คุณยืนยันและแก้ไขก่อน จึงค่อยบันทึกลงฐานข้อมูลและ Google Sheet",
+        en: "Review queue — invoices with missing fields wait for your confirmation and edits before they're committed to the database and Google Sheet",
+      },
+      {
+        type: "feature",
+        th: "แก้ไขประวัติได้ — ปรับแก้รายการในหน้า History แล้วระบบจะอัปเดตทั้งฐานข้อมูลและ Google Sheet ให้ตรงกันอัตโนมัติ",
+        en: "Editable history — update any record on the History page and the change syncs to both the database and your Google Sheet",
+      },
+      {
+        type: "feature",
+        th: "เพิ่มศูนย์แจ้งเตือน — ดูสิ่งที่อัปเดตในแต่ละเวอร์ชันได้จากไอคอนกระดิ่งใน Sidebar",
+        en: "Added notification center — see what's new in each release from the bell icon in the sidebar",
       },
       {
         type: "improvement",
-        th: "ปุ่มลบในหน้า Dashboard ใช้ไดอะล็อกยืนยันแบบเดียวกับหน้า History",
-        en: "Delete button on Dashboard now uses the same confirmation dialog as History",
+        th: "ปุ่มลบในหน้า Dashboard ใช้ไดอะล็อกยืนยันแบบเดียวกับหน้า History เพื่อความสม่ำเสมอ",
+        en: "Delete button on Dashboard now uses the same confirmation dialog as History for a consistent experience",
       },
       {
         type: "fix",

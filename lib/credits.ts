@@ -30,8 +30,14 @@ export async function ensureFreeCreditsReset(userId: string): Promise<number> {
     return user.credits;
   }
 
-  await prisma.user.update({
-    where: { id: userId },
+  // Optimistic concurrency: only update if lastCreditsReset hasn't changed since we read it.
+  // If two concurrent requests both detect needReset, only one will match the WHERE clause —
+  // the second update affects 0 rows and is safely ignored (both resets write the same value).
+  await prisma.user.updateMany({
+    where: {
+      id: userId,
+      lastCreditsReset: user.lastCreditsReset ?? null,
+    },
     data: {
       credits: FREE_PLAN_CREDITS,
       lastCreditsReset: now,

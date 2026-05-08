@@ -23,6 +23,7 @@ export async function GET(
     }
 
     const { id } = await params;
+    if (!id || id.length > 64) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const item = await prisma.processingLog.findFirst({
         where: { id, userId: session.user.id, status: "review" },
@@ -57,8 +58,23 @@ export async function PATCH(
     const { id } = await params;
     const userId = session.user.id;
 
-    const item = await prisma.processingLog.findFirst({
+    // Reject obviously invalid IDs (CUIDs are ≤ 30 chars)
+    if (!id || id.length > 64) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Atomically claim the item by flipping status from "review" → "approving".
+    // If another request already claimed it (0 rows updated) → return 409.
+    const claimed = await prisma.processingLog.updateMany({
         where: { id, userId, status: "review" },
+        data: { status: "approving" },
+    });
+    if (claimed.count === 0) {
+        return NextResponse.json({ error: "Not found or already being approved" }, { status: 409 });
+    }
+
+    const item = await prisma.processingLog.findFirst({
+        where: { id, userId },
     });
     if (!item) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -115,6 +131,8 @@ export async function PATCH(
     const sheetName: string | null = pending.sheetName ?? null;
     const sheetMapping = pending.sheetMapping ?? null;
 
+    const warnings: string[] = [];
+
     try {
         // 1. Rename Drive file
         if (driveFileId) {
@@ -133,9 +151,11 @@ export async function PATCH(
                 sheetName,
                 sheetMapping,
             );
+        } else {
+            warnings.push("No Sheet ID was configured at upload time — row not added to Sheets");
         }
 
-        // 3. Update DB
+        // 3. Update DB — mark success
         await prisma.processingLog.update({
             where: { id },
             data: {
@@ -153,9 +173,15 @@ export async function PATCH(
         return NextResponse.json({
             success: true,
             data: { filename: finalFilename, driveLink: item.driveLink, sheetRow },
+            ...(warnings.length > 0 && { warnings }),
         });
     } catch (err: any) {
         console.error("Review approval error:", err);
+        // Revert status back to "review" so the user can try again
+        await prisma.processingLog.updateMany({
+            where: { id, userId, status: "approving" },
+            data: { status: "review" },
+        }).catch(() => {});
         return NextResponse.json(
             { error: err.message ?? "Failed to approve review item" },
             { status: 500 }
@@ -178,6 +204,7 @@ export async function DELETE(
 
     const { id } = await params;
     const userId = session.user.id;
+    if (!id || id.length > 64) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const item = await prisma.processingLog.findFirst({
         where: { id, userId, status: "review" },

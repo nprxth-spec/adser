@@ -177,6 +177,9 @@ export async function POST(request: Request) {
     let driveLink = "";
     let sheetRow = 0;
     let status = "success";
+    // Track partial results so the error log can include whatever succeeded
+    let partialInvoiceData: InvoiceData | null = null;
+    let partialDriveLink = "";
 
     try {
         const pdfParse = await getPdfParse();
@@ -184,6 +187,7 @@ export async function POST(request: Request) {
         const pdfText = textResult.text;
 
         invoiceData = await extractInvoiceData(pdfText);
+        partialInvoiceData = invoiceData;
 
         const last4 = invoiceData.card_last_4;
         const mapping = (user as any).filenameMapping as Record<string, string> | null | undefined;
@@ -268,13 +272,25 @@ export async function POST(request: Request) {
             LOCKED_DRIVE_FOLDER_MODE,
         );
         driveLink = syncResult.driveLink;
+        partialDriveLink = driveLink;
         sheetRow = syncResult.sheetRow;
 
     } catch (err: any) {
         console.error("Processing error:", err);
         status = "error";
+        // Include whatever partial data was extracted/uploaded for traceability
         await prisma.processingLog.create({
-            data: { userId, filename: sanitizedOriginal, originalFilename, status: "error" },
+            data: {
+                userId,
+                filename: filename !== sanitizedOriginal ? filename : sanitizedOriginal,
+                originalFilename,
+                status: "error",
+                driveLink: partialDriveLink || null,
+                invoiceDate: partialInvoiceData?.date ?? null,
+                cardLast4: partialInvoiceData?.card_last_4 ?? null,
+                amount: partialInvoiceData?.amount ?? null,
+                currency: partialInvoiceData?.currency ?? null,
+            },
         });
         const safeMessage =
             err.message?.includes("Google") || err.message?.includes("Sheet") || err.message?.includes("Drive")

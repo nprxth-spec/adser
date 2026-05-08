@@ -390,10 +390,56 @@ export async function appendToSheet(
         addCell(mapping.reference, data.reference_number ?? "");
     }
 
-    // Build row array — mapped (sparse) or default (A:G)
-    const valuesArray: any[] = mapping
-        ? buildMappedRowArray(cellMap)
-        : [
+    if (mapping) {
+        // Mapping path: 2-step atomic approach
+        // Step 1 — append anchor cell (smallest-index mapped column) to atomically reserve a row.
+        //           values.append with INSERT_ROWS is atomic server-side; returns the new row number.
+        // Step 2 — batchUpdate the remaining cells to their exact column addresses.
+        //           This avoids the "table detection" issue where values.append can shift columns
+        //           if Google Sheets detects the table starting at a column other than A.
+        const entries = Object.entries(cellMap);
+        if (entries.length === 0) return 0;
+
+        // Pick anchor = first mapped column (smallest index)
+        const sortedEntries = [...entries].sort(
+            (a, b) => colLetterToIndex(a[0]) - colLetterToIndex(b[0])
+        );
+        const [anchorCol, anchorVal] = sortedEntries[0];
+
+        const anchorRange = sheetName
+            ? `'${sheetName}'!${anchorCol}:${anchorCol}`
+            : `${anchorCol}:${anchorCol}`;
+
+        const appendRes = await sheets.spreadsheets.values.append({
+            spreadsheetId: sheetId,
+            range: anchorRange,
+            valueInputOption: "USER_ENTERED",
+            insertDataOption: "INSERT_ROWS",
+            requestBody: { values: [[anchorVal]] },
+        });
+
+        const updatedRange = appendRes.data.updates?.updatedRange ?? "";
+        const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
+        nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
+        if (nextRow === 0) {
+            console.warn("[appendToSheet] Could not parse row number from updatedRange:", updatedRange);
+        }
+
+        // Step 2: write remaining cells to their exact column + row
+        const remaining = sortedEntries.slice(1);
+        if (nextRow > 0 && remaining.length > 0) {
+            const batchData = remaining.map(([col, val]) => ({
+                range: sheetName ? `'${sheetName}'!${col}${nextRow}` : `${col}${nextRow}`,
+                values: [[val]],
+            }));
+            await sheets.spreadsheets.values.batchUpdate({
+                spreadsheetId: sheetId,
+                requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+            });
+        }
+    } else {
+        // No mapping: use simple append A:G — already atomic and correct
+        const valuesArray = [
             data.date ?? "",
             data.billed_to ?? "",
             data.card_last_4 ?? "",
@@ -402,30 +448,20 @@ export async function appendToSheet(
             filename,
             driveLink,
         ];
-
-    if (valuesArray.length === 0) return 0;
-
-    // values.append with INSERT_ROWS is atomic server-side — safe under concurrency
-    // across multiple serverless instances (unlike the old read-then-batchUpdate approach).
-    const lastCol = indexToColLetter(valuesArray.length - 1);
-    const targetRange = sheetName
-        ? `'${sheetName}'!A:${lastCol}`
-        : `A:${lastCol}`;
-
-    const appendRes = await sheets.spreadsheets.values.append({
-        spreadsheetId: sheetId,
-        range: targetRange,
-        valueInputOption: "USER_ENTERED",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: { values: [valuesArray] },
-    });
-
-    const updatedRange = appendRes.data.updates?.updatedRange ?? "";
-    // updatedRange looks like "'Sheet1'!A5:G5" or "A5:G5" — extract last row number
-    const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
-    nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
-    if (nextRow === 0) {
-        console.warn("[appendToSheet] Could not parse row number from updatedRange:", updatedRange);
+        const targetRange = sheetName ? `'${sheetName}'!A:G` : "A:G";
+        const appendRes = await sheets.spreadsheets.values.append({
+            spreadsheetId: sheetId,
+            range: targetRange,
+            valueInputOption: "USER_ENTERED",
+            insertDataOption: "INSERT_ROWS",
+            requestBody: { values: [valuesArray] },
+        });
+        const updatedRange = appendRes.data.updates?.updatedRange ?? "";
+        const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
+        nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
+        if (nextRow === 0) {
+            console.warn("[appendToSheet] Could not parse row number from updatedRange:", updatedRange);
+        }
     }
 
     return nextRow;
@@ -498,10 +534,54 @@ export async function syncToGoogle(
         addCell(mapping.reference, data.reference_number ?? "");
     }
 
-    // Build row array — mapped (sparse) or default (A:G)
-    const valuesArray: any[] = mapping
-        ? buildMappedRowArray(cellMap)
-        : [
+    if (mapping) {
+        // Mapping path: 2-step atomic approach (same as appendToSheet)
+        // Step 1 — append anchor cell (smallest-index mapped column) to atomically reserve a row.
+        // Step 2 — batchUpdate remaining cells to exact col+row addresses.
+        //           This avoids the "table detection" shift where values.append starts writing
+        //           from the sheet's detected table start column instead of the requested column.
+        const entries = Object.entries(cellMap);
+        if (entries.length > 0) {
+            const sortedEntries = [...entries].sort(
+                (a, b) => colLetterToIndex(a[0]) - colLetterToIndex(b[0])
+            );
+            const [anchorCol, anchorVal] = sortedEntries[0];
+
+            const anchorRange = sheetName
+                ? `'${sheetName}'!${anchorCol}:${anchorCol}`
+                : `${anchorCol}:${anchorCol}`;
+
+            const appendRes = await sheets.spreadsheets.values.append({
+                spreadsheetId: sheetId,
+                range: anchorRange,
+                valueInputOption: "USER_ENTERED",
+                insertDataOption: "INSERT_ROWS",
+                requestBody: { values: [[anchorVal]] },
+            });
+
+            const updatedRange = appendRes.data.updates?.updatedRange ?? "";
+            const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
+            nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
+            if (nextRow === 0) {
+                console.warn("[syncToGoogle] Could not parse row number from updatedRange:", updatedRange);
+            }
+
+            // Step 2: write remaining cells to their exact column + row
+            const remaining = sortedEntries.slice(1);
+            if (nextRow > 0 && remaining.length > 0) {
+                const batchData = remaining.map(([col, val]) => ({
+                    range: sheetName ? `'${sheetName}'!${col}${nextRow}` : `${col}${nextRow}`,
+                    values: [[val]],
+                }));
+                await sheets.spreadsheets.values.batchUpdate({
+                    spreadsheetId: sheetId,
+                    requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+                });
+            }
+        }
+    } else {
+        // No mapping: simple append A:G — already atomic and correct
+        const valuesArray = [
             data.date ?? "",
             data.billed_to ?? "",
             data.card_last_4 ?? "",
@@ -511,14 +591,7 @@ export async function syncToGoogle(
             driveLink,
         ];
 
-    if (valuesArray.length > 0) {
-        // values.append with INSERT_ROWS is atomic server-side — safe under concurrency
-        // across multiple serverless instances (unlike the old read-then-batchUpdate approach).
-        const lastCol = indexToColLetter(valuesArray.length - 1);
-        const targetRange = sheetName
-            ? `'${sheetName}'!A:${lastCol}`
-            : `A:${lastCol}`;
-
+        const targetRange = sheetName ? `'${sheetName}'!A:G` : "A:G";
         const appendRes = await sheets.spreadsheets.values.append({
             spreadsheetId: sheetId,
             range: targetRange,
@@ -528,7 +601,6 @@ export async function syncToGoogle(
         });
 
         const updatedRange = appendRes.data.updates?.updatedRange ?? "";
-        // updatedRange looks like "'Sheet1'!A5:G5" or "A5:G5" — extract last row number
         const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
         nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
         if (nextRow === 0) {

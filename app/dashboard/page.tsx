@@ -516,15 +516,6 @@ export default function DashboardPage() {
             document.body.appendChild(script);
         });
 
-    // Warn before leaving during upload
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isProcessing) e.preventDefault();
-        };
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [isProcessing]);
-
     return (
         <div className="max-w-7xl mx-auto w-full space-y-6">
                 {/* ── Duplicate Alert ── */}

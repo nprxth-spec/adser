@@ -288,7 +288,11 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
 
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isProcessingRef.current) {
+            // Only warn if files are actually in flight — not just because the
+            // batch-complete modal hasn't been dismissed yet.
+            const hasActiveUploads =
+                isProcessingRef.current && abortControllersRef.current.size > 0;
+            if (hasActiveUploads) {
                 // Both lines required: preventDefault for Firefox, returnValue for Chrome/Edge
                 e.preventDefault();
                 e.returnValue = "";

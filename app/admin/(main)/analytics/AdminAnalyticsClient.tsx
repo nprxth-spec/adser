@@ -237,6 +237,15 @@ export default function AdminAnalyticsClient({ users }: { users: UserOption[] })
     pct: pieTotal > 0 ? Math.round((c.total / pieTotal) * 100) : 0,
   }));
 
+  const TOP_N = 8;
+  const pieDataCapped = (() => {
+    if (pieData.length <= TOP_N) return pieData;
+    const top = pieData.slice(0, TOP_N);
+    const otherTotal = pieData.slice(TOP_N).reduce((s, c) => s + c.value, 0);
+    const otherPct = pieTotal > 0 ? Math.round((otherTotal / pieTotal) * 100) : 0;
+    return [...top, { name: "Other", value: otherTotal, fill: "#94a3b8", pct: otherPct }];
+  })();
+
   const yearOptions = useMemo(() => {
     const set = new Set<number>(data?.availableYears ?? []);
     set.add(new Date().getFullYear());
@@ -388,16 +397,16 @@ export default function AdminAnalyticsClient({ users }: { users: UserOption[] })
 
           <div className="bg-white rounded-md border border-slate-100 shadow-sm p-5">
             <p className="font-semibold text-slate-800 mb-4">Spend by Card</p>
-            {pieData.length === 0 ? (
+            {pieDataCapped.length === 0 ? (
               <div className="flex items-center justify-center h-[260px] text-slate-400 text-sm">No card data</div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={55} outerRadius={85} paddingAngle={3}>
-                    {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  <Pie data={pieDataCapped} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={55} outerRadius={85} paddingAngle={3}>
+                    {pieDataCapped.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                   </Pie>
                   <Tooltip content={<CustomPieTooltip />} />
-                  <Legend formatter={(value) => cardLabel(String(value))} wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
+                  <Legend formatter={(value) => value === "Other" ? "Other" : cardLabel(String(value))} wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -434,7 +443,7 @@ export default function AdminAnalyticsClient({ users }: { users: UserOption[] })
             {pieData.length === 0 ? (
               <div className="flex items-center justify-center h-[200px] text-slate-400 text-sm">No card data</div>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-slate-100 max-h-[340px] overflow-y-auto pr-1">
                 {pieData.map((c) => (
                   <li key={c.name} className="py-3">
                     <div className="flex items-center justify-between mb-1.5">

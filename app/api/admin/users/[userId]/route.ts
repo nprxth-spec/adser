@@ -4,6 +4,30 @@ import { prisma } from "@/lib/prisma";
 
 const MAX_MAPPING_RULES = 100;
 
+const VALID_SHEET_KEYS = new Set([
+  "date", "billed_to", "card_last_4", "amount", "amountFailed",
+  "currency", "filename", "driveLink", "reference",
+]);
+
+function sanitizeSheetMapping(input: unknown):
+  | { ok: true; value: Record<string, string> | null }
+  | { ok: false; error: string } {
+  if (input === null) return { ok: true, value: null };
+  if (typeof input !== "object" || Array.isArray(input)) {
+    return { ok: false, error: "sheetMapping must be an object" };
+  }
+  const cleaned: Record<string, string> = {};
+  for (const [rawKey, rawVal] of Object.entries(input as Record<string, unknown>)) {
+    if (!VALID_SHEET_KEYS.has(rawKey)) continue;
+    const val = String(rawVal ?? "").trim().toUpperCase();
+    if (val !== "" && !/^[A-Z]$/.test(val)) {
+      return { ok: false, error: `Invalid column "${rawVal}" for key "${rawKey}" — must be A-Z or empty` };
+    }
+    cleaned[rawKey] = val;
+  }
+  return { ok: true, value: cleaned };
+}
+
 function sanitizeFilenameMapping(input: unknown):
   | { ok: true; value: Record<string, string> | null }
   | { ok: false; error: string } {
@@ -52,6 +76,14 @@ export async function PATCH(
     data.filenameMapping = result.value;
   }
 
+  if ("sheetMapping" in body) {
+    const result = sanitizeSheetMapping(body.sheetMapping);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    data.sheetMapping = result.value;
+  }
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No supported fields provided" }, { status: 400 });
   }
@@ -60,7 +92,7 @@ export async function PATCH(
     const user = await prisma.user.update({
       where: { id: userId },
       data,
-      select: { id: true, filenameMapping: true },
+      select: { id: true, filenameMapping: true, sheetMapping: true },
     });
     return NextResponse.json({ success: true, user });
   } catch (err: any) {

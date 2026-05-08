@@ -4,6 +4,7 @@ import AdminUserScopesCell from "./AdminUserScopesCell";
 import AdminDeleteUserButton from "./AdminDeleteUserButton";
 import AdminTruncatedCell from "./AdminTruncatedCell";
 import AdminFilenameMappingEditor from "./AdminFilenameMappingEditor";
+import AdminSheetMappingEditor from "./AdminSheetMappingEditor";
 import LogsRangeSelect from "../logs/LogsRangeSelect";
 import { LogsSearchClient } from "../logs/LogsSearchClient";
 
@@ -113,6 +114,7 @@ export default async function AdminUsersPage({
       createdAt: true,
       sheetId: true,
       sheetName: true,
+      sheetMapping: true,
       filenameMapping: true,
       driveFolderId: true,
     },
@@ -146,6 +148,7 @@ export default async function AdminUsersPage({
                 <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Days left</th>
                 <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">sheetId</th>
                 <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">sheetName</th>
+                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">sheetMapping</th>
                 <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">filenameMapping</th>
                 <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">driveFolderId</th>
                 <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">สิทธิ์ Google</th>
@@ -193,6 +196,13 @@ export default async function AdminUsersPage({
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       <AdminTruncatedCell value={user.sheetName} />
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <AdminSheetMappingEditor
+                        userId={user.id}
+                        userLabel={user.email ?? user.name ?? user.id}
+                        value={user.sheetMapping}
+                      />
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       <AdminFilenameMappingEditor

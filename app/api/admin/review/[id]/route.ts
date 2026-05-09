@@ -5,6 +5,7 @@ import { renameDriveFile, appendToSheet } from "@/lib/google";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { InvoiceData } from "@/lib/openai";
 import { google } from "googleapis";
+import { reserveSheetRow } from "@/lib/sheet-row";
 
 function extractDriveFileId(driveLink: string): string | null {
     const m = driveLink.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -97,9 +98,11 @@ export async function PATCH(
             await renameDriveFile(driveFileId, finalFilename, accessToken);
         }
 
-        // 2. Append row to the owner's Sheet
+        // 2. Append row to the owner's Sheet.
+        // Use item.userId (the file owner) for row reservation — not the admin.
         let sheetRow = 0;
         if (sheetId) {
+            const reservedRow = await reserveSheetRow(item.userId);
             sheetRow = await appendToSheet(
                 mergedInvoiceData,
                 finalFilename,
@@ -108,6 +111,7 @@ export async function PATCH(
                 sheetId,
                 sheetName,
                 sheetMapping,
+                reservedRow,
             );
         } else {
             warnings.push("No Sheet ID was configured at upload time — row not added to Sheets");

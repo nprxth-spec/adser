@@ -5,6 +5,7 @@ import { renameDriveFile, appendToSheet } from "@/lib/google";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { InvoiceData } from "@/lib/openai";
 import { google } from "googleapis";
+import { reserveSheetRow } from "@/lib/sheet-row";
 
 /** Extract the Google Drive file ID from a webViewLink or webContentLink URL. */
 function extractDriveFileId(driveLink: string): string | null {
@@ -142,6 +143,7 @@ export async function PATCH(
         // 2. Add row to Sheets
         let sheetRow = 0;
         if (sheetId) {
+            const reservedRow = await reserveSheetRow(userId);
             sheetRow = await appendToSheet(
                 mergedInvoiceData,
                 finalFilename,
@@ -150,6 +152,7 @@ export async function PATCH(
                 sheetId,
                 sheetName,
                 sheetMapping,
+                reservedRow,
             );
         } else {
             warnings.push("No Sheet ID was configured at upload time — row not added to Sheets");

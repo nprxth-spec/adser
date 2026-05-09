@@ -5,6 +5,7 @@ import { syncToGoogle, uploadFileToDrive } from "@/lib/google";
 import { prisma, Prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { ensureFreeCreditsReset } from "@/lib/credits";
+import { reserveSheetRow } from "@/lib/sheet-row";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -264,12 +265,18 @@ export async function POST(request: Request) {
             });
         }
 
-        // Normal flow — all fields present
+        // Normal flow — all fields present.
+        // Reserve a sheet row atomically in DB before calling syncToGoogle.
+        // This ensures concurrent uploads each get a unique row without
+        // inserting physical rows into the sheet (which would disrupt formula rows).
+        const reservedRow = await reserveSheetRow(userId);
+
         const syncResult = await syncToGoogle(
             invoiceData, buffer, filename, accessToken,
             sheetId, user.sheetName, user.sheetMapping,
             LOCKED_DRIVE_FOLDER_ID,
             LOCKED_DRIVE_FOLDER_MODE,
+            reservedRow,
         );
         driveLink = syncResult.driveLink;
         partialDriveLink = driveLink;

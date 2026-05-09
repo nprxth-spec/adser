@@ -63,7 +63,7 @@ export default function HistoryPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [range, setRange] = useState("all");
-  const limit = 20;
+  const [limit, setLimit] = useState(50);
 
   // Delete state
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
@@ -104,7 +104,7 @@ export default function HistoryPage() {
       setLoading(false);
     };
     fetchLogs();
-  }, [page, range]);
+  }, [page, limit, range]);
 
   // Close edit dialog on Escape
   useEffect(() => {
@@ -522,12 +522,31 @@ export default function HistoryPage() {
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && !loading && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100">
-            <p className="text-xs text-slate-400">
-              {t(`หน้า ${page} จาก ${totalPages}`, `Page ${page} of ${totalPages}`)}
-              {range !== "all" && ` · ${t(rangeLabelTh, rangeLabel)}`}
-            </p>
+        {!loading && logs.length > 0 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-slate-400">
+                {t(`หน้า ${page} จาก ${totalPages}`, `Page ${page} of ${totalPages}`)}
+                {range !== "all" && ` · ${t(rangeLabelTh, rangeLabel)}`}
+              </p>
+              {/* Limit selector */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400">{t("แสดง", "Show")}</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                >
+                  {[50, 100, 200, 500].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <span className="text-xs text-slate-400">{t("แถว", "rows")}</span>
+              </div>
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}

@@ -237,7 +237,17 @@ export default async function AdminLogsPage({
                     )}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
-                    <LogRowActionsClient logId={log.id} />
+                    <LogRowActionsClient
+                      logId={log.id}
+                      invoiceDate={log.invoiceDate}
+                      cardLast4={log.cardLast4}
+                      amount={log.amount}
+                      currency={log.currency}
+                      filename={log.filename}
+                      driveLink={log.driveLink}
+                      sheetRow={log.sheetRow}
+                      status={log.status}
+                    />
                   </td>
                 </tr>
               ))}

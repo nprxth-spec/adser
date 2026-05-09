@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ScrollText, Users, LogOut, ClipboardList, BarChart3 } from "lucide-react";
+import { LayoutDashboard, ScrollText, Users, LogOut, ClipboardList, BarChart3, ClipboardCheck } from "lucide-react";
 
 const navLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/analytics", label: "วิเคราะห์การใช้จ่าย", icon: BarChart3 },
   { href: "/admin/logs", label: "ประมวลผลใบแจ้งหนี้", icon: ScrollText },
+  { href: "/admin/review", label: "ตรวจสอบบิล", icon: ClipboardCheck },
   { href: "/admin/audit-logs", label: "การล็อกอิน / Config", icon: ClipboardList },
   { href: "/admin/users", label: "Users & Credits", icon: Users },
 ];

@@ -48,6 +48,41 @@ function getOAuth2Client(accessToken: string) {
     return oauth2Client;
 }
 
+/**
+ * Ensure the target sheet tab has at least `targetRow` rows.
+ * `batchUpdate` (unlike `values.append`) does NOT auto-extend the grid,
+ * so we must add rows manually when the reserved row exceeds the sheet size.
+ */
+async function ensureSheetCapacity(
+    sheets: ReturnType<typeof google.sheets>,
+    sheetId: string,
+    sheetName: string | null,
+    targetRow: number,
+): Promise<void> {
+    const res = await sheets.spreadsheets.get({
+        spreadsheetId: sheetId,
+        fields: "sheets(properties(sheetId,title,gridProperties(rowCount)))",
+    });
+
+    const tab = sheetName
+        ? res.data.sheets?.find((s: any) => s.properties?.title === sheetName)
+        : res.data.sheets?.[0];
+
+    const rowCount = (tab?.properties?.gridProperties?.rowCount as number | undefined) ?? 1000;
+    const tabSheetId = (tab?.properties?.sheetId as number | undefined) ?? 0;
+
+    if (targetRow <= rowCount) return; // Already enough rows — nothing to do
+
+    // Append enough rows to cover the target, plus a buffer of 100 for the next batch.
+    const toAdd = targetRow - rowCount + 100;
+    await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+            requests: [{ appendDimension: { sheetId: tabSheetId, dimension: "ROWS", length: toAdd } }],
+        },
+    });
+}
+
 function escapeDriveQuery(value: string): string {
     return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
@@ -407,6 +442,8 @@ export async function appendToSheet(
             // ── Preferred path: write directly to the pre-allocated row ──────────
             // No values.append at all → no INSERT_ROWS (no physical row insertion)
             // and no OVERWRITE race condition.  Row was reserved atomically in DB.
+            // Ensure the grid is tall enough — batchUpdate won't auto-extend.
+            await ensureSheetCapacity(sheets, sheetId, sheetName, targetRow);
             const batchData = entries.map(([col, val]) => ({
                 range: sheetName ? `'${sheetName}'!${col}${targetRow}` : `${col}${targetRow}`,
                 values: [[val]],
@@ -470,6 +507,7 @@ export async function appendToSheet(
 
         if (targetRow && targetRow > 0) {
             // Write directly to the reserved row
+            await ensureSheetCapacity(sheets, sheetId, sheetName, targetRow);
             const range = sheetName ? `'${sheetName}'!A${targetRow}:G${targetRow}` : `A${targetRow}:G${targetRow}`;
             await sheets.spreadsheets.values.batchUpdate({
                 spreadsheetId: sheetId,
@@ -648,6 +686,7 @@ export async function syncToGoogle(
         if (entries.length > 0) {
             if (targetRow && targetRow > 0) {
                 // ── Preferred path: write directly to pre-allocated row ───────────
+                await ensureSheetCapacity(sheets, sheetId, sheetName, targetRow);
                 const batchData = entries.map(([col, val]) => ({
                     range: sheetName ? `'${sheetName}'!${col}${targetRow}` : `${col}${targetRow}`,
                     values: [[val]],
@@ -708,6 +747,7 @@ export async function syncToGoogle(
         ];
 
         if (targetRow && targetRow > 0) {
+            await ensureSheetCapacity(sheets, sheetId, sheetName, targetRow);
             const range = sheetName ? `'${sheetName}'!A${targetRow}:G${targetRow}` : `A${targetRow}:G${targetRow}`;
             await sheets.spreadsheets.values.batchUpdate({
                 spreadsheetId: sheetId,

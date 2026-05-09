@@ -53,6 +53,12 @@ function EditModal({
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error ?? "Failed to save");
+            // Show warnings (e.g. Drive/Sheet sync issues) but still close & refresh
+            if (data.warnings?.length) {
+                setError(`Saved to DB. Warnings:\n${data.warnings.join("\n")}`);
+                onSaved();
+                return; // keep modal open so user can read warnings
+            }
             onSaved();
             onClose();
         } catch (e: any) {

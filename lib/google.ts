@@ -475,6 +475,72 @@ export async function appendToSheet(
     return nextRow;
 }
 
+/**
+ * Update specific cells in an existing Sheet row (admin edit).
+ * Only writes non-empty values — skips fields that are null/undefined/""
+ * so formulas in other columns are preserved.
+ */
+export async function updateSheetRow(
+    data: {
+        invoiceDate?: string | null;
+        cardLast4?: string | null;
+        amount?: number | null;
+        currency?: string | null;
+        filename?: string | null;
+        driveLink?: string | null;
+    },
+    accessToken: string,
+    sheetId: string,
+    sheetName: string | null,
+    sheetMapping: any | null,
+    rowNumber: number,
+): Promise<void> {
+    if (rowNumber <= 0) return;
+
+    const auth = getOAuth2Client(accessToken);
+    const sheets = google.sheets({ version: "v4", auth });
+
+    const mapping: SheetMapping | null =
+        sheetMapping && typeof sheetMapping === "object" ? (sheetMapping as SheetMapping) : null;
+
+    const cellMap: Record<string, any> = {};
+    const addCell = (col: string | undefined | null, value: any) => {
+        if (!col || col.trim() === "") return;
+        if (value === "" || value === null || value === undefined) return;
+        cellMap[col.toUpperCase()] = value;
+    };
+
+    if (mapping) {
+        addCell(mapping.date,       data.invoiceDate);
+        addCell(mapping.card_last_4, data.cardLast4);
+        addCell(mapping.amount,     data.amount);
+        addCell(mapping.currency,   data.currency);
+        addCell(mapping.filename,   data.filename);
+        addCell(mapping.driveLink,  data.driveLink);
+    } else {
+        // Default layout (A=date, C=card, D=amount, E=currency, F=filename, G=driveLink)
+        addCell("A", data.invoiceDate);
+        addCell("C", data.cardLast4);
+        addCell("D", data.amount);
+        addCell("E", data.currency);
+        addCell("F", data.filename);
+        addCell("G", data.driveLink);
+    }
+
+    const entries = Object.entries(cellMap);
+    if (entries.length === 0) return;
+
+    const batchData = entries.map(([col, val]) => ({
+        range: sheetName ? `'${sheetName}'!${col}${rowNumber}` : `${col}${rowNumber}`,
+        values: [[val]],
+    }));
+
+    await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+    });
+}
+
 export async function syncToGoogle(
     data: InvoiceData,
     fileBuffer: Buffer,

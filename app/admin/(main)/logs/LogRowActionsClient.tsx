@@ -29,6 +29,7 @@ function EditModal({
     const [fields, setFields] = useState<LogFields>(initial);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [warnings, setWarnings] = useState<string[]>([]);
 
     const set = (key: keyof LogFields) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
         setFields((prev) => ({ ...prev, [key]: e.target.value }));
@@ -36,6 +37,7 @@ function EditModal({
     const handleSave = async () => {
         setSaving(true);
         setError("");
+        setWarnings([]);
         try {
             const res = await fetch(`/api/admin/log-entry/${logId}`, {
                 method: "PATCH",
@@ -53,14 +55,12 @@ function EditModal({
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error ?? "Failed to save");
-            // Show warnings (e.g. Drive/Sheet sync issues) but still close & refresh
+            onSaved(); // refresh table
             if (data.warnings?.length) {
-                setError(`Saved to DB. Warnings:\n${data.warnings.join("\n")}`);
-                onSaved();
-                return; // keep modal open so user can read warnings
+                setWarnings(data.warnings); // keep modal open to show warnings
+            } else {
+                onClose();
             }
-            onSaved();
-            onClose();
         } catch (e: any) {
             setError(e.message ?? "Failed to save");
         } finally {
@@ -139,6 +139,14 @@ function EditModal({
                     </div>
                 </div>
 
+                {warnings.length > 0 && (
+                    <div className="mx-5 mb-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 space-y-1">
+                        <p className="text-xs font-semibold text-amber-700">Saved to DB — but Google sync had issues:</p>
+                        {warnings.map((w, i) => (
+                            <p key={i} className="text-xs text-amber-700">{w}</p>
+                        ))}
+                    </div>
+                )}
                 {error && (
                     <p className="mx-5 mb-3 text-xs text-red-600 bg-red-50 rounded-md px-3 py-2">{error}</p>
                 )}

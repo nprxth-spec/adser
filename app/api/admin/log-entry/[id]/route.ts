@@ -65,16 +65,20 @@ export async function PATCH(
         const accessToken = await getValidGoogleAccessToken(log.userId).catch(() => null);
 
         if (accessToken) {
-            // 1. Rename Drive file if filename changed
-            const newFilename: string | undefined = dbData.filename;
-            const oldFilename = log.filename;
-            if (newFilename && newFilename !== oldFilename) {
-                const currentDriveLink = (dbData.driveLink ?? log.driveLink) as string | null;
-                const fileId = currentDriveLink ? extractDriveFileId(currentDriveLink) : null;
+            // 1. Rename Drive file
+            // Always use log.driveLink (current DB value) to locate the file —
+            // even if the admin also edited the driveLink field, we rename the
+            // file that currently exists, identified by the stored link.
+            const newFilename = (dbData.filename as string | null | undefined) ?? null;
+            if (newFilename) {
+                const fileId = log.driveLink ? extractDriveFileId(log.driveLink) : null;
                 if (fileId) {
                     await renameDriveFile(fileId, newFilename, accessToken).catch((e: any) => {
                         warnings.push(`Drive rename failed: ${e?.message ?? "unknown error"}`);
                     });
+                } else {
+                    console.warn("[admin log edit] Could not extract Drive fileId from driveLink:", log.driveLink);
+                    if (log.driveLink) warnings.push("Drive rename skipped: could not parse file ID from stored Drive link");
                 }
             }
 

@@ -422,7 +422,7 @@ export async function appendToSheet(
             spreadsheetId: sheetId,
             range: anchorRange,
             valueInputOption: "USER_ENTERED",
-            insertDataOption: "OVERWRITE",
+            insertDataOption: "INSERT_ROWS",
             requestBody: { values: [[anchorVal]] },
         });
 
@@ -461,7 +461,7 @@ export async function appendToSheet(
             spreadsheetId: sheetId,
             range: targetRange,
             valueInputOption: "USER_ENTERED",
-            insertDataOption: "OVERWRITE",
+            insertDataOption: "INSERT_ROWS",
             requestBody: { values: [valuesArray] },
         });
         const updatedRange = appendRes.data.updates?.updatedRange ?? "";
@@ -637,7 +637,7 @@ export async function syncToGoogle(
                 spreadsheetId: sheetId,
                 range: anchorRange,
                 valueInputOption: "USER_ENTERED",
-                insertDataOption: "OVERWRITE",
+                insertDataOption: "INSERT_ROWS",
                 requestBody: { values: [[anchorVal]] },
             });
 
@@ -678,7 +678,7 @@ export async function syncToGoogle(
             spreadsheetId: sheetId,
             range: targetRange,
             valueInputOption: "USER_ENTERED",
-            insertDataOption: "OVERWRITE",
+            insertDataOption: "INSERT_ROWS",
             requestBody: { values: [valuesArray] },
         });
 

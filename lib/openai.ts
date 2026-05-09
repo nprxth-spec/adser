@@ -113,6 +113,14 @@ function isLikelyNotPersonOrCompany(line: string): boolean {
     if (/(invoice|receipt|tax|total|subtotal|amount|vat|reference|transaction|account|date|payment|method|currency)/i.test(t)) return true;
     if (/(id\s*บัญชี|account\s*id|บัญชี\s*id|เลขที่บัญชี|account\s*number|เลขที่อ้างอิง|ref(?:erence)?\s*(?:no|number|id)?)/i.test(t)) return true;
     if (/(ที่อยู่|โทร|อีเมล|ภาษี|เลขประจำตัวผู้เสียภาษี|ใบกำกับ|ใบเสร็จ|ยอดรวม|ยอดชำระ)/i.test(t)) return true;
+    // Thai date / billing-date keywords used as labels \u2014 these are not person/company names.
+    if (/^(?:\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48|\u0E27\u0E31\u0E19\u0E04\u0E23\u0E1A\u0E01\u0E33\u0E2B\u0E19\u0E14|\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E2B\u0E19\u0E35\u0E49|\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A|\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19|\u0E0A\u0E33\u0E23\u0E30\u0E40\u0E07\u0E34\u0E19|\u0E27\u0E31\u0E19\u0E0A\u0E33\u0E23\u0E30|due\s*date|billing\s*date|invoice\s*date)/i.test(t)) return true;
+    // Contains a Thai month name \u2192 this is a date string, not a person/company name.
+    // e.g. "15 \u0E21\u0E01\u0E23\u0E32\u0E04\u0E21 2567" would pass the digit/letter check otherwise (digits=6, letters=7).
+    if (/\u0E21\u0E01\u0E23\u0E32\u0E04\u0E21|\u0E01\u0E38\u0E21\u0E20\u0E32\u0E1E\u0E31\u0E19\u0E18\u0E4C|\u0E21\u0E35\u0E19\u0E32\u0E04\u0E21|\u0E40\u0E21\u0E29\u0E32\u0E22\u0E19|\u0E1E\u0E24\u0E29\u0E20\u0E32\u0E04\u0E21|\u0E21\u0E34\u0E16\u0E38\u0E19\u0E32\u0E22\u0E19|\u0E01\u0E23\u0E01\u0E0E\u0E32\u0E04\u0E21|\u0E2A\u0E34\u0E07\u0E2B\u0E32\u0E04\u0E21|\u0E01\u0E31\u0E19\u0E22\u0E32\u0E22\u0E19|\u0E15\u0E38\u0E25\u0E32\u0E04\u0E21|\u0E1E\u0E24\u0E28\u0E08\u0E34\u0E01\u0E32\u0E22\u0E19|\u0E18\u0E31\u0E19\u0E27\u0E32\u0E04\u0E21/.test(t)) return true;
+    // Date-like formats: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD
+    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(t)) return true;
+    if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(t)) return true;
     // Looks like long id/hash/account number.
     if (/[A-Z0-9]{10,}/i.test(t) && !/\s/.test(t)) return true;
     // Mostly digits/symbols with too few letters -> likely not a person/company name.
@@ -120,6 +128,8 @@ function isLikelyNotPersonOrCompany(line: string): boolean {
     const letters = (t.match(/[A-Za-z\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\u1780-\u17FF\uAC00-\uD7AF]/g) || []).length;
     const digits = (t.match(/\d/g) || []).length;
     if (digits >= 6 && letters <= 2) return true;
+    // High digit-to-letter ratio with multiple digits \u2192 likely a number, ID, or date fragment
+    if (digits >= 4 && digits > letters) return true;
     return false;
 }
 
@@ -531,7 +541,12 @@ ${trimmedText}`;
 
         const aiBilledTo = normalizeBilledTo(parsed.billed_to ?? "");
         const textBilledTo = billedToFromText(pdfText);
-        const resolvedBilledTo = textBilledTo || aiBilledTo;
+        // Prefer text-based extraction when it looks like a real name, but fall back to
+        // AI if the text result is empty or still looks like a date/label (belt-and-suspenders).
+        const resolvedBilledTo =
+            (textBilledTo && !isLikelyNotPersonOrCompany(textBilledTo))
+                ? textBilledTo
+                : (aiBilledTo || textBilledTo);
         const textPaymentMethod = paymentMethodFromText(pdfText);
         const aiPaymentMethod = (parsed.payment_method ?? "").trim();
         const resolvedPaymentMethod = textPaymentMethod || aiPaymentMethod;

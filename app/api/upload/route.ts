@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { extractInvoiceData, InvoiceData } from "@/lib/openai";
-import { syncToGoogle, uploadFileToDrive } from "@/lib/google";
+import { syncToGoogle, uploadFileToDrive, getActualSheetLastRow } from "@/lib/google";
 import { prisma, Prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { ensureFreeCreditsReset } from "@/lib/credits";
@@ -267,9 +267,18 @@ export async function POST(request: Request) {
 
         // Normal flow — all fields present.
         // Reserve a sheet row atomically in DB before calling syncToGoogle.
-        // This ensures concurrent uploads each get a unique row without
-        // inserting physical rows into the sheet (which would disrupt formula rows).
-        const reservedRow = await reserveSheetRow(userId);
+        // On first ever use (sheetWriteRow IS NULL in DB) detect the actual last
+        // data row directly from the sheet so the counter starts from the right
+        // position — NOT from processingLog which may hold stale/wrong row numbers
+        // leftover from the old OVERWRITE race-condition era.
+        const userRowState = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { sheetWriteRow: true },
+        });
+        const rowSeed = userRowState?.sheetWriteRow == null
+            ? await getActualSheetLastRow(accessToken, sheetId, user.sheetName, user.sheetMapping)
+            : undefined;
+        const reservedRow = await reserveSheetRow(userId, rowSeed);
 
         const syncResult = await syncToGoogle(
             invoiceData, buffer, filename, accessToken,

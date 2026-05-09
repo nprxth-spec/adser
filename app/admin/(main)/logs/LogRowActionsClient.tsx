@@ -30,6 +30,7 @@ function EditModal({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [warnings, setWarnings] = useState<string[]>([]);
+    const [debugInfo, setDebugInfo] = useState<Record<string, any> | null>(null);
 
     const set = (key: keyof LogFields) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
         setFields((prev) => ({ ...prev, [key]: e.target.value }));
@@ -56,6 +57,7 @@ function EditModal({
             const data = await res.json();
             if (!res.ok) throw new Error(data.error ?? "Failed to save");
             onSaved(); // refresh table
+            if (data.debug) setDebugInfo(data.debug);
             if (data.warnings?.length) {
                 setWarnings(data.warnings); // keep modal open to show warnings
             } else {
@@ -145,6 +147,14 @@ function EditModal({
                         {warnings.map((w, i) => (
                             <p key={i} className="text-xs text-amber-700">{w}</p>
                         ))}
+                        {debugInfo && (
+                            <details className="mt-1">
+                                <summary className="text-[11px] text-amber-600 cursor-pointer">Debug info</summary>
+                                <pre className="text-[10px] text-amber-800 mt-1 whitespace-pre-wrap break-all">
+                                    {JSON.stringify(debugInfo, null, 2)}
+                                </pre>
+                            </details>
+                        )}
                     </div>
                 )}
                 {error && (

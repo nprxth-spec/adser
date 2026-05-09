@@ -60,26 +60,43 @@ export async function PATCH(
         if (!log) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         const warnings: string[] = [];
+        const debugInfo: Record<string, any> = {};
 
         // ── Google operations (best-effort) ────────────────────────────────────
         const accessToken = await getValidGoogleAccessToken(log.userId).catch(() => null);
+        debugInfo.hasAccessToken = !!accessToken;
 
         if (accessToken) {
             // 1. Rename Drive file
-            // Always use log.driveLink (current DB value) to locate the file —
-            // even if the admin also edited the driveLink field, we rename the
-            // file that currently exists, identified by the stored link.
             const newFilename = (dbData.filename as string | null | undefined) ?? null;
-            if (newFilename) {
-                const fileId = log.driveLink ? extractDriveFileId(log.driveLink) : null;
-                if (fileId) {
-                    await renameDriveFile(fileId, newFilename, accessToken).catch((e: any) => {
-                        warnings.push(`Drive rename failed: ${e?.message ?? "unknown error"}`);
-                    });
-                } else {
-                    console.warn("[admin log edit] Could not extract Drive fileId from driveLink:", log.driveLink);
-                    if (log.driveLink) warnings.push("Drive rename skipped: could not parse file ID from stored Drive link");
+            const fileId = log.driveLink ? extractDriveFileId(log.driveLink) : null;
+            debugInfo.driveLink = log.driveLink;
+            debugInfo.fileId = fileId;
+            debugInfo.newFilename = newFilename;
+
+            console.log("[admin log edit] rename attempt:", { fileId, newFilename, driveLink: log.driveLink });
+
+            if (newFilename && fileId) {
+                try {
+                    await renameDriveFile(fileId, newFilename, accessToken);
+                    debugInfo.driveRenamed = true;
+                } catch (e: any) {
+                    const msg = e?.response?.data?.error?.message ?? e?.message ?? "unknown error";
+                    debugInfo.driveRenamed = false;
+                    debugInfo.driveError = msg;
+                    warnings.push(`Drive rename failed: ${msg}`);
+                    console.error("[admin log edit] Drive rename error:", e?.response?.data ?? e?.message);
                 }
+            } else if (!newFilename) {
+                warnings.push("Drive rename skipped: filename is empty");
+                debugInfo.driveRenamed = false;
+            } else {
+                // fileId is null
+                const reason = log.driveLink
+                    ? `could not parse file ID from: ${log.driveLink}`
+                    : "no Drive link stored for this log entry";
+                warnings.push(`Drive rename skipped: ${reason}`);
+                debugInfo.driveRenamed = false;
             }
 
             // 2. Update Sheet row
@@ -117,6 +134,7 @@ export async function PATCH(
         return NextResponse.json({
             success: true,
             data: updated,
+            debug: debugInfo,
             ...(warnings.length > 0 && { warnings }),
         });
     } catch (err: any) {

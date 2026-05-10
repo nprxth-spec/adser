@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid mapping payload" }, { status: 400 });
   }
 
-  const MAX_RULES = 100;
+  const MAX_RULES = 1000;
   if (Object.keys(mapping).length > MAX_RULES) {
     return NextResponse.json(
       { error: `Too many mapping rules. Maximum is ${MAX_RULES}.` },

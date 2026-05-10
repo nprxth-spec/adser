@@ -46,10 +46,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (account && user) {
         token.userId = user.id;
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at ? account.expires_at * 1000 : 0;
-
         const accountData: Record<string, unknown> = {};
         if (account.access_token != null) accountData.access_token = account.access_token;
         if (account.refresh_token != null) accountData.refresh_token = account.refresh_token;
@@ -68,8 +64,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // DB query only when token near expiry OR stale > 60s
       const TOKEN_SYNC_MS = 60 * 1000;
       if (token.userId) {
-        let currentAccessToken = token.accessToken as string | undefined;
-        let expiresAt = token.expiresAt as number | undefined;
+        let currentAccessToken: string | undefined;
+        let refreshToken: string | undefined;
+        let expiresAt: number | undefined;
 
         const lastDbSync = (token as any)._lastDbSync as number | undefined;
         const tokenIsExpiring = expiresAt ? Date.now() > expiresAt - 5 * 60 * 1000 : true;
@@ -86,12 +83,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               sheetId: true,
               sheetName: true,
               sheetGid: true,
-              sheetMapping: true,
-              filenameMapping: true,
-              sheetProfiles: true,
-              activeSheetProfileId: true,
-              driveFolderId: true,
-              driveFolderMode: true,
               accounts: {
                 where: { provider: "google" },
                 select: { access_token: true, refresh_token: true, expires_at: true },
@@ -106,16 +97,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.sheetId = dbUser.sheetId;
           token.sheetName = dbUser.sheetName;
           (token as any).sheetGid = dbUser.sheetGid;
-          token.sheetMapping = dbUser.sheetMapping;
-          token.filenameMapping = dbUser.filenameMapping;
-          (token as any).sheetProfiles = dbUser.sheetProfiles;
-          (token as any).activeSheetProfileId = dbUser.activeSheetProfileId;
-          (token as any).driveFolderId = dbUser.driveFolderId;
-          (token as any).driveFolderMode = dbUser.driveFolderMode ?? "auto";
           const dbAccount = dbUser.accounts?.[0];
           if (dbAccount) {
             currentAccessToken = dbAccount.access_token || currentAccessToken;
-            token.refreshToken = dbAccount.refresh_token || token.refreshToken;
+            refreshToken = dbAccount.refresh_token || refreshToken;
             expiresAt = dbAccount.expires_at ? dbAccount.expires_at * 1000 : expiresAt;
           }
           (token as any)._lastDbSync = Date.now();
@@ -123,7 +108,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (currentAccessToken && expiresAt && Date.now() > expiresAt - 5 * 60 * 1000) {
           try {
-            const refreshToken = token.refreshToken as string;
             if (refreshToken) {
               const response = await fetch("https://oauth2.googleapis.com/token", {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -160,26 +144,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
 
-        token.accessToken = currentAccessToken;
-        token.expiresAt = expiresAt;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
         session.user.id = token.userId as string;
-        (session as any).accessToken = token.accessToken;
         (session.user as any).credits = token.credits;
         (session.user as any).plan = (token as any).plan;
         (session.user as any).sheetId = token.sheetId;
         (session.user as any).sheetName = token.sheetName;
         (session.user as any).sheetGid = (token as any).sheetGid ?? null;
-        (session.user as any).sheetMapping = token.sheetMapping;
-        (session.user as any).filenameMapping = token.filenameMapping;
-        (session.user as any).sheetProfiles = (token as any).sheetProfiles;
-        (session.user as any).activeSheetProfileId = (token as any).activeSheetProfileId;
-        (session.user as any).driveFolderId = (token as any).driveFolderId;
-        (session.user as any).driveFolderMode = (token as any).driveFolderMode ?? "auto";
       }
       return session;
     },

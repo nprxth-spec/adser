@@ -3,7 +3,6 @@ import "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
-    accessToken?: string;
     user: {
       id: string;
       name?: string | null;
@@ -13,11 +12,7 @@ declare module "next-auth" {
       plan?: string;
       sheetId?: string | null;
       sheetName?: string | null;
-      sheetMapping?: any | null;
-      filenameMapping?: any | null;
-      sheetProfiles?: any | null;
-      activeSheetProfileId?: string | null;
-      driveFolderId?: string | null;
+      sheetGid?: number | null;
     };
   }
 }
@@ -25,17 +20,10 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     userId?: string;
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: number;
     credits?: number;
     plan?: string;
     sheetId?: string | null;
     sheetName?: string | null;
-    sheetMapping?: any | null;
-    filenameMapping?: any | null;
-    sheetProfiles?: any | null;
-    activeSheetProfileId?: string | null;
-    driveFolderId?: string | null;
+    sheetGid?: number | null;
   }
 }

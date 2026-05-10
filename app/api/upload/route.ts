@@ -5,7 +5,7 @@ import { syncToGoogle, uploadFileToDrive, getActualSheetLastRow } from "@/lib/go
 import { prisma, Prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { ensureFreeCreditsReset } from "@/lib/credits";
-import { reserveSheetRow } from "@/lib/sheet-row";
+import { reserveSheetRow, withUserSheetWriteLock } from "@/lib/sheet-row";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -36,6 +36,16 @@ async function getPdfParse() {
     if (!fn) throw new Error("pdf-parse did not export a compatible parser function");
     _pdfParse = fn;
     return fn;
+}
+
+function debugPdfText(label: string, filename: string, pdfText: string) {
+    if (process.env.DEBUG_PDF_TEXT !== "true") return;
+    const preview = pdfText
+        .slice(0, 4000)
+        .split(/\r?\n/)
+        .map((line, index) => `${String(index + 1).padStart(3, "0")}: ${line}`)
+        .join("\n");
+    console.log(`\n[PDF TEXT DEBUG] ${label}: ${filename}\n${preview}\n[END PDF TEXT DEBUG]\n`);
 }
 
 type TemplateItem =
@@ -116,7 +126,13 @@ export async function POST(request: Request) {
 
     const accessToken = await getValidGoogleAccessToken(userId);
     if (!accessToken) {
-        return NextResponse.json({ error: "Google access token missing. Please sign in again." }, { status: 401 });
+        return NextResponse.json(
+            {
+                code: "GOOGLE_REAUTH_REQUIRED",
+                error: "Google access token missing. Please sign in again.",
+            },
+            { status: 428 },
+        );
     }
 
     const formData = await request.formData();
@@ -186,6 +202,7 @@ export async function POST(request: Request) {
         const pdfParse = await getPdfParse();
         const textResult = await pdfParse(buffer);
         const pdfText = textResult.text;
+        debugPdfText("upload", originalFilename, pdfText);
 
         invoiceData = await extractInvoiceData(pdfText);
         partialInvoiceData = invoiceData;
@@ -271,22 +288,18 @@ export async function POST(request: Request) {
         // data row directly from the sheet so the counter starts from the right
         // position — NOT from processingLog which may hold stale/wrong row numbers
         // leftover from the old OVERWRITE race-condition era.
-        const userRowState = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { sheetWriteRow: true },
-        });
-        const rowSeed = userRowState?.sheetWriteRow == null
-            ? await getActualSheetLastRow(accessToken, sheetId, user.sheetName, user.sheetMapping)
-            : undefined;
-        const reservedRow = await reserveSheetRow(userId, rowSeed);
+        const syncResult = await withUserSheetWriteLock(userId, async () => {
+            const rowSeed = await getActualSheetLastRow(accessToken, sheetId, user.sheetName, user.sheetMapping);
+            const reservedRow = await reserveSheetRow(userId, rowSeed);
 
-        const syncResult = await syncToGoogle(
-            invoiceData, buffer, filename, accessToken,
-            sheetId, user.sheetName, user.sheetMapping,
-            LOCKED_DRIVE_FOLDER_ID,
-            LOCKED_DRIVE_FOLDER_MODE,
-            reservedRow,
-        );
+            return await syncToGoogle(
+                invoiceData, buffer, filename, accessToken,
+                sheetId, user.sheetName, user.sheetMapping,
+                LOCKED_DRIVE_FOLDER_ID,
+                LOCKED_DRIVE_FOLDER_MODE,
+                reservedRow,
+            );
+        });
         driveLink = syncResult.driveLink;
         partialDriveLink = driveLink;
         sheetRow = syncResult.sheetRow;

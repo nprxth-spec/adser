@@ -165,6 +165,14 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                 try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
 
                 if (!res.ok) {
+                    if (res.status === 401 || data?.code === "GOOGLE_REAUTH_REQUIRED") {
+                        isCancelledRef.current = true;
+                        isProcessingRef.current = false;
+                        for (const [, controller] of abortControllersRef.current) {
+                            if (controller !== ctrl) controller.abort();
+                        }
+                        abortControllersRef.current.clear();
+                    }
                     if (res.status === 409) setDuplicateAlertFilename(file.name);
                     const useThai = language === "th";
                     const localizedError = useThai ? data?.errorTh : data?.errorEn;

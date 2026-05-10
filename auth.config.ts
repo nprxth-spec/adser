@@ -4,6 +4,7 @@ import type { NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
 export const authConfig: NextAuthConfig = {
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,

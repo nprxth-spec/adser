@@ -1,16 +1,36 @@
 import { prisma } from "@/lib/prisma";
 
+const userSheetWriteLock = new Map<string, Promise<void>>();
+
+export async function withUserSheetWriteLock<T>(
+    userId: string,
+    fn: () => Promise<T>,
+): Promise<T> {
+    const previous = userSheetWriteLock.get(userId) ?? Promise.resolve();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+        release = resolve;
+    });
+    const chained = previous.then(() => gate);
+    userSheetWriteLock.set(userId, chained);
+
+    try {
+        await previous;
+        return await fn();
+    } finally {
+        release();
+        if (userSheetWriteLock.get(userId) === chained) {
+            userSheetWriteLock.delete(userId);
+        }
+    }
+}
+
 /**
  * Atomically reserve the next available Google Sheet row for a user.
  *
- * Pass `seed` (the actual last data row detected from the real sheet) when
- * calling for the first time so the counter starts from the correct position.
- * On subsequent calls (sheetWriteRow already set) the seed is ignored and
- * the DB counter is simply incremented.
- *
- * Concurrent safety: the UPDATE is a single atomic SQL statement.
- * PostgreSQL row-level locking serialises concurrent callers so each gets a
- * strictly unique row number.
+ * Pass `seed` (the actual last data row detected from the real sheet) so the
+ * counter realigns to the current Sheet. Call this inside withUserSheetWriteLock
+ * when using a fresh Sheet seed.
  */
 export async function reserveSheetRow(
     userId: string,
@@ -20,7 +40,7 @@ export async function reserveSheetRow(
 
     const result = await prisma.$queryRaw<[{ sheetWriteRow: number }]>`
         UPDATE "User"
-        SET    "sheetWriteRow" = COALESCE("sheetWriteRow", ${effectiveSeed}::int) + 1
+        SET    "sheetWriteRow" = ${effectiveSeed}::int + 1
         WHERE  id = ${userId}
         RETURNING "sheetWriteRow"
     `;

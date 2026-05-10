@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import Sidebar from "@/components/Sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { DashboardUploadProvider } from "@/components/DashboardUploadContext";
@@ -11,8 +12,14 @@ export default async function DashboardLayout({
 }) {
     const session = await auth();
     const user = session?.user;
-    const credits = (user as any)?.credits ?? 0;
-    const plan = (user as any)?.plan ?? "free";
+    const dbUser = user?.id
+        ? await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { credits: true, plan: true },
+        })
+        : null;
+    const credits = dbUser?.credits ?? (user as any)?.credits ?? 0;
+    const plan = dbUser?.plan ?? (user as any)?.plan ?? "free";
 
     return (
         <div className="flex min-h-screen bg-slate-50">

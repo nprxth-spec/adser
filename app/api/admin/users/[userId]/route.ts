@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 
-const MAX_MAPPING_RULES = 100;
+const MAX_MAPPING_RULES = 1000;
 
 const VALID_SHEET_KEYS = new Set([
   "date", "billed_to", "card_last_4", "amount", "amountFailed",

@@ -290,41 +290,34 @@ export interface SheetMapping {
  * Used to correctly seed the DB row counter on first use, avoiding
  * stale values from processingLog that may be higher than the real sheet.
  *
- * Strategy: read the first mapped column (smallest index) or column A for
- * the default layout, then count how many cells have values.
+ * Strategy: read columns A:B and use the last row where either column has data.
+ * The next write should continue after the latest populated row in A or B.
  */
 export async function getActualSheetLastRow(
     accessToken: string,
     sheetId: string,
     sheetName: string | null,
-    sheetMapping: any | null,
+    _sheetMapping: any | null,
 ): Promise<number> {
     const auth = getOAuth2Client(accessToken);
     const sheets = google.sheets({ version: "v4", auth });
 
-    const mapping: SheetMapping | null =
-        sheetMapping && typeof sheetMapping === "object" ? (sheetMapping as SheetMapping) : null;
+    const range = sheetName ? `'${sheetName}'!A:B` : "A:B";
 
     // Find the first (leftmost) mapped column — that's the most likely to have data in every row.
-    let checkCol = "A";
-    if (mapping) {
-        const cols = [
-            mapping.date, mapping.billed_to, mapping.card_last_4,
-            mapping.amount, mapping.currency, mapping.filename, mapping.driveLink,
-        ]
-            .filter((c): c is string => typeof c === "string" && c.trim() !== "")
-            .sort((a, b) => colLetterToIndex(a) - colLetterToIndex(b));
-        if (cols.length > 0) checkCol = cols[0].toUpperCase();
-    }
-
-    const range = sheetName ? `'${sheetName}'!${checkCol}:${checkCol}` : `${checkCol}:${checkCol}`;
-
     try {
         const res = await sheets.spreadsheets.values.get({
             spreadsheetId: sheetId,
             range,
         });
-        return res.data.values?.length ?? 0;
+        const rows = res.data.values ?? [];
+        for (let i = rows.length - 1; i >= 0; i--) {
+            const [a, b] = rows[i] ?? [];
+            if (String(a ?? "").trim() || String(b ?? "").trim()) {
+                return i + 1;
+            }
+        }
+        return 0;
     } catch {
         return 0;
     }

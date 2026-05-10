@@ -1,11 +1,11 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma, Prisma } from "@/lib/prisma";
-import { renameDriveFile, appendToSheet } from "@/lib/google";
+import { renameDriveFile, appendToSheet, getActualSheetLastRow } from "@/lib/google";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { InvoiceData } from "@/lib/openai";
 import { google } from "googleapis";
-import { reserveSheetRow } from "@/lib/sheet-row";
+import { reserveSheetRow, withUserSheetWriteLock } from "@/lib/sheet-row";
 
 /** Extract the Google Drive file ID from a webViewLink or webContentLink URL. */
 function extractDriveFileId(driveLink: string): string | null {
@@ -143,17 +143,20 @@ export async function PATCH(
         // 2. Add row to Sheets
         let sheetRow = 0;
         if (sheetId) {
-            const reservedRow = await reserveSheetRow(userId);
-            sheetRow = await appendToSheet(
-                mergedInvoiceData,
-                finalFilename,
-                item.driveLink ?? "",
-                accessToken,
-                sheetId,
-                sheetName,
-                sheetMapping,
-                reservedRow,
-            );
+            sheetRow = await withUserSheetWriteLock(userId, async () => {
+                const rowSeed = await getActualSheetLastRow(accessToken, sheetId, sheetName, sheetMapping);
+                const reservedRow = await reserveSheetRow(userId, rowSeed);
+                return await appendToSheet(
+                    mergedInvoiceData,
+                    finalFilename,
+                    item.driveLink ?? "",
+                    accessToken,
+                    sheetId,
+                    sheetName,
+                    sheetMapping,
+                    reservedRow,
+                );
+            });
         } else {
             warnings.push("No Sheet ID was configured at upload time — row not added to Sheets");
         }

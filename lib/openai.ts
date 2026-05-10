@@ -43,7 +43,7 @@ const invoiceSchema: Schema = {
         },
         billed_to: {
             type: SchemaType.STRING,
-            description: "The name of the person or company the invoice is billed to (Billed To). Return ONLY the name; omit any timezone prefix such as GMT+7, +12, GMT+12, etc.",
+            description: "The customer/person/company name after the document header label such as Billed To, ใบเสร็จสำหรับ, ใบเสร็จสําหรับ, ใบเรียกเก็บเงินสำหรับ, or ใบเรียกเก็บเงินสําหรับ. Return ONLY that name. Never return Meta Platforms, Meta Platforms Ireland Limited, Meta, Facebook, product/category names, account IDs, dates, or payment labels. Omit any prefix such as GMT+7, +12, GMT+12, etc.",
         },
         paymentSuccess: {
             type: SchemaType.BOOLEAN,
@@ -85,19 +85,46 @@ const invoiceSchema: Schema = {
     ],
 };
 
-/** Strip timezone prefix (e.g. GMT+12, +7) from Billed To so we keep only the name. */
-function normalizeBilledTo(raw: string): string {
-    const s = (raw ?? "")
+const THAI_BILLED_TO_LABEL =
+    String.raw`(?:\u0E43\u0E1A\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19|\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08(?:\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19)?)(?:\s*(?:\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A|\u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A))?`;
+const BILLED_TO_LABEL_PREFIX_RE = new RegExp(
+    String.raw`^\s*(?:bill(?:ed)?\s*to|customer(?:\s*name)?|recipient|${THAI_BILLED_TO_LABEL}|\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A(?:\s*\u0E16\u0E36\u0E07)?|\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32)\s*[:\-]?\s*`,
+    "i",
+);
+const EXPLICIT_TIMEZONE_PREFIX_RE = /^\s*(?:GMT|UTC)\s*[+-]?\d{1,2}(?::?\d{2})?\s*/i;
+const BARE_LATIN_TIMEZONE_PREFIX_RE = /^\s*[+\-\uFF0B\uFE63\u2212]\s*\d{1,2}(?::?\d{2})?\s+(?=[A-Za-z])/;
+const BARE_NUMBER_PREFIX_RE = /^\s*[+\-\uFF0B\uFE63\u2212]?\s*\d{1,2}(?::?\d{2})?\s+/;
+const LEADING_CODE_PREFIX_RE = /^\s*\([A-Z0-9]{1,4}\)\s*/i;
+
+function normalizeThaiText(raw: string): string {
+    return (raw ?? "")
         .normalize("NFC")
+        .replace(/\uf70a/g, "\u0e48")
+        .replace(/\uf70b/g, "\u0e49")
+        .replace(/\uf70c/g, "\u0e4a")
+        .replace(/\uf70d/g, "\u0e4b")
         .replace(/\u0e4d\u0e32/g, "\u0e33")
         .trim();
-    return s
-        .replace(/^\s*(?:GMT\s*)?[+-]?\d{1,2}\s*/i, "")
-        .replace(/^\s*(?:ใบเสร็จ\s*)?(?:สำหรับ|สําหรับ)\s*/i, "")
-        .replace(/^\s*bill(?:ed)?\s*to\s*/i, "")
-        .replace(/^\s*customer(?:\s*name)?\s*/i, "")
-        .replace(/^\s*recipient\s*/i, "")
-        .replace(/^\s*[+\-＋﹣−]?\d{1,2}\s*/, "")
+}
+
+/** Strip Billed To labels and timezone prefix (e.g. GMT+07, +7) so we keep only the name. */
+function normalizeBilledTo(raw: string): string {
+    const s = normalizeThaiText(raw);
+
+    let value = s;
+    for (let i = 0; i < 3; i++) {
+        const next = value
+            .replace(BILLED_TO_LABEL_PREFIX_RE, "")
+            .replace(EXPLICIT_TIMEZONE_PREFIX_RE, "")
+            .replace(BARE_LATIN_TIMEZONE_PREFIX_RE, "")
+            .replace(BARE_NUMBER_PREFIX_RE, "")
+            .replace(LEADING_CODE_PREFIX_RE, "")
+            .trim();
+        if (next === value) break;
+        value = next;
+    }
+
+    return value
         .replace(/^[\s:|,;.\-/\\]+/, "")   // also strip leading / and \
         .replace(/[\s:|,;.\-/\\]+$/, "")   // also strip trailing / and \
         .replace(/\s{2,}/g, " ")
@@ -109,6 +136,7 @@ function isLikelyNotPersonOrCompany(line: string): boolean {
     if (!t) return true;
     if (/^\d+$/.test(t)) return true;
     if (t.length < 2) return true;
+    if (/^(?:Meta|Facebook)(?:\s+Platforms)?\b/i.test(t)) return true;
     // Common non-name labels / noise.
     if (/(invoice|receipt|tax|total|subtotal|amount|vat|reference|transaction|account|date|payment|method|currency)/i.test(t)) return true;
     if (/(id\s*บัญชี|account\s*id|บัญชี\s*id|เลขที่บัญชี|account\s*number|เลขที่อ้างอิง|ref(?:erence)?\s*(?:no|number|id)?)/i.test(t)) return true;
@@ -121,8 +149,9 @@ function isLikelyNotPersonOrCompany(line: string): boolean {
     // Date-like formats: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD
     if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(t)) return true;
     if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(t)) return true;
-    // Looks like long id/hash/account number.
-    if (/[A-Z0-9]{10,}/i.test(t) && !/\s/.test(t)) return true;
+    // Looks like long id/hash/account number. Require at least one digit so
+    // single-token names like "Syamsyudin" are not rejected.
+    if (/[A-Z0-9]{10,}/i.test(t) && /\d/.test(t) && !/\s/.test(t)) return true;
     // Mostly digits/symbols with too few letters -> likely not a person/company name.
     // Include Thai, CJK (Chinese/Japanese Kanji), Hiragana, Katakana, Khmer, Korean
     const letters = (t.match(/[A-Za-z\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\u1780-\u17FF\uAC00-\uD7AF]/g) || []).length;
@@ -131,6 +160,40 @@ function isLikelyNotPersonOrCompany(line: string): boolean {
     // High digit-to-letter ratio with multiple digits \u2192 likely a number, ID, or date fragment
     if (digits >= 4 && digits > letters) return true;
     return false;
+}
+
+function splitLikelyBilledToName(raw: string): string {
+    return normalizeBilledTo(raw)
+        .replace(/\s+(?:ID\s*(?:บัญชี|account)|บัญชี\s*ID|เลขที่บัญชี|Account\s*ID)\s*:?\s*[\s\S]*$/i, "")
+        .replace(/\s+(?:วันที่เรียกเก็บเงิน|วันที่ชำระเงิน|วิธีการชำระเงิน|หมายเลขอ้างอิง|ID\s*ธุรกรรม)\b[\s\S]*$/i, "")
+        .trim();
+}
+
+function billedToFromHeaderLines(lines: string[]): string {
+    const headerLines = lines.slice(0, 50).map(normalizeThaiText);
+    const thaiForRe = /(?:\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A|\u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A)/i;
+    const labelOnlyRe = new RegExp(
+        String.raw`^(?:\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08(?:\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19)?|\u0E43\u0E1A\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19)\s*(?:\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A|\u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A)?\s*$`,
+        "i",
+    );
+
+    for (let i = 0; i < headerLines.length; i++) {
+        const line = headerLines[i];
+        const afterFor = line.match(new RegExp(`${thaiForRe.source}\\s*([^\\r\\n]+)`, "i"))?.[1];
+        if (afterFor) {
+            const candidate = splitLikelyBilledToName(afterFor);
+            if (candidate && !isLikelyNotPersonOrCompany(candidate)) return candidate;
+        }
+
+        if (labelOnlyRe.test(line)) {
+            for (let j = i + 1; j <= i + 3 && j < headerLines.length; j++) {
+                const candidate = splitLikelyBilledToName(headerLines[j]);
+                if (candidate && !isLikelyNotPersonOrCompany(candidate)) return candidate;
+            }
+        }
+    }
+
+    return "";
 }
 
 function billedToFromText(pdfText: string): string {
@@ -143,10 +206,29 @@ function billedToFromText(pdfText: string): string {
         .filter(Boolean)
         .slice(0, 600);
 
-    const labelRegex =
-        /^(?:bill(?:ed)?\s*to|customer(?:\s*name)?|recipient|ใบเสร็จ(?:\s*สำหรับ)?|เรียกเก็บ(?:\s*ถึง)?|ลูกค้า)\s*[:\-]?\s*(.*)$/i;
+    const labelRegex = new RegExp(
+        String.raw`^(?:bill(?:ed)?\s*to|customer(?:\s*name)?|recipient|${THAI_BILLED_TO_LABEL}|\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A(?:\s*\u0E16\u0E36\u0E07)?|\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32)\s*[:\-]?\s*(.*)$`,
+        "i",
+    );
 
     const candidates: Array<{ value: string; score: number }> = [];
+
+    const headerValue = billedToFromHeaderLines(lines);
+    if (headerValue) {
+        candidates.push({ value: headerValue, score: 250 });
+    }
+
+    const titlePattern = new RegExp(
+        String.raw`${THAI_BILLED_TO_LABEL}\s*[:\-]?\s*([^\r\n]+)`,
+        "i",
+    );
+    const titleMatch = normalizeThaiText(text.slice(0, 2500)).match(titlePattern);
+    if (titleMatch?.[1]) {
+        const titleValue = splitLikelyBilledToName(titleMatch[1]);
+        if (titleValue && !isLikelyNotPersonOrCompany(titleValue)) {
+            candidates.push({ value: titleValue, score: 200 });
+        }
+    }
 
     const scoreBilledToCandidate = (value: string, isInline: boolean): number => {
         let score = isInline ? 30 : 10;
@@ -161,15 +243,15 @@ function billedToFromText(pdfText: string): string {
     };
 
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        const line = normalizeThaiText(lines[i]);
         const m = line.match(labelRegex);
         if (!m) continue;
 
-        const inlineValue = normalizeBilledTo(m[1] ?? "");
+        const inlineValue = splitLikelyBilledToName(m[1] ?? "");
         if (inlineValue && !isLikelyNotPersonOrCompany(inlineValue)) {
             candidates.push({
                 value: inlineValue,
-                score: scoreBilledToCandidate(inlineValue, true),
+                score: scoreBilledToCandidate(inlineValue, true) + (i < 20 ? 80 : 0),
             });
         }
 
@@ -460,12 +542,23 @@ function detectPaymentSuccessFromText(pdfText: string): boolean | null {
 
 export async function extractInvoiceData(pdfText: string): Promise<InvoiceData> {
     const trimmedText = pdfText.slice(0, 6000);
+    const hardHeaderBilledTo = billedToFromHeaderLines(
+        (pdfText ?? "")
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean)
+            .slice(0, 80),
+    );
 
     const prompt = `Extract the exact payment information from this billing receipt (e.g. Facebook Ads, Meta Ads, or similar).
 
 Rules:
 - If a value is truly missing, return an empty string or 0.
-- For "billed_to": return ONLY the person or company name. If the PDF shows a timezone prefix (e.g. "GMT+12", "+7", "GMT+7") before the name, omit it and return just the name.
+- For "billed_to": this is the customer/person/company name printed in the document header after "Billed To", "ใบเสร็จสำหรับ", "ใบเสร็จสําหรับ", "ใบเรียกเก็บเงินสำหรับ", or "ใบเรียกเก็บเงินสําหรับ".
+  * Return ONLY that customer name.
+  * NEVER return "Meta Platforms Ireland Limited", "Meta Platforms", "Meta", "Facebook", a product/category name, an account ID, a date, or a payment label.
+  * On Thai Meta receipts, the correct value is usually in the first title line, for example "ใบเสร็จสำหรับ Syamsyudin" -> "Syamsyudin", "ใบเสร็จสำหรับ +13 จ๊อบ จ๊อบ" -> "จ๊อบ จ๊อบ", "ใบเรียกเก็บเงินสำหรับ GMT+07 Bunga Yg Lagu" -> "Bunga Yg Lagu".
+  * If the PDF shows a prefix before the name (e.g. "GMT+12", "+7", "+13"), omit it and return just the name.
 - For "paymentSuccess":
   * Set TRUE if: the document title/header/status shows "ชำระแล้ว", "Paid", "Receipt", "ใบเสร็จ", "Payment Successful", "ชำระเงินสำเร็จ", "Amount Charged", or an amount was actually debited.
   * Set FALSE ONLY if the document's PRIMARY status (title, header, or main status label) indicates failure: "Payment Unsuccessful", "Payment Failed", "ไม่สำเร็จ" as the main status, "Declined", "Transaction Failed", "Could not be processed".
@@ -539,14 +632,25 @@ ${trimmedText}`;
             extractCardLast4Fallback(pdfText);
         const normalizedLast4 = String(rawLast4 ?? "").replace(/\D/g, "").slice(-4);
 
-        const aiBilledTo = normalizeBilledTo(parsed.billed_to ?? "");
+        const aiBilledTo = splitLikelyBilledToName(parsed.billed_to ?? "");
         const textBilledTo = billedToFromText(pdfText);
         // Prefer text-based extraction when it looks like a real name, but fall back to
         // AI if the text result is empty or still looks like a date/label (belt-and-suspenders).
         const resolvedBilledTo =
-            (textBilledTo && !isLikelyNotPersonOrCompany(textBilledTo))
+            (hardHeaderBilledTo && !isLikelyNotPersonOrCompany(hardHeaderBilledTo))
+                ? hardHeaderBilledTo
+                : (textBilledTo && !isLikelyNotPersonOrCompany(textBilledTo))
                 ? textBilledTo
-                : (aiBilledTo || textBilledTo);
+                : (!isLikelyNotPersonOrCompany(aiBilledTo) ? aiBilledTo : textBilledTo);
+        if (process.env.DEBUG_PDF_TEXT === "true") {
+            console.log("[BILLED_TO DEBUG]", {
+                hardHeaderBilledTo,
+                textBilledTo,
+                aiBilledTo,
+                resolvedBilledTo,
+                parsedBilledTo: parsed.billed_to ?? "",
+            });
+        }
         const textPaymentMethod = paymentMethodFromText(pdfText);
         const aiPaymentMethod = (parsed.payment_method ?? "").trim();
         const resolvedPaymentMethod = textPaymentMethod || aiPaymentMethod;

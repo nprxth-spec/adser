@@ -19,6 +19,16 @@ async function getPdfParse() {
     return fn;
 }
 
+function debugPdfText(label: string, id: string, pdfText: string) {
+    if (process.env.DEBUG_PDF_TEXT !== "true") return;
+    const preview = pdfText
+        .slice(0, 4000)
+        .split(/\r?\n/)
+        .map((line, index) => `${String(index + 1).padStart(3, "0")}: ${line}`)
+        .join("\n");
+    console.log(`\n[PDF TEXT DEBUG] ${label}: ${id}\n${preview}\n[END PDF TEXT DEBUG]\n`);
+}
+
 /**
  * POST /api/review/[id]/rescan
  * Downloads the existing Drive file, re-runs AI extraction, and resolves
@@ -80,6 +90,7 @@ export async function POST(
 
     const pdfParse = await getPdfParse();
     const { text: pdfText } = await pdfParse(buffer);
+    debugPdfText("review-rescan", id, pdfText);
     const invoiceData = await extractInvoiceData(pdfText);
 
     // Resolve card prefix from the user's CURRENT filenameMapping

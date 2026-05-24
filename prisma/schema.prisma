@@ -61,6 +61,8 @@ model User {
   sessions           Session[]
   logs               ProcessingLog[]
   auditLogs          AuditLog[]
+  metaConnection     MetaConnection?
+  metaAdAccounts     MetaAdAccount[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 }
@@ -91,6 +93,46 @@ model ProcessingLog {
 
   @@index([userId])
   @@index([userId, originalFilename, status])
+}
+
+// Facebook/Meta connection for a user (one per user). Stores the long-lived
+// user access token used to pull Marketing API data.
+model MetaConnection {
+  id             String          @id @default(cuid())
+  userId         String          @unique
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fbUserId       String
+  fbUserName     String?
+  accessToken    String          // long-lived user access token
+  tokenExpiresAt DateTime?
+  scopes         String?
+  lastSyncedAt   DateTime?
+  adAccounts     MetaAdAccount[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+// Ad accounts pulled from Meta and held for later sync to Google Sheets.
+model MetaAdAccount {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectionId  String
+  connection    MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  accountId     String         // Meta ad account id (e.g. "act_123456")
+  name          String?
+  accountStatus Int?           // Meta numeric account_status
+  timezoneName  String?
+  currency      String?
+  businessId    String?
+  businessName  String?
+  raw           Json?          // full raw payload for fields we don't model yet
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([userId, accountId])
+  @@index([userId])
+  @@index([connectionId])
 }
 
 model AuditLog {

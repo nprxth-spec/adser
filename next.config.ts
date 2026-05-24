@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
       { source: "/billing", destination: "/dashboard/billing" },
       { source: "/settings", destination: "/dashboard/settings" },
       { source: "/integrations", destination: "/dashboard/integrations" },
+      { source: "/connectors", destination: "/dashboard/connectors" },
       { source: "/naming", destination: "/dashboard/naming" },
       { source: "/review", destination: "/dashboard/review" },
       { source: "/analytics", destination: "/dashboard/analytics" },

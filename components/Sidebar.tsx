@@ -15,6 +15,7 @@ import {
     ChevronDown,
     AlertTriangle,
     SlidersHorizontal,
+    Plug,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
@@ -39,6 +40,7 @@ export default function Sidebar() {
         { href: "/history", label: t("ประวัติ", "History"), icon: History },
         { href: "/analytics", label: t("วิเคราะห์", "Analytics"), icon: BarChart3 },
         { href: "/integrations", label: t("ตั้งค่า Sheet", "Sheet Settings"), icon: Table2 },
+        { href: "/connectors", label: t("คอนเนคเตอร์", "Connectors"), icon: Plug },
         { href: "/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },
     ];
 

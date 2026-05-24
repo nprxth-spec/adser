@@ -43,7 +43,7 @@ const invoiceSchema: Schema = {
         },
         billed_to: {
             type: SchemaType.STRING,
-            description: "The customer/person/company name after the document header label such as Billed To, ใบเสร็จสำหรับ, ใบเสร็จสําหรับ, ใบเรียกเก็บเงินสำหรับ, or ใบเรียกเก็บเงินสําหรับ. Return ONLY that name. Never return Meta Platforms, Meta Platforms Ireland Limited, Meta, Facebook, product/category names, account IDs, dates, or payment labels. Omit any prefix such as GMT+7, +12, GMT+12, etc.",
+            description: "The customer/person/company name after the document header label such as Billed To, ใบเสร็จสำหรับ, ใบเสร็จสําหรับ, ใบเรียกเก็บเงินสำหรับ, ใบเรียกเก็บเงินสําหรับ, ธุรกรรมสำหรับ, or ธุรกรรมสําหรับ. Return ONLY that name (if it is followed by an account id in parentheses, e.g. 'Aimee Timto (2318159758657616)', return just the name 'Aimee Timto'). Never return Meta Platforms, Meta Platforms Ireland Limited, Meta, Facebook, product/category names, account IDs, dates, or payment labels. Omit any prefix such as GMT+7, +12, GMT+12, etc.",
         },
         paymentSuccess: {
             type: SchemaType.BOOLEAN,
@@ -85,8 +85,13 @@ const invoiceSchema: Schema = {
     ],
 };
 
+// \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A / \u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A ("for")
+const THAI_FOR_SUFFIX = String.raw`(?:\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A|\u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A)`;
+// \u0E18\u0E38\u0E23\u0E01\u0E23\u0E23\u0E21 ("transaction") only counts as a billed-to label when followed by \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A
+// ("\u0E18\u0E38\u0E23\u0E01\u0E23\u0E23\u0E21\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A" = "transaction for"), so we don't mistake the "ID \u0E18\u0E38\u0E23\u0E01\u0E23\u0E23\u0E21"
+// (transaction id) field for the customer name.
 const THAI_BILLED_TO_LABEL =
-    String.raw`(?:\u0E43\u0E1A\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19|\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08(?:\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19)?)(?:\s*(?:\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A|\u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A))?`;
+    String.raw`(?:(?:\u0E43\u0E1A\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19|\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08(?:\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19)?)(?:\s*${THAI_FOR_SUFFIX})?|\u0E18\u0E38\u0E23\u0E01\u0E23\u0E23\u0E21\s*${THAI_FOR_SUFFIX})`;
 const BILLED_TO_LABEL_PREFIX_RE = new RegExp(
     String.raw`^\s*(?:bill(?:ed)?\s*to|customer(?:\s*name)?|recipient|${THAI_BILLED_TO_LABEL}|\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A(?:\s*\u0E16\u0E36\u0E07)?|\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32)\s*[:\-]?\s*`,
     "i",
@@ -125,6 +130,7 @@ function normalizeBilledTo(raw: string): string {
     }
 
     return value
+        .replace(/\s*\(\s*\d[\d\s\-]*\)\s*$/, "")   // strip trailing account id in parens, e.g. "Aimee Timto (2318159758657616)"
         .replace(/^[\s:|,;.\-/\\]+/, "")   // also strip leading / and \
         .replace(/[\s:|,;.\-/\\]+$/, "")   // also strip trailing / and \
         .replace(/\s{2,}/g, " ")
@@ -140,6 +146,8 @@ function isLikelyNotPersonOrCompany(line: string): boolean {
     // Common non-name labels / noise.
     if (/(invoice|receipt|tax|total|subtotal|amount|vat|reference|transaction|account|date|payment|method|currency)/i.test(t)) return true;
     if (/(id\s*บัญชี|account\s*id|บัญชี\s*id|เลขที่บัญชี|account\s*number|เลขที่อ้างอิง|ref(?:erence)?\s*(?:no|number|id)?)/i.test(t)) return true;
+    // Transaction-id label lines such as "ID ธุรกรรม" / "ธุรกรรม" are field labels, not names.
+    if (/^(?:id\s*)?ธุรกรรม(?:\s*id)?$/i.test(t)) return true;
     if (/(ที่อยู่|โทร|อีเมล|ภาษี|เลขประจำตัวผู้เสียภาษี|ใบกำกับ|ใบเสร็จ|ยอดรวม|ยอดชำระ)/i.test(t)) return true;
     // Thai date / billing-date keywords used as labels \u2014 these are not person/company names.
     if (/^(?:\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48|\u0E27\u0E31\u0E19\u0E04\u0E23\u0E1A\u0E01\u0E33\u0E2B\u0E19\u0E14|\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E2B\u0E19\u0E35\u0E49|\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A|\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19|\u0E0A\u0E33\u0E23\u0E30\u0E40\u0E07\u0E34\u0E19|\u0E27\u0E31\u0E19\u0E0A\u0E33\u0E23\u0E30|due\s*date|billing\s*date|invoice\s*date)/i.test(t)) return true;
@@ -173,7 +181,7 @@ function billedToFromHeaderLines(lines: string[]): string {
     const headerLines = lines.slice(0, 50).map(normalizeThaiText);
     const thaiForRe = /(?:\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A|\u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A)/i;
     const labelOnlyRe = new RegExp(
-        String.raw`^(?:\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08(?:\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19)?|\u0E43\u0E1A\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19)\s*(?:\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A|\u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A)?\s*$`,
+        String.raw`^(?:(?:\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08(?:\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19)?|\u0E43\u0E1A\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19)\s*${THAI_FOR_SUFFIX}?|\u0E18\u0E38\u0E23\u0E01\u0E23\u0E23\u0E21\s*${THAI_FOR_SUFFIX})\s*$`,
         "i",
     );
 
@@ -554,9 +562,11 @@ export async function extractInvoiceData(pdfText: string): Promise<InvoiceData> 
 
 Rules:
 - If a value is truly missing, return an empty string or 0.
-- For "billed_to": this is the customer/person/company name printed in the document header after "Billed To", "ใบเสร็จสำหรับ", "ใบเสร็จสําหรับ", "ใบเรียกเก็บเงินสำหรับ", or "ใบเรียกเก็บเงินสําหรับ".
+- For "billed_to": this is the customer/person/company name printed in the document header after "Billed To", "ใบเสร็จสำหรับ", "ใบเสร็จสําหรับ", "ใบเรียกเก็บเงินสำหรับ", "ใบเรียกเก็บเงินสําหรับ", "ธุรกรรมสำหรับ", or "ธุรกรรมสําหรับ".
   * Return ONLY that customer name.
   * NEVER return "Meta Platforms Ireland Limited", "Meta Platforms", "Meta", "Facebook", a product/category name, an account ID, a date, or a payment label.
+  * Do NOT confuse "ธุรกรรมสำหรับ" (transaction FOR = the customer name) with "ID ธุรกรรม" (transaction id = a number). The name comes after "ธุรกรรมสำหรับ".
+  * If the name is followed by an account id in parentheses, return just the name, e.g. "ธุรกรรมสำหรับ Aimee Timto (2318159758657616)" -> "Aimee Timto".
   * On Thai Meta receipts, the correct value is usually in the first title line, for example "ใบเสร็จสำหรับ Syamsyudin" -> "Syamsyudin", "ใบเสร็จสำหรับ +13 จ๊อบ จ๊อบ" -> "จ๊อบ จ๊อบ", "ใบเรียกเก็บเงินสำหรับ GMT+07 Bunga Yg Lagu" -> "Bunga Yg Lagu".
   * If the PDF shows a prefix before the name (e.g. "GMT+12", "+7", "+13"), omit it and return just the name.
 - For "paymentSuccess":

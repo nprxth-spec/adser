@@ -112,6 +112,29 @@ function normalizeThaiText(raw: string): string {
         .trim();
 }
 
+// Thai marks/vowels that can never start a syllable (combining vowels above/below,
+// tone marks, and trailing vowels \u0e30 \u0e32 \u0e33 \u0e45 \u0e46). Leading vowels \u0e40 \u0e41 \u0e42 \u0e43 \u0e44 (U+0E40-44)
+// are intentionally excluded \u2014 they DO start a syllable.
+const THAI_CONTINUATION_MARK_RE = /^[\u0e30-\u0e3a\u0e45-\u0e4e]/;
+
+/**
+ * Some PDFs extract Thai text with combining marks/vowels broken onto their own
+ * lines (e.g. "\u0e18\u0e38\u0e23\u0e01\u0e23\u0e23\u0e21\u0e2a" / "\u0e4d" / "\u0e32\u0e2b\u0e23\u0e31\u0e1a"). Merge any line that begins with such a
+ * mark back onto the previous line so labels/names can be matched as a whole.
+ */
+function reflowThaiLines(lines: string[]): string[] {
+    const out: string[] = [];
+    for (const raw of lines) {
+        const line = raw ?? "";
+        if (out.length > 0 && THAI_CONTINUATION_MARK_RE.test(line)) {
+            out[out.length - 1] += line;
+        } else {
+            out.push(line);
+        }
+    }
+    return out;
+}
+
 /** Strip Billed To labels and timezone prefix (e.g. GMT+07, +7) so we keep only the name. */
 function normalizeBilledTo(raw: string): string {
     const s = normalizeThaiText(raw);
@@ -178,7 +201,7 @@ function splitLikelyBilledToName(raw: string): string {
 }
 
 function billedToFromHeaderLines(lines: string[]): string {
-    const headerLines = lines.slice(0, 50).map(normalizeThaiText);
+    const headerLines = reflowThaiLines(lines).slice(0, 50).map(normalizeThaiText);
     const thaiForRe = /(?:\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A|\u0E2A\u0E4D\u0E32\u0E2B\u0E23\u0E31\u0E1A)/i;
     const labelOnlyRe = new RegExp(
         String.raw`^(?:(?:\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08(?:\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19)?|\u0E43\u0E1A\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19)\s*${THAI_FOR_SUFFIX}?|\u0E18\u0E38\u0E23\u0E01\u0E23\u0E23\u0E21\s*${THAI_FOR_SUFFIX})\s*$`,
@@ -208,11 +231,12 @@ function billedToFromText(pdfText: string): string {
     const text = (pdfText ?? "").slice(0, 16000);
     if (!text) return "";
 
-    const lines = text
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .slice(0, 600);
+    const lines = reflowThaiLines(
+        text
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean),
+    ).slice(0, 600);
 
     const labelRegex = new RegExp(
         String.raw`^(?:bill(?:ed)?\s*to|customer(?:\s*name)?|recipient|${THAI_BILLED_TO_LABEL}|\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A(?:\s*\u0E16\u0E36\u0E07)?|\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32)\s*[:\-]?\s*(.*)$`,
@@ -230,7 +254,11 @@ function billedToFromText(pdfText: string): string {
         String.raw`${THAI_BILLED_TO_LABEL}\s*[:\-]?\s*([^\r\n]+)`,
         "i",
     );
-    const titleMatch = normalizeThaiText(text.slice(0, 2500)).match(titlePattern);
+    const titleMatch = lines
+        .slice(0, 80)
+        .map(normalizeThaiText)
+        .join("\n")
+        .match(titlePattern);
     if (titleMatch?.[1]) {
         const titleValue = splitLikelyBilledToName(titleMatch[1]);
         if (titleValue && !isLikelyNotPersonOrCompany(titleValue)) {

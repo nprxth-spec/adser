@@ -18,20 +18,20 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
 
   return (
     <aside
-      className={`h-screen sticky top-0 bg-slate-800 text-white flex flex-col shrink-0 transition-all duration-200 overflow-hidden ${
+      className={`h-screen sticky top-0 bg-gray-900 text-white flex flex-col shrink-0 transition-all duration-200 overflow-hidden dark:bg-gray-dark ${
         isOpen ? "w-56" : "w-16"
       }`}
     >
-      <div className="h-14 border-b border-slate-700 px-4 flex items-center">
+      <div className="h-14 border-b border-gray-800 px-4 flex items-center">
         {isOpen ? (
           <div>
-            <p className="font-bold text-slate-100">Files Go Admin</p>
-            <p className="text-xs text-slate-400 mt-0.5">Admin panel</p>
+            <p className="font-semibold text-white text-theme-sm">Files Go Admin</p>
+            <p className="text-xs text-gray-400 mt-0.5">Admin panel</p>
           </div>
         ) : null}
       </div>
 
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto custom-scrollbar">
         {navLinks.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || (href !== "/admin" && pathname.startsWith(href));
           return (
@@ -41,12 +41,12 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
               prefetch={true}
               title={label}
               aria-label={label}
-              className={`flex items-center px-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center px-2 py-2.5 rounded-lg text-theme-sm font-medium transition-colors ${
                 isOpen ? "justify-start gap-3" : "justify-center"
               } ${
                 isActive
-                  ? "bg-slate-700 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-700/70"
+                  ? "bg-brand-500 text-white shadow-sm shadow-brand-900/20"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800"
               }`}
             >
               <Icon className="w-5 h-5 shrink-0" />
@@ -56,13 +56,13 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
         })}
       </nav>
 
-      <div className="p-2 border-t border-slate-700">
+      <div className="p-2 border-t border-gray-800">
         <form action="/api/admin/logout" method="POST">
           <button
             type="submit"
             title="Log out"
             aria-label="Log out"
-            className={`w-full flex items-center px-2 py-2.5 rounded-md text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/70 transition-colors cursor-pointer ${
+            className={`w-full flex items-center px-2 py-2.5 rounded-lg text-theme-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors cursor-pointer ${
               isOpen ? "justify-start gap-3" : "justify-center"
             }`}
           >

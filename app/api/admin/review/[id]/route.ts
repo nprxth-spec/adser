@@ -8,8 +8,19 @@ import { google } from "googleapis";
 import { reserveSheetRow, withUserSheetWriteLock } from "@/lib/sheet-row";
 
 function extractDriveFileId(driveLink: string): string | null {
-    const m = driveLink.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    return m ? m[1] : null;
+    const byPath = driveLink.match(/\/(?:file\/d|document\/d)\/([a-zA-Z0-9_-]+)/);
+    if (byPath) return byPath[1];
+
+    try {
+        const url = new URL(driveLink);
+        const byQuery = url.searchParams.get("id");
+        if (byQuery && /^[a-zA-Z0-9_-]+$/.test(byQuery)) return byQuery;
+    } catch {
+        // Fall through to the broad matcher below.
+    }
+
+    const byOpenId = driveLink.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    return byOpenId ? byOpenId[1] : null;
 }
 
 /**
@@ -187,8 +198,8 @@ export async function DELETE(
         );
         oauth2Client.setCredentials({ access_token: accessToken });
 
-        let fileId: string | null = item.driveLink ? extractDriveFileId(item.driveLink) : null;
-        if (!fileId && pending?.driveFileId) fileId = pending.driveFileId;
+        let fileId: string | null = pending?.driveFileId ?? null;
+        if (!fileId && item.driveLink) fileId = extractDriveFileId(item.driveLink);
 
         if (fileId) {
             try {
@@ -199,6 +210,8 @@ export async function DELETE(
                     warnings.push(`Drive: ${err.message ?? "Failed to delete file"}`);
                 }
             }
+        } else if (item.driveLink || pending?.driveFileId) {
+            warnings.push("Drive: could not resolve file ID to delete");
         }
     } else if (item.driveLink || pending?.driveFileId) {
         warnings.push("User's Google access token missing — Drive file not deleted");

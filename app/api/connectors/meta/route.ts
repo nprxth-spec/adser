@@ -28,17 +28,30 @@ export async function GET() {
                       lastSyncedAt: connection.lastSyncedAt,
                   }
                 : null,
-            adAccounts: (connection?.adAccounts ?? []).map((a) => ({
-                id: a.id,
-                accountId: a.accountId,
-                name: a.name,
-                accountStatus: a.accountStatus,
-                accountStatusLabel: accountStatusLabel(a.accountStatus),
-                timezoneName: a.timezoneName,
-                currency: a.currency,
-                businessId: a.businessId,
-                businessName: a.businessName,
-            })),
+            adAccounts: (connection?.adAccounts ?? []).map((a) => {
+                const raw = a.raw as Record<string, unknown> | null;
+                const agenciesData = (raw?.agencies as { data?: { id: string; name: string }[] } | undefined)?.data ?? [];
+                const fundingSource = (raw?.funding_source_details as { id?: string; display_string?: string; type?: number } | undefined) ?? null;
+                const amountSpentRaw = raw?.amount_spent;
+                const spendCapRaw = raw?.spend_cap;
+
+                return {
+                    id: a.id,
+                    accountId: a.accountId,
+                    name: a.name,
+                    accountStatus: a.accountStatus,
+                    accountStatusLabel: accountStatusLabel(a.accountStatus),
+                    timezoneName: a.timezoneName,
+                    currency: a.currency,
+                    businessId: a.businessId,
+                    businessName: a.businessName,
+                    agencies: agenciesData,
+                    enabled: a.enabled,
+                    amountSpent: amountSpentRaw != null ? Number(amountSpentRaw) / 100 : null,
+                    spendCap: spendCapRaw != null ? Number(spendCapRaw) / 100 : null,
+                    fundingSource,
+                };
+            }),
         },
     });
 }

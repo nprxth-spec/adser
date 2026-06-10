@@ -16,7 +16,7 @@ const TOKEN_FIELDS: TokenField[] = [
   { key: "currency",          label: "สกุลเงิน",           labelEn: "Currency",         example: "USD",          color: "bg-pink-100 text-pink-700 border-pink-200" },
   { key: "payment_method",    label: "วิธีการชำระเงิน",    labelEn: "Payment method",   example: "Visa",         color: "bg-cyan-100 text-cyan-700 border-cyan-200" },
   { key: "invoice_number",    label: "หมายเลขใบเรียกเก็บเงิน", labelEn: "Invoice no.", example: "INV-2026-001", color: "bg-lime-100 text-lime-700 border-lime-200" },
-  { key: "reference_number",  label: "หมายเลขอ้างอิง",     labelEn: "Reference no.",    example: "REF-123456",   color: "bg-teal-100 text-teal-700 border-teal-200" },
+  { key: "reference_number",  label: "หมายเลขอ้างอิง",     labelEn: "Reference no.",    example: "REF-123456",   color: "bg-brand-100 text-brand-700 border-brand-200" },
   { key: "transaction_id",    label: "ID ธุรกรรม",         labelEn: "Transaction ID",   example: "TXN-789012",   color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
   { key: "account_id",        label: "ID บัญชี",           labelEn: "Account ID",       example: "ACC-456789",   color: "bg-rose-100 text-rose-700 border-rose-200" },
 ];
@@ -133,10 +133,10 @@ export default function NamingRulesPage() {
     <div className="max-w-3xl mx-auto pb-12 w-full min-w-0">
 
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
           {t("กฎการตั้งชื่อไฟล์", "Filename Rules")}
         </h1>
-        <p className="text-slate-500">
+        <p className="text-gray-500">
           {t(
             "รูปแบบชื่อไฟล์ถูกกำหนดไว้แล้ว — แก้ไขได้เฉพาะการจับคู่ชื่อบัตร",
             "The filename format is fixed — you can only edit the card name mapping."
@@ -155,7 +155,7 @@ export default function NamingRulesPage() {
       )}
 
       {/* ── Locked Template Display ── */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-5 mb-5">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5 mb-5">
 
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center shrink-0 mt-0.5">
@@ -163,13 +163,13 @@ export default function NamingRulesPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-semibold text-slate-900">{t("รูปแบบชื่อไฟล์", "Filename Template")}</p>
+              <p className="font-semibold text-gray-900">{t("รูปแบบชื่อไฟล์", "Filename Template")}</p>
               <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
                 <Lock className="w-3 h-3" />
                 {t("ล็อก", "Locked")}
               </span>
             </div>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-gray-400">
               {t(
                 "รูปแบบนี้ถูกกำหนดไว้แล้วและไม่สามารถเปลี่ยนแปลงได้",
                 "This format is fixed and cannot be changed."
@@ -179,18 +179,18 @@ export default function NamingRulesPage() {
         </div>
 
         {/* ── Read-only template chips ── */}
-        <div className="min-h-[52px] p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-wrap gap-y-2 items-center">
+        <div className="min-h-[52px] p-3 rounded-lg bg-gray-50 border border-gray-200 flex flex-wrap gap-y-2 items-center">
           {LOCKED_TEMPLATE.map((item) => {
             const field = item.type === "field" ? FIELD_MAP[item.key] : null;
             return (
               <div key={item.id} className="flex items-center">
                 {item.type === "field" ? (
-                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-medium ${field?.color ?? "bg-slate-100 text-slate-700 border-slate-200"}`}>
+                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-medium ${field?.color ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
                     <Lock className="w-2.5 h-2.5 opacity-50" />
                     {t(field?.label ?? item.key, field?.labelEn ?? item.key)}
                   </span>
                 ) : (
-                  <span className="px-1 text-xs font-mono text-slate-500">{item.value}</span>
+                  <span className="px-1 text-xs font-mono text-gray-500">{item.value}</span>
                 )}
               </div>
             );
@@ -198,29 +198,29 @@ export default function NamingRulesPage() {
         </div>
 
         {/* ── Live preview ── */}
-        <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+        <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4">
           <div className="flex items-center gap-2 mb-1.5">
-            <Eye className="w-4 h-4 text-slate-400" />
-            <p className="text-xs font-medium text-slate-500">{t("ตัวอย่างชื่อไฟล์", "Filename preview")}</p>
+            <Eye className="w-4 h-4 text-gray-400" />
+            <p className="text-xs font-medium text-gray-500">{t("ตัวอย่างชื่อไฟล์", "Filename preview")}</p>
           </div>
-          <p className="font-mono text-sm text-slate-900 break-all leading-relaxed">{preview}</p>
-          <p className="text-[11px] text-slate-400 mt-2">
+          <p className="font-mono text-sm text-gray-900 break-all leading-relaxed">{preview}</p>
+          <p className="text-[11px] text-gray-400 mt-2">
             {t("ค่าด้านบนเป็นตัวอย่าง — ค่าจริงจะมาจากใบเสร็จที่อัปโหลด", "Values above are examples — actual values come from uploaded invoices.")}
           </p>
         </div>
       </div>
 
       {/* ── Card name mapping ── */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4 mb-6">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5 text-indigo-500" />
           </div>
           <div>
-            <p className="font-semibold text-slate-900">{t("ชื่อบัตรตามเลข 4 ตัวท้าย", "Card name by last 4 digits")}</p>
-            <p className="text-sm text-slate-400">
+            <p className="font-semibold text-gray-900">{t("ชื่อบัตรตามเลข 4 ตัวท้าย", "Card name by last 4 digits")}</p>
+            <p className="text-sm text-gray-400">
               {t("ตัวอย่าง:", "Example:")}{" "}
-              <span className="font-mono text-slate-600">5991=WF-0004-1;</span>
+              <span className="font-mono text-gray-600">5991=WF-0004-1;</span>
             </p>
           </div>
         </div>
@@ -229,10 +229,10 @@ export default function NamingRulesPage() {
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
           rows={5}
-          className="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-y"
+          className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm font-mono text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-y"
           placeholder={"5991=WF-0004-1;\n5821=WF-0004-2;\n9649=WF-0004-9;"}
         />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-gray-400">
           {t(
             "โทเค็น «ชื่อบัตร» ในรูปแบบด้านบนจะใช้ค่าจากตารางนี้",
             "The «Card name» token uses values from this table."

@@ -9,11 +9,11 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white">
-      <header className="border-b border-slate-100">
+      <header className="border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors"
+            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
           >
             <div className="w-8 h-8 rounded-md landing-accent-bg flex items-center justify-center shrink-0">
               <Zap className="w-4 h-4 text-white" />
@@ -22,7 +22,7 @@ export default function TermsPage() {
           </Link>
           <Link
             href="/"
-            className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900"
           >
             Back to home
           </Link>
@@ -30,16 +30,16 @@ export default function TermsPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
           Terms of Service
         </h1>
-        <p className="text-slate-500 text-sm mb-8">
+        <p className="text-gray-500 text-sm mb-8">
           Last updated: March 2026
         </p>
 
-        <div className="prose prose-slate max-w-none text-slate-700 space-y-6 text-sm sm:text-base">
+        <div className="prose prose-slate max-w-none text-gray-700 space-y-6 text-sm sm:text-base">
           <section>
-            <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900 mt-8 mb-2">
               1. Acceptance of terms
             </h2>
             <p>
@@ -49,7 +49,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900 mt-8 mb-2">
               2. Description of service
             </h2>
             <p>
@@ -61,7 +61,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900 mt-8 mb-2">
               3. Your responsibilities
             </h2>
             <p>
@@ -74,7 +74,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900 mt-8 mb-2">
               4. Acceptable use
             </h2>
             <p>
@@ -85,7 +85,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900 mt-8 mb-2">
               5. Subscription and payment
             </h2>
             <p>
@@ -97,7 +97,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900 mt-8 mb-2">
               6. Limitation of liability
             </h2>
             <p>
@@ -109,7 +109,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900 mt-8 mb-2">
               7. Contact
             </h2>
             <p>
@@ -119,10 +119,10 @@ export default function TermsPage() {
           </section>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-slate-100">
+        <div className="mt-12 pt-6 border-t border-gray-100">
           <Link
             href="/"
-            className="text-sm font-medium text-teal-600 hover:text-teal-700"
+            className="text-sm font-medium text-brand-600 hover:text-brand-700"
           >
             ← Back to home
           </Link>

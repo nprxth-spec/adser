@@ -165,8 +165,8 @@ export default function SettingsPage() {
   return (
     <div className="max-w-5xl mx-auto w-full space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{t("ตั้งค่า", "Settings")}</h1>
-        <p className="text-slate-500 text-sm mt-1">{t("จัดการบัญชี ธีม ภาษา และสถานะการเชื่อมต่อ", "Manage account, theme, language, and connection status.")}</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("ตั้งค่า", "Settings")}</h1>
+        <p className="text-gray-500 text-sm mt-1">{t("จัดการบัญชี ธีม ภาษา และสถานะการเชื่อมต่อ", "Manage account, theme, language, and connection status.")}</p>
       </div>
       {notice && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
@@ -175,18 +175,18 @@ export default function SettingsPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <section className="bg-white rounded-xl border border-slate-100 p-5 lg:col-span-3">
+        <section className="bg-white rounded-xl border border-gray-100 p-5 lg:col-span-3">
           <div className="flex items-center gap-2 mb-3">
-            <User className="w-4 h-4 text-slate-500" />
-            <h2 className="font-semibold text-slate-900">{t("โปรไฟล์บัญชี", "Account profile")}</h2>
+            <User className="w-4 h-4 text-gray-500" />
+            <h2 className="font-semibold text-gray-900">{t("โปรไฟล์บัญชี", "Account profile")}</h2>
           </div>
           <div className="space-y-3">
-            <p className="text-sm text-slate-600">{t("อีเมลที่ใช้เข้าสู่ระบบ:", "Signed in as:")} {session?.user?.email ?? "-"}</p>
+            <p className="text-sm text-gray-600">{t("อีเมลที่ใช้เข้าสู่ระบบ:", "Signed in as:")} {session?.user?.email ?? "-"}</p>
             <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="px-3 py-2 rounded-md border border-slate-200 text-sm flex-1"
+                className="px-3 py-2 rounded-md border border-gray-200 text-sm flex-1"
                 placeholder={t("ชื่อที่แสดง", "Display name")}
               />
               <button
@@ -204,10 +204,10 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <section className="bg-white rounded-xl border border-slate-100 p-5">
+        <section className="bg-white rounded-xl border border-gray-100 p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Paintbrush className="w-4 h-4 text-slate-500" />
-            <h2 className="font-semibold text-slate-900">{t("การแสดงผล", "Appearance")}</h2>
+            <Paintbrush className="w-4 h-4 text-gray-500" />
+            <h2 className="font-semibold text-gray-900">{t("การแสดงผล", "Appearance")}</h2>
           </div>
           <div className="space-y-3">
             <input
@@ -215,14 +215,14 @@ export default function SettingsPage() {
               readOnly
               className="hidden"
             />
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">{t("ธีม", "Theme")}</label>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("ธีม", "Theme")}</label>
             <select
               value={theme}
               onChange={(e) => {
                 setTheme(e.target.value as "light" | "dark");
                 setNotice(t("บันทึกธีมอัตโนมัติแล้ว", "Theme saved automatically"));
               }}
-              className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm"
+              className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm"
             >
               <option value="light">{t("สว่าง", "Light")}</option>
               <option value="dark">{t("มืด", "Dark")}</option>
@@ -230,19 +230,19 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="bg-white rounded-xl border border-slate-100 p-5">
+        <section className="bg-white rounded-xl border border-gray-100 p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Languages className="w-4 h-4 text-slate-500" />
-            <h2 className="font-semibold text-slate-900">{t("ภาษา", "Language")}</h2>
+            <Languages className="w-4 h-4 text-gray-500" />
+            <h2 className="font-semibold text-gray-900">{t("ภาษา", "Language")}</h2>
           </div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{t("ภาษาระบบ", "Application language")}</label>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t("ภาษาระบบ", "Application language")}</label>
           <select
             value={language}
             onChange={(e) => {
               setLanguage(e.target.value as "th" | "en");
               setNotice(e.target.value === "th" ? "บันทึกภาษาอัตโนมัติแล้ว" : "Language saved automatically");
             }}
-            className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm"
+            className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm"
           >
             <option value="th">ไทย</option>
             <option value="en">English</option>
@@ -250,33 +250,33 @@ export default function SettingsPage() {
         </section>
       </div>
 
-      <section className="bg-white rounded-xl border border-slate-100 p-5">
+      <section className="bg-white rounded-xl border border-gray-100 p-5">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
-            <LinkIcon className="w-4 h-4 text-slate-500" />
-            <h2 className="font-semibold text-slate-900">{t("สถานะการเชื่อมต่อ", "Connection status")}</h2>
+            <LinkIcon className="w-4 h-4 text-gray-500" />
+            <h2 className="font-semibold text-gray-900">{t("สถานะการเชื่อมต่อ", "Connection status")}</h2>
           </div>
           <button
             type="button"
             onClick={refreshConnection}
             disabled={loadingStatus}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
           >
             <RefreshCcw className={`w-3.5 h-3.5 ${loadingStatus ? "animate-spin" : ""}`} />
             {t("รีเฟรช", "Refresh")}
           </button>
         </div>
         {loadingStatus ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
             <Loader2 className="w-4 h-4 animate-spin" /> {t("กำลังตรวจสอบ...", "Checking...")}
           </div>
         ) : status.connected ? (
           <div className="space-y-1.5">
             <p className="text-sm text-green-700">{t("Google เชื่อมต่อแล้ว", "Google connected.")}</p>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-gray-600">
               {t("Sheets:", "Sheets:")} {sheetId ? `${sheetName ?? t("เชื่อมต่อแล้ว", "Connected")} (${sheetId.slice(0, 8)}...)` : t("ยังไม่ตั้งค่า", "Not configured")}
             </p>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-gray-600">
               {t("ปลายทาง Drive:", "Drive destination:")}{" "}
               {t("ระบบจัดเก็บอัตโนมัติตามวันที่ใบเสร็จ (ปี / เดือน / วัน)", "Auto-organised by receipt date (Year / Month / Day)")}
             </p>

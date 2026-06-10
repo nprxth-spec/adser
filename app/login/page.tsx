@@ -7,10 +7,10 @@ import { useAppPreferences } from "@/components/AppPreferencesProvider";
 export default function LoginPage() {
     const { t } = useAppPreferences();
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-brand-950 to-gray-900 flex items-center justify-center p-6">
             {/* Background orbs */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-teal-600/10 blur-3xl" />
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-brand-600/10 blur-3xl" />
                 <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-violet-600/10 blur-3xl" />
             </div>
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
                     {/* Heading */}
                     <div className="text-center mb-8">
                         <h1 className="text-2xl font-bold text-white mb-2">{t("ยินดีต้อนรับกลับ", "Welcome back")}</h1>
-                        <p className="text-slate-400 text-sm">
+                        <p className="text-gray-400 text-sm">
                             {t("เข้าสู่ระบบเพื่อเริ่มทำงานใบแจ้งหนี้อัตโนมัติ", "Sign in to start automating your invoice workflow")}
                         </p>
                     </div>
@@ -36,7 +36,7 @@ export default function LoginPage() {
                     {/* Google Button */}
                     <button
                         onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-                        className="w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-lg bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 active:scale-95 transition-all shadow-lg mb-6 cursor-pointer"
+                        className="w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-lg bg-white text-gray-800 font-semibold text-base hover:bg-gray-50 active:scale-95 transition-all shadow-lg mb-6 cursor-pointer"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path
@@ -65,7 +65,7 @@ export default function LoginPage() {
                             <div className="w-full border-t border-white/10" />
                         </div>
                         <div className="relative flex justify-center">
-                            <span className="px-3 text-xs text-slate-500 bg-transparent">
+                            <span className="px-3 text-xs text-gray-500 bg-transparent">
                                 {t("สิทธิ์ที่เราเข้าถึง", "What we access")}
                             </span>
                         </div>
@@ -89,25 +89,25 @@ export default function LoginPage() {
                                 key={title}
                                 className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5"
                             >
-                                <div className="w-8 h-8 rounded-md bg-teal-500/10 flex items-center justify-center shrink-0">
-                                    <Icon className="w-4 h-4 text-teal-500" />
+                                <div className="w-8 h-8 rounded-md bg-brand-500/10 flex items-center justify-center shrink-0">
+                                    <Icon className="w-4 h-4 text-brand-500" />
                                 </div>
                                 <div>
                                     <p className="text-white text-sm font-medium">{title}</p>
-                                    <p className="text-slate-400 text-xs mt-0.5">{desc}</p>
+                                    <p className="text-gray-400 text-xs mt-0.5">{desc}</p>
                                 </div>
                             </div>
                         ))}
                     </div>
 
                     {/* Privacy notice */}
-                    <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed">
+                    <p className="text-center text-xs text-gray-500 mt-6 leading-relaxed">
                         {t("เมื่อดำเนินการต่อ เท่ากับคุณยอมรับ", "By continuing, you agree to our")}{" "}
-                        <a href="#" className="text-teal-500 hover:underline">
+                        <a href="#" className="text-brand-500 hover:underline">
                             {t("ข้อกำหนดการใช้งาน", "Terms of Service")}
                         </a>{" "}
                         {t("และ", "and")}{" "}
-                        <a href="#" className="text-teal-500 hover:underline">
+                        <a href="#" className="text-brand-500 hover:underline">
                             {t("นโยบายความเป็นส่วนตัว", "Privacy Policy")}
                         </a>
                         {t("เราเข้าถึงเฉพาะไฟล์ Drive และ Sheets ที่สร้างโดย Files Go เท่านั้น", ". We only access Drive and Sheets files created by Files Go.")}

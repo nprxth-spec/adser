@@ -8,7 +8,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="min-h-screen bg-slate-100 flex">
+    <div className="min-h-screen bg-gray-100 flex dark:bg-gray-900">
       <AdminSidebar isOpen={sidebarOpen} />
       <div className="flex-1 min-w-0 flex flex-col">
         <AdminHeader

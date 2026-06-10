@@ -142,7 +142,7 @@ export default async function AdminAuditLogsPage({
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-xl font-bold text-slate-900">การล็อกอิน / แก้ไข config</h1>
+          <h1 className="text-xl font-bold text-gray-900">การล็อกอิน / แก้ไข config</h1>
           <div className="flex items-center gap-3 flex-wrap justify-end">
             <LogsRangeSelect basePath="/admin/audit-logs" currentRange={range} dateLabel="Date:" />
             <UserFilterClient
@@ -163,43 +163,43 @@ export default async function AdminAuditLogsPage({
         />
       </div>
 
-      <p className="text-sm text-slate-500">{auditTotal} รายการในระยะนี้</p>
+      <p className="text-sm text-gray-500">{auditTotal} รายการในระยะนี้</p>
 
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-2 font-medium text-slate-600">เวลา</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">User</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">IP</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">ประเภท</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600">รายละเอียด</th>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left px-4 py-2 font-medium text-gray-600">เวลา</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600">User</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600">IP</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600">ประเภท</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600">รายละเอียด</th>
               </tr>
             </thead>
             <tbody>
               {auditLogs.map((log) => (
-                <tr key={log.id} className="border-b border-slate-100">
-                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                <tr key={log.id} className="border-b border-gray-100">
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                     {new Date(log.createdAt).toLocaleString(undefined, {
                       dateStyle: "short",
                       timeStyle: "short",
                     })}
                   </td>
-                  <td className="px-4 py-2 text-slate-700">
+                  <td className="px-4 py-2 text-gray-700">
                     {log.user?.email ?? log.userId}
                   </td>
-                  <td className="px-4 py-2 text-slate-600 font-mono text-xs">
+                  <td className="px-4 py-2 text-gray-600 font-mono text-xs">
                     {(log as { ip?: string | null }).ip ??
                       (log.metadata as { ip?: string } | null)?.ip ??
                       "—"}
                   </td>
                   <td className="px-4 py-2">
-                    <span className="font-medium text-slate-700">
+                    <span className="font-medium text-gray-700">
                       {AUDIT_TYPE_LABELS[log.type] ?? log.type}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-slate-600 max-w-[320px] truncate" title={log.description ?? undefined}>
+                  <td className="px-4 py-2 text-gray-600 max-w-[320px] truncate" title={log.description ?? undefined}>
                     {log.description ?? "—"}
                   </td>
                 </tr>
@@ -209,8 +209,8 @@ export default async function AdminAuditLogsPage({
         </div>
 
         {auditTotalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-            <p className="text-xs text-slate-500">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <p className="text-xs text-gray-500">
               Page {page} of {auditTotalPages}
               {range !== "all" && ` · ${rangeLabel}`}
             </p>
@@ -218,7 +218,7 @@ export default async function AdminAuditLogsPage({
               {page > 1 && (
                 <Link
                   href={`/admin/audit-logs${buildQuery({ page: page - 1, range, userId: userId || undefined, q: query || undefined })}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
                 >
                   <ChevronLeft className="w-4 h-4" /> Previous
                 </Link>
@@ -226,7 +226,7 @@ export default async function AdminAuditLogsPage({
               {page < auditTotalPages && (
                 <Link
                   href={`/admin/audit-logs${buildQuery({ page: page + 1, range, userId: userId || undefined, q: query || undefined })}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
                 >
                   Next <ChevronRight className="w-4 h-4" />
                 </Link>

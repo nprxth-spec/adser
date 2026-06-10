@@ -26,7 +26,7 @@ function typeStyle(type: ChangelogEntryType) {
       return {
         Icon: Sparkles,
         label: { th: "ใหม่", en: "New" },
-        cls: "bg-teal-50 text-teal-700 border-teal-200",
+        cls: "bg-brand-50 text-brand-700 border-brand-200",
       };
     case "improvement":
       return {
@@ -92,7 +92,7 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
         title={t("มีอะไรใหม่", "What's new")}
         className={`w-full flex items-center ${
           collapsed ? "justify-center" : "gap-3"
-        } px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800`}
+        } px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800`}
       >
         <div className="relative shrink-0">
           <Bell className="w-5 h-5" />
@@ -123,15 +123,15 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
             className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 overflow-hidden flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100 flex items-start gap-3 shrink-0">
-              <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-teal-600" />
+            <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-gray-100 flex items-start gap-3 shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-brand-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="text-base font-semibold text-gray-900">
                   {t("มีอะไรใหม่ใน Files Go", "What's new in Files Go")}
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {t(
                     `เวอร์ชันล่าสุด ${LATEST_VERSION}`,
                     `Latest version ${LATEST_VERSION}`
@@ -141,7 +141,7 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
@@ -155,10 +155,10 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
                 return (
                   <section key={entry.version}>
                     <div className="flex items-baseline gap-2 mb-3">
-                      <h3 className="text-sm font-semibold text-slate-900">
+                      <h3 className="text-sm font-semibold text-gray-900">
                         v{entry.version}
                       </h3>
-                      <span className="text-xs text-slate-400">{entry.date}</span>
+                      <span className="text-xs text-gray-400">{entry.date}</span>
                       {isUnread && (
                         <span className="ml-auto px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-semibold">
                           {t("ใหม่", "NEW")}
@@ -177,7 +177,7 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
                               <Icon className="w-3 h-3" />
                               {language === "th" ? style.label.th : style.label.en}
                             </span>
-                            <p className="text-sm text-slate-700 leading-relaxed flex-1">
+                            <p className="text-sm text-gray-700 leading-relaxed flex-1">
                               {language === "th" ? item.th : item.en}
                             </p>
                           </li>
@@ -189,7 +189,7 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
               })}
             </div>
 
-            <div className="px-5 sm:px-6 py-3 border-t border-slate-100 flex items-center justify-end shrink-0">
+            <div className="px-5 sm:px-6 py-3 border-t border-gray-100 flex items-center justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => setOpen(false)}

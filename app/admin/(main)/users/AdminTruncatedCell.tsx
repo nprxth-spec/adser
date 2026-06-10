@@ -20,7 +20,7 @@ export default function AdminTruncatedCell({
   }, [value]);
 
   if (!textValue) {
-    return <span className="text-slate-600">{emptyLabel}</span>;
+    return <span className="text-gray-600">{emptyLabel}</span>;
   }
 
   return (
@@ -28,7 +28,7 @@ export default function AdminTruncatedCell({
       <button
         type="button"
         onDoubleClick={() => setOpen(true)}
-        className="block max-w-xs overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent p-0 text-left text-slate-600 leading-5 hover:text-slate-800"
+        className="block max-w-xs overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent p-0 text-left text-gray-600 leading-5 hover:text-gray-800"
         title="Double click to view full value"
       >
         {textValue}
@@ -44,16 +44,16 @@ export default function AdminTruncatedCell({
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">Full value</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Full value</h3>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
+                className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
               >
                 Close
               </button>
             </div>
-            <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-all rounded bg-slate-50 p-3 text-xs text-slate-700">
+            <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-all rounded bg-gray-50 p-3 text-xs text-gray-700">
               {textValue}
             </pre>
           </div>

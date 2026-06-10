@@ -1,286 +1,368 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-*: initial;
+  --font-outfit: Outfit, sans-serif;
+
+  --breakpoint-*: initial;
+  --breakpoint-2xsm: 375px;
+  --breakpoint-xsm: 425px;
+  --breakpoint-3xl: 2000px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  --text-title-2xl: 72px;
+  --text-title-2xl--line-height: 90px;
+  --text-title-xl: 60px;
+  --text-title-xl--line-height: 72px;
+  --text-title-lg: 48px;
+  --text-title-lg--line-height: 60px;
+  --text-title-md: 36px;
+  --text-title-md--line-height: 44px;
+  --text-title-sm: 30px;
+  --text-title-sm--line-height: 38px;
+  --text-theme-xl: 20px;
+  --text-theme-xl--line-height: 30px;
+  --text-theme-sm: 14px;
+  --text-theme-sm--line-height: 20px;
+  --text-theme-xs: 12px;
+  --text-theme-xs--line-height: 18px;
+
+  --color-current: currentColor;
+  --color-transparent: transparent;
+  --color-white: #ffffff;
+  --color-black: #101828;
+
+  /* Brand: Teal (FilesGo identity) */
+  --color-brand-25: #f0fdfa;
+  --color-brand-50: #ccfbf1;
+  --color-brand-100: #99f6e4;
+  --color-brand-200: #5eead4;
+  --color-brand-300: #2dd4bf;
+  --color-brand-400: #14b8a6;
+  --color-brand-500: #0d9488;
+  --color-brand-600: #0f766e;
+  --color-brand-700: #115e59;
+  --color-brand-800: #134e4a;
+  --color-brand-900: #042f2e;
+  --color-brand-950: #021c1b;
+
+  --color-blue-light-25: #f5fbff;
+  --color-blue-light-50: #f0f9ff;
+  --color-blue-light-100: #e0f2fe;
+  --color-blue-light-200: #b9e6fe;
+  --color-blue-light-300: #7cd4fd;
+  --color-blue-light-400: #36bffa;
+  --color-blue-light-500: #0ba5ec;
+  --color-blue-light-600: #0086c9;
+  --color-blue-light-700: #026aa2;
+  --color-blue-light-800: #065986;
+  --color-blue-light-900: #0b4a6f;
+  --color-blue-light-950: #062c41;
+
+  --color-gray-25: #fcfcfd;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f2f4f7;
+  --color-gray-200: #e4e7ec;
+  --color-gray-300: #d0d5dd;
+  --color-gray-400: #98a2b3;
+  --color-gray-500: #667085;
+  --color-gray-600: #475467;
+  --color-gray-700: #344054;
+  --color-gray-800: #1d2939;
+  --color-gray-900: #101828;
+  --color-gray-950: #0c111d;
+  --color-gray-dark: #1a2231;
+
+  --color-orange-25: #fffaf5;
+  --color-orange-50: #fff6ed;
+  --color-orange-100: #ffead5;
+  --color-orange-200: #fddcab;
+  --color-orange-300: #feb273;
+  --color-orange-400: #fd853a;
+  --color-orange-500: #fb6514;
+  --color-orange-600: #ec4a0a;
+  --color-orange-700: #c4320a;
+  --color-orange-800: #9c2a10;
+  --color-orange-900: #7e2410;
+  --color-orange-950: #511c10;
+
+  --color-success-25: #f6fef9;
+  --color-success-50: #ecfdf3;
+  --color-success-100: #d1fadf;
+  --color-success-200: #a6f4c5;
+  --color-success-300: #6ce9a6;
+  --color-success-400: #32d583;
+  --color-success-500: #12b76a;
+  --color-success-600: #039855;
+  --color-success-700: #027a48;
+  --color-success-800: #05603a;
+  --color-success-900: #054f31;
+  --color-success-950: #053321;
+
+  --color-error-25: #fffbfa;
+  --color-error-50: #fef3f2;
+  --color-error-100: #fee4e2;
+  --color-error-200: #fecdca;
+  --color-error-300: #fda29b;
+  --color-error-400: #f97066;
+  --color-error-500: #f04438;
+  --color-error-600: #d92d20;
+  --color-error-700: #b42318;
+  --color-error-800: #912018;
+  --color-error-900: #7a271a;
+  --color-error-950: #55160c;
+
+  --color-warning-25: #fffcf5;
+  --color-warning-50: #fffaeb;
+  --color-warning-100: #fef0c7;
+  --color-warning-200: #fedf89;
+  --color-warning-300: #fec84b;
+  --color-warning-400: #fdb022;
+  --color-warning-500: #f79009;
+  --color-warning-600: #dc6803;
+  --color-warning-700: #b54708;
+  --color-warning-800: #93370d;
+  --color-warning-900: #7a2e0e;
+  --color-warning-950: #4e1d09;
+
+  --color-theme-pink-500: #ee46bc;
+  --color-theme-purple-500: #7a5af8;
+
+  --shadow-theme-md:
+    0px 4px 8px -2px rgba(16, 24, 40, 0.1),
+    0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --shadow-theme-lg:
+    0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+    0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+  --shadow-theme-sm:
+    0px 1px 3px 0px rgba(16, 24, 40, 0.1),
+    0px 1px 2px 0px rgba(16, 24, 40, 0.06);
+  --shadow-theme-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  --shadow-theme-xl:
+    0px 20px 24px -4px rgba(16, 24, 40, 0.08),
+    0px 8px 8px -4px rgba(16, 24, 40, 0.03);
+  --shadow-datepicker: -5px 0 0 #262d3c, 5px 0 0 #262d3c;
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(13, 148, 136, 0.12);
+  --shadow-slider-navigation:
+    0px 1px 2px 0px rgba(16, 24, 40, 0.1), 0px 1px 3px 0px rgba(16, 24, 40, 0.1);
+  --shadow-tooltip:
+    0px 4px 6px -2px rgba(16, 24, 40, 0.05),
+    -8px 0px 20px 8px rgba(16, 24, 40, 0.05);
+
+  --drop-shadow-4xl:
+    0 35px 35px rgba(0, 0, 0, 0.25), 0 45px 65px rgba(0, 0, 0, 0.15);
+
+  --z-index-1: 1;
+  --z-index-9: 9;
+  --z-index-99: 99;
+  --z-index-999: 999;
+  --z-index-9999: 9999;
+  --z-index-99999: 99999;
+  --z-index-999999: 999999;
+}
 
 @layer base {
-
   *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
   }
-
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
   html {
     scroll-behavior: smooth;
-    font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
     -webkit-text-size-adjust: 100%;
   }
-
-  .font-heading {
-    font-family: var(--font-heading), var(--font-inter), system-ui, sans-serif;
-  }
-
   body {
+    @apply relative font-normal font-outfit bg-gray-50;
     margin: 0;
     padding: 0;
     min-height: 100vh;
     overflow-x: hidden;
-    background-color: #ffffff;
-    color: #0f172a;
+    color: var(--color-gray-900);
     transition: background-color 0.2s ease, color 0.2s ease;
   }
+  .dark body {
+    @apply bg-gray-900;
+    color: var(--color-gray-100);
+  }
 }
 
-html[data-theme="dark"] body {
-  background-color: #020617;
-  color: #e2e8f0;
+/* ─── Sidebar / Menu utilities ─── */
+
+@utility menu-item {
+  @apply relative flex items-center w-full gap-3 px-3 py-2 font-medium rounded-lg text-theme-sm;
 }
 
-/* Dark mode support for existing slate-based utility classes used across dashboard pages. */
-html[data-theme="dark"] .bg-white {
-  background-color: #0f172a !important;
+@utility menu-item-active {
+  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
 }
 
-html[data-theme="dark"] .bg-slate-50,
-html[data-theme="dark"] .bg-slate-50\/30,
-html[data-theme="dark"] .bg-slate-50\/50 {
-  background-color: #111827 !important;
+@utility menu-item-inactive {
+  @apply text-gray-700 hover:bg-gray-100 group-hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300;
 }
 
-html[data-theme="dark"] .bg-slate-100 {
-  background-color: #1f2937 !important;
+@utility menu-item-icon-active {
+  @apply text-brand-500 dark:text-brand-400;
 }
 
-html[data-theme="dark"] .border-slate-50,
-html[data-theme="dark"] .border-slate-100,
-html[data-theme="dark"] .border-slate-200 {
-  border-color: #334155 !important;
+@utility menu-item-icon-inactive {
+  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
 }
 
-html[data-theme="dark"] .text-slate-900 {
-  color: #f8fafc !important;
+@utility menu-item-arrow-active {
+  @apply rotate-180 text-brand-500 dark:text-brand-400;
 }
 
-html[data-theme="dark"] .text-slate-800 {
-  color: #e2e8f0 !important;
+@utility menu-item-arrow-inactive {
+  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
 }
 
-html[data-theme="dark"] .text-slate-700 {
-  color: #cbd5e1 !important;
+@utility menu-dropdown-item {
+  @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-theme-sm font-medium;
 }
 
-html[data-theme="dark"] .text-slate-600,
-html[data-theme="dark"] .text-slate-500 {
-  color: #94a3b8 !important;
+@utility menu-dropdown-item-active {
+  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
 }
 
-html[data-theme="dark"] .text-slate-400,
-html[data-theme="dark"] .text-slate-300 {
-  color: #64748b !important;
+@utility menu-dropdown-item-inactive {
+  @apply text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5;
 }
+
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    @apply size-1.5;
+  }
+  &::-webkit-scrollbar-track {
+    @apply rounded-full;
+  }
+  &::-webkit-scrollbar-thumb {
+    @apply bg-gray-200 rounded-full dark:bg-gray-700;
+  }
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #344054;
+}
+
+/* ─── Animations ─── */
 
 @layer utilities {
-
-  /* Brand (teal — matches landing) */
-  .gradient-brand {
-    background: #0d9488;
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out both;
   }
-
-  .gradient-text {
-    color: #0d9488;
+  .animate-fade-in-up-delay-1 {
+    animation: fadeInUp 0.6s ease-out 0.1s both;
   }
-
-  /* Progress bar shimmer */
+  .animate-fade-in-up-delay-2 {
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+  }
+  .animate-fade-in-up-delay-3 {
+    animation: fadeInUp 0.6s ease-out 0.3s both;
+  }
+  .animate-maintenance-float {
+    animation: maintenanceFloat 6s ease-in-out infinite;
+  }
+  .animate-maintenance-glow {
+    animation: maintenanceGlow 4s ease-in-out infinite alternate;
+  }
+  .animate-maintenance-spin-slow {
+    animation: maintenanceSpin 18s linear infinite;
+  }
+  .animate-maintenance-spin-reverse {
+    animation: maintenanceSpinReverse 9s linear infinite;
+  }
   .progress-bar {
     background: linear-gradient(90deg, #0d9488, #14b8a6, #0d9488);
     background-size: 200% 100%;
     animation: shimmer 1.5s linear infinite;
   }
-
-  /* Animations */
-  .animate-fade-in-up {
-    animation: fadeInUp 0.6s ease-out both;
-  }
-
-  .animate-fade-in-up-delay-1 {
-    animation: fadeInUp 0.6s ease-out 0.1s both;
-  }
-
-  .animate-fade-in-up-delay-2 {
-    animation: fadeInUp 0.6s ease-out 0.2s both;
-  }
-
-  .animate-fade-in-up-delay-3 {
-    animation: fadeInUp 0.6s ease-out 0.3s both;
-  }
-
-  .animate-maintenance-float {
-    animation: maintenanceFloat 6s ease-in-out infinite;
-  }
-
-  .animate-maintenance-glow {
-    animation: maintenanceGlow 4s ease-in-out infinite alternate;
-  }
-
-  .animate-maintenance-spin-slow {
-    animation: maintenanceSpin 18s linear infinite;
-  }
-
-  .animate-maintenance-spin-reverse {
-    animation: maintenanceSpinReverse 9s linear infinite;
+  input[type="date"]::-webkit-inner-spin-button,
+  input[type="time"]::-webkit-inner-spin-button,
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
   }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 
 @keyframes maintenanceFloat {
-  0% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-8px);
-  }
-
-  100% {
-    transform: translateY(0px);
-  }
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
 }
 
 @keyframes maintenanceGlow {
-  0% {
-    box-shadow: 0 0 30px rgba(20, 184, 166, 0.12);
-  }
-
-  100% {
-    box-shadow: 0 0 60px rgba(20, 184, 166, 0.28);
-  }
+  0%   { box-shadow: 0 0 30px rgba(13, 148, 136, 0.12); }
+  100% { box-shadow: 0 0 60px rgba(13, 148, 136, 0.28); }
 }
 
 @keyframes maintenanceSpin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 @keyframes maintenanceSpinReverse {
-  from {
-    transform: rotate(360deg);
-  }
-
-  to {
-    transform: rotate(0deg);
-  }
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
 }
 
-/* Landing page theme */
-.landing-bg {
-  background-color: #fafaf9;
-}
+/* ─── Landing page helpers ─── */
 
-.landing-accent {
-  color: #0d9488;
-}
+.landing-bg      { background-color: #fafaf9; }
+.landing-accent  { color: #0d9488; }
+.landing-accent-bg { background-color: #0d9488; }
+.landing-accent-bg-hover:hover { background-color: #0f766e; }
+.gradient-brand  { background: #0d9488; }
+.gradient-text   { color: #0d9488; }
 
-.landing-accent-bg {
-  background-color: #0d9488;
-}
+/* ─── Global Scrollbar ─── */
 
-.landing-accent-bg-hover:hover {
-  background-color: #0f766e;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #98a2b3; }
+* { scrollbar-width: thin; scrollbar-color: #d0d5dd transparent; }
 
-/* Scrollbar — applied globally (both axes) */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+.dark ::-webkit-scrollbar-thumb { background: #344054; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475467; }
+.dark * { scrollbar-color: #344054 transparent; }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+.scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #e4e7ec; border-radius: 2px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #d0d5dd; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #e4e7ec transparent; }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
-}
-
-html[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #334155;
-}
-
-html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
-
-html[data-theme="dark"] * {
-  scrollbar-color: #334155 transparent;
-}
-
-/* Extra-thin scrollbar — for inner scroll containers (e.g. wide tables). */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 2px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
-}
-
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: #e2e8f0 transparent;
-}
-
-html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #334155;
-}
-
-html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
-
-html[data-theme="dark"] .scrollbar-thin {
-  scrollbar-color: #334155 transparent;
-}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb { background: #344054; }
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #475467; }
+.dark .scrollbar-thin { scrollbar-color: #344054 transparent; }

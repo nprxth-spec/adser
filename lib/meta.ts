@@ -130,11 +130,19 @@ export interface MetaAdAccountRaw {
     timezone_name?: string;
     currency?: string;
     business?: { id?: string; name?: string };
+    agencies?: { data?: { id: string; name: string }[] };
+    amount_spent?: string;      // total spend in account currency minor unit (cents)
+    spend_cap?: string;         // spend cap, "0" = no limit
+    funding_source_details?: {
+        id?: string;
+        display_string?: string;
+        type?: number;
+    };
 }
 
 /** Fetch all ad accounts the connected user can access (handles pagination). */
 export async function fetchAdAccounts(accessToken: string): Promise<MetaAdAccountRaw[]> {
-    const fields = "account_id,name,account_status,timezone_name,currency,business{id,name}";
+    const fields = "account_id,name,account_status,timezone_name,currency,business{id,name},agencies{id,name},amount_spent,spend_cap,funding_source_details{id,display_string,type}";
     const all: MetaAdAccountRaw[] = [];
 
     let json = await graphGet<{

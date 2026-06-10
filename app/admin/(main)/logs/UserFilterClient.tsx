@@ -73,7 +73,7 @@ export function UserFilterClient({
       <select
         value={currentUserId ?? ""}
         onChange={(e) => handleChangeUser(e.target.value)}
-        className="w-full sm:w-64 px-3 py-1.5 rounded-md border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+        className="w-full sm:w-64 px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
         disabled={isPending}
       >
         <option value="">All users</option>

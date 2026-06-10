@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 const userSheetWriteLock = new Map<string, Promise<void>>();
-const SHEET_ROW_DRIFT_RESET_THRESHOLD = 250;
+const SHEET_ROW_DRIFT_RESET_THRESHOLD = 5;
 
 export async function withUserSheetWriteLock<T>(
     userId: string,
@@ -60,4 +60,22 @@ export async function reserveSheetRow(
     `;
 
     return result[0]?.sheetWriteRow ?? 0;
+}
+
+export async function realignSheetRowCounter(
+    userId: string,
+    actualLastRow: number,
+): Promise<void> {
+    const seed = Math.max(0, Math.floor(actualLastRow));
+
+    await prisma.user.updateMany({
+        where: {
+            id: userId,
+            OR: [
+                { sheetWriteRow: null },
+                { sheetWriteRow: { gt: seed } },
+            ],
+        },
+        data: { sheetWriteRow: seed },
+    });
 }

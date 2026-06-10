@@ -31,7 +31,7 @@ export default function AdminDashboardChart({
   users: ChartUser[];
 }) {
   if (data.length === 0 || users.length === 0) {
-    return <p className="text-sm text-slate-500">No chart data for this filter.</p>;
+    return <p className="text-sm text-gray-500">No chart data for this filter.</p>;
   }
 
   const palette = [
@@ -50,7 +50,7 @@ export default function AdminDashboardChart({
   return (
     <div className="space-y-6">
       <div>
-        <p className="mb-2 text-xs font-medium text-slate-600">Uploads by user</p>
+        <p className="mb-2 text-xs font-medium text-gray-600">Uploads by user</p>
         <div className="h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
@@ -83,7 +83,7 @@ export default function AdminDashboardChart({
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-medium text-slate-600">Amount by user</p>
+        <p className="mb-2 text-xs font-medium text-gray-600">Amount by user</p>
         <div className="h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>

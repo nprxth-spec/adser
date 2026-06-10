@@ -38,14 +38,14 @@ export default function LogsRangeSelect({
 
   return (
     <div className="flex items-center gap-2">
-      <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
-      <span className="text-sm font-medium text-slate-600">{dateLabel}</span>
+      <Calendar className="w-4 h-4 text-gray-500 shrink-0" />
+      <span className="text-sm font-medium text-gray-600">{dateLabel}</span>
       <div className="relative">
         <select
           value={currentRange}
           onChange={(e) => handleChange(e.target.value)}
           disabled={isPending}
-          className="appearance-none pl-3 pr-8 py-2 rounded-md border border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-400 min-w-[140px] cursor-pointer disabled:opacity-50"
+          className="appearance-none pl-3 pr-8 py-2 rounded-md border border-gray-200 bg-white text-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 min-w-[140px] cursor-pointer disabled:opacity-50"
         >
           {RANGE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -53,7 +53,7 @@ export default function LogsRangeSelect({
             </option>
           ))}
         </select>
-        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
       </div>
     </div>
   );

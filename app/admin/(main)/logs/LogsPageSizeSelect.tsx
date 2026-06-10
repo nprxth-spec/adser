@@ -31,12 +31,12 @@ export function LogsPageSizeSelect({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-medium text-slate-500 whitespace-nowrap">Per page:</span>
+      <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Per page:</span>
       <select
         value={currentLimit}
         onChange={(e) => handleChange(Number(e.target.value))}
         disabled={isPending}
-        className="px-2.5 py-1.5 rounded-md border border-slate-200 bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 cursor-pointer"
+        className="px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50 cursor-pointer"
         aria-label="Items per page"
       >
         {LIMIT_OPTIONS.map((n) => (
@@ -45,7 +45,7 @@ export function LogsPageSizeSelect({
           </option>
         ))}
       </select>
-      {isPending && <span className="text-[11px] text-slate-400">Updating…</span>}
+      {isPending && <span className="text-[11px] text-gray-400">Updating…</span>}
     </div>
   );
 }

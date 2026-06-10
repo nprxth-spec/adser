@@ -145,7 +145,7 @@ export default async function AdminLogsPage({
       <div className="space-y-2">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-slate-900">ประมวลผลใบแจ้งหนี้</h1>
+            <h1 className="text-xl font-bold text-gray-900">ประมวลผลใบแจ้งหนี้</h1>
             <div className="flex items-center gap-3 flex-wrap justify-end">
               <LogsRangeSelect
                 basePath="/admin/logs"
@@ -167,44 +167,44 @@ export default async function AdminLogsPage({
         </div>
       </div>
 
-      <p className="text-sm text-slate-500">{total} รายการในระยะนี้</p>
+      <p className="text-sm text-gray-500">{total} รายการในระยะนี้</p>
 
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full table-auto text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-2 font-medium text-slate-600 w-12 whitespace-nowrap">#</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Processed</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">User</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Name</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Filename</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Status</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Invoice Date</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Amount</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Drive</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Actions</th>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left px-4 py-2 font-medium text-gray-600 w-12 whitespace-nowrap">#</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Processed</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">User</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Name</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Filename</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Status</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Invoice Date</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Amount</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Drive</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((log, i) => (
-                <tr key={log.id} className="border-b border-slate-100">
-                  <td className="px-4 py-2 text-slate-500 tabular-nums whitespace-nowrap">
+                <tr key={log.id} className="border-b border-gray-100">
+                  <td className="px-4 py-2 text-gray-500 tabular-nums whitespace-nowrap">
                     {(page - 1) * pageSize + i + 1}
                   </td>
-                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                     {new Date(log.createdAt).toLocaleString(undefined, {
                       dateStyle: "short",
                       timeStyle: "short",
                     })}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
-                    <span className="text-slate-700">{log.user?.email ?? log.userId}</span>
+                    <span className="text-gray-700">{log.user?.email ?? log.userId}</span>
                   </td>
-                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                     {log.user?.name ?? "—"}
                   </td>
-                  <td className="px-4 py-2 text-slate-700 whitespace-nowrap" title={log.filename}>
+                  <td className="px-4 py-2 text-gray-700 whitespace-nowrap" title={log.filename}>
                     {log.filename}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
@@ -218,8 +218,8 @@ export default async function AdminLogsPage({
                       {log.status}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">{log.invoiceDate ?? "—"}</td>
-                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{log.invoiceDate ?? "—"}</td>
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                     {log.amount != null ? `${log.amount} ${log.currency ?? ""}` : "—"}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
@@ -228,7 +228,7 @@ export default async function AdminLogsPage({
                         href={log.driveLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-teal-600 hover:underline"
+                        className="text-brand-600 hover:underline"
                       >
                         Link
                       </a>
@@ -255,8 +255,8 @@ export default async function AdminLogsPage({
           </table>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-slate-100">
-          <p className="text-xs text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-gray-100">
+          <p className="text-xs text-gray-500">
             Page {page} of {totalPages}
             {totalPages <= 1 && total > 0 && ` · ${total} items`}
             {totalPages > 1 && ` · ${total} items`}
@@ -268,7 +268,7 @@ export default async function AdminLogsPage({
               {page > 1 && (
                 <Link
                   href={`/admin/logs${buildQuery({ page: page - 1, range, userId: userId || undefined, q: query || undefined, limit: pageSize })}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
                 >
                   <ChevronLeft className="w-4 h-4" /> Previous
                 </Link>
@@ -276,7 +276,7 @@ export default async function AdminLogsPage({
               {page < totalPages && (
                 <Link
                   href={`/admin/logs${buildQuery({ page: page + 1, range, userId: userId || undefined, q: query || undefined, limit: pageSize })}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
                 >
                   Next <ChevronRight className="w-4 h-4" />
                 </Link>

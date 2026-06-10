@@ -14,16 +14,16 @@ export default function PublicNav() {
           <div className="w-8 h-8 rounded-md landing-accent-bg flex items-center justify-center shrink-0">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="font-heading font-bold text-lg">Files Go</span>
+          <span className="font-outfit font-bold text-lg">Files Go</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm text-neutral-600">
-          <Link href="/what-it-does" className="hover:text-teal-600 transition-colors font-medium">
+          <Link href="/what-it-does" className="hover:text-brand-600 transition-colors font-medium">
             {t("ทำอะไรได้บ้าง", "What it does")}
           </Link>
-          <Link href="/how-it-works" className="hover:text-teal-600 transition-colors font-medium">
+          <Link href="/how-it-works" className="hover:text-brand-600 transition-colors font-medium">
             {t("ทำงานอย่างไร", "How it works")}
           </Link>
-          <Link href="/#pricing" className="hover:text-teal-600 transition-colors font-medium">
+          <Link href="/#pricing" className="hover:text-brand-600 transition-colors font-medium">
             {t("ราคา", "Pricing")}
           </Link>
         </div>

@@ -126,6 +126,7 @@ model MetaAdAccount {
   currency      String?
   businessId    String?
   businessName  String?
+  enabled       Boolean        @default(true) // user-controlled on/off per account
   raw           Json?          // full raw payload for fields we don't model yet
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt

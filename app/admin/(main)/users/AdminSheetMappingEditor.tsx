@@ -105,9 +105,9 @@ export default function AdminSheetMappingEditor({ userId, userLabel, value }: Pr
         type="button"
         onClick={openDialog}
         title="Click to edit sheetMapping"
-        className="block max-w-xs overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent p-0 text-left text-slate-600 leading-5 hover:text-teal-700 text-xs"
+        className="block max-w-xs overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent p-0 text-left text-gray-600 leading-5 hover:text-brand-700 text-xs"
       >
-        {preview || <span className="text-slate-400">— (click to set)</span>}
+        {preview || <span className="text-gray-400">— (click to set)</span>}
       </button>
 
       {open && (
@@ -121,8 +121,8 @@ export default function AdminSheetMappingEditor({ userId, userLabel, value }: Pr
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-slate-900">Edit Sheet Column Mapping</h3>
-                <p className="mt-0.5 truncate text-xs text-slate-500" title={userLabel}>
+                <h3 className="text-sm font-semibold text-gray-900">Edit Sheet Column Mapping</h3>
+                <p className="mt-0.5 truncate text-xs text-gray-500" title={userLabel}>
                   {userLabel}
                 </p>
               </div>
@@ -130,7 +130,7 @@ export default function AdminSheetMappingEditor({ userId, userLabel, value }: Pr
                 type="button"
                 onClick={closeDialog}
                 disabled={saving}
-                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >
                 Close
               </button>
@@ -139,11 +139,11 @@ export default function AdminSheetMappingEditor({ userId, userLabel, value }: Pr
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               {FIELDS.map((f) => (
                 <div key={f.key}>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">{f.label}</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{f.label}</label>
                   <select
                     value={draft[f.key] ?? ""}
                     onChange={(e) => setDraft((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                    className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-2 py-1.5 rounded border border-gray-200 text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="">— Skip —</option>
                     {COL_OPTIONS.map((col) => (
@@ -161,7 +161,7 @@ export default function AdminSheetMappingEditor({ userId, userLabel, value }: Pr
                 type="button"
                 onClick={closeDialog}
                 disabled={saving}
-                className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -169,7 +169,7 @@ export default function AdminSheetMappingEditor({ userId, userLabel, value }: Pr
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+                className="rounded bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Save"}
               </button>

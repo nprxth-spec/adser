@@ -273,6 +273,29 @@ async function getOrCreateYearMonthDayFolder(
     return dayFolderId;
 }
 
+async function resolveTargetFolderId(
+    drive: ReturnType<typeof google.drive>,
+    invoiceDate: string,
+    driveFolderId: string | null = null,
+    driveFolderMode: string = "auto",
+    paymentSuccess: boolean = true,
+): Promise<string> {
+    let baseFolderId: string;
+    if (driveFolderMode === "year-month-day" && driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = await getOrCreateYearMonthDayFolder(drive, driveFolderId, invoiceDate);
+    } else if (driveFolderMode === "date-subfolder" && driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = await getOrCreateDateSubfolder(drive, driveFolderId, invoiceDate);
+    } else if (driveFolderId && driveFolderId.trim().length > 0) {
+        baseFolderId = driveFolderId;
+    } else {
+        baseFolderId = await getOrCreateFolder(drive, invoiceDate);
+    }
+
+    return paymentSuccess
+        ? baseFolderId
+        : await getOrCreateFailedSubfolder(drive, baseFolderId);
+}
+
 export interface SheetMapping {
     date: string;
     card_last_4: string;
@@ -285,41 +308,99 @@ export interface SheetMapping {
     reference?: string;
 }
 
+function quoteSheetTabName(sheetName: string): string {
+    return `'${sheetName.replace(/'/g, "''")}'`;
+}
+
+function normalizeColumnLetter(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+    const col = value.trim().toUpperCase();
+    return /^[A-Z]+$/.test(col) ? col : null;
+}
+
+function getLastRowProbeColumns(sheetMapping: any | null): string[] {
+    const mapping: Partial<SheetMapping> | null =
+        sheetMapping && typeof sheetMapping === "object" && !Array.isArray(sheetMapping)
+            ? (sheetMapping as Partial<SheetMapping>)
+            : null;
+
+    const preferredColumns = mapping
+        ? [
+            mapping.driveLink,
+            mapping.filename,
+            mapping.date,
+            mapping.billed_to,
+            mapping.reference,
+            mapping.card_last_4,
+        ]
+        : ["G", "F", "A", "B", "C"];
+
+    const seen = new Set<string>();
+    const columns: string[] = [];
+    for (const value of preferredColumns) {
+        const col = normalizeColumnLetter(value);
+        if (col && !seen.has(col)) {
+            seen.add(col);
+            columns.push(col);
+        }
+    }
+
+    return columns.length > 0 ? columns : ["A", "B"];
+}
+
+function getLastPopulatedRow(values: any[][] | null | undefined): number {
+    const rows = values ?? [];
+    for (let i = rows.length - 1; i >= 0; i--) {
+        if ((rows[i] ?? []).some((cell) => String(cell ?? "").trim().length > 0)) {
+            return i + 1;
+        }
+    }
+    return 0;
+}
+
 /**
  * Detect the last row that contains data in a Google Sheet.
  * Used to correctly seed the DB row counter on first use, avoiding
  * stale values from processingLog that may be higher than the real sheet.
  *
- * Strategy: read columns A:B and use the last row where either column has data.
- * The next write should continue after the latest populated row in A or B.
+ * Strategy: read stable mapped columns and use the furthest populated row.
+ * Amount columns are skipped because they often contain formulas.
  */
 export async function getActualSheetLastRow(
     accessToken: string,
     sheetId: string,
     sheetName: string | null,
-    _sheetMapping: any | null,
+    sheetMapping: any | null,
 ): Promise<number> {
     const auth = getOAuth2Client(accessToken);
     const sheets = google.sheets({ version: "v4", auth });
 
-    const range = sheetName ? `'${sheetName}'!A:B` : "A:B";
+    const prefix = sheetName ? `${quoteSheetTabName(sheetName)}!` : "";
+    const ranges = getLastRowProbeColumns(sheetMapping).map((col) => `${prefix}${col}:${col}`);
 
-    // Find the first (leftmost) mapped column — that's the most likely to have data in every row.
     try {
-        const res = await sheets.spreadsheets.values.get({
+        const res = await sheets.spreadsheets.values.batchGet({
             spreadsheetId: sheetId,
-            range,
+            ranges,
+            valueRenderOption: "FORMATTED_VALUE",
         });
-        const rows = res.data.values ?? [];
-        for (let i = rows.length - 1; i >= 0; i--) {
-            const [a, b] = rows[i] ?? [];
-            if (String(a ?? "").trim() || String(b ?? "").trim()) {
-                return i + 1;
-            }
+
+        let lastRow = 0;
+        for (const valueRange of res.data.valueRanges ?? []) {
+            lastRow = Math.max(lastRow, getLastPopulatedRow(valueRange.values));
         }
-        return 0;
+        return lastRow;
     } catch {
-        return 0;
+        try {
+            const range = sheetName ? `${quoteSheetTabName(sheetName)}!A:B` : "A:B";
+            const res = await sheets.spreadsheets.values.get({
+                spreadsheetId: sheetId,
+                range,
+            });
+            return getLastPopulatedRow(res.data.values);
+        } catch {
+            return 0;
+        }
     }
 }
 
@@ -380,20 +461,13 @@ export async function uploadFileToDrive(
     const auth = getOAuth2Client(accessToken);
     const drive = google.drive({ version: "v3", auth });
 
-    let baseFolderId: string;
-    if (driveFolderMode === "year-month-day" && driveFolderId && driveFolderId.trim().length > 0) {
-        baseFolderId = await getOrCreateYearMonthDayFolder(drive, driveFolderId, invoiceDate);
-    } else if (driveFolderMode === "date-subfolder" && driveFolderId && driveFolderId.trim().length > 0) {
-        baseFolderId = await getOrCreateDateSubfolder(drive, driveFolderId, invoiceDate);
-    } else if (driveFolderId && driveFolderId.trim().length > 0) {
-        baseFolderId = driveFolderId;
-    } else {
-        baseFolderId = await getOrCreateFolder(drive, invoiceDate);
-    }
-
-    const folderId = paymentSuccess
-        ? baseFolderId
-        : await getOrCreateFailedSubfolder(drive, baseFolderId);
+    const folderId = await resolveTargetFolderId(
+        drive,
+        invoiceDate,
+        driveFolderId,
+        driveFolderMode,
+        paymentSuccess,
+    );
 
     const { Readable } = await import("stream");
     const fileStream = Readable.from(fileBuffer);
@@ -407,6 +481,63 @@ export async function uploadFileToDrive(
     return {
         driveLink: uploadRes.data.webViewLink ?? "",
         driveFileId: uploadRes.data.id ?? "",
+    };
+}
+
+/** Download a Drive file into memory for PDF text extraction. */
+export async function downloadDriveFileBuffer(
+    fileId: string,
+    accessToken: string,
+): Promise<Buffer> {
+    const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+
+    if (!response.ok) {
+        throw new Error(`Failed to download Drive file (${response.status})`);
+    }
+
+    return Buffer.from(await response.arrayBuffer());
+}
+
+/** Rename and move an existing Drive file into the final managed folder. */
+export async function organizeExistingDriveFile(
+    fileId: string,
+    filename: string,
+    accessToken: string,
+    invoiceDate: string,
+    driveFolderId: string | null = null,
+    driveFolderMode: string = "auto",
+    paymentSuccess: boolean = true,
+): Promise<{ driveLink: string; driveFileId: string }> {
+    const auth = getOAuth2Client(accessToken);
+    const drive = google.drive({ version: "v3", auth });
+    const folderId = await resolveTargetFolderId(
+        drive,
+        invoiceDate,
+        driveFolderId,
+        driveFolderMode,
+        paymentSuccess,
+    );
+
+    const existing = await drive.files.get({
+        fileId,
+        fields: "parents",
+    });
+    const previousParents = existing.data.parents?.join(",");
+
+    const updateRes = await drive.files.update({
+        fileId,
+        addParents: folderId,
+        removeParents: previousParents || undefined,
+        requestBody: { name: filename },
+        fields: "id, webViewLink",
+    });
+
+    return {
+        driveLink: updateRes.data.webViewLink ?? "",
+        driveFileId: updateRes.data.id ?? fileId,
     };
 }
 
@@ -659,20 +790,13 @@ export async function syncToGoogle(
     const drive = google.drive({ version: "v3", auth });
     const sheets = google.sheets({ version: "v4", auth });
 
-    let baseFolderId: string;
-    if (driveFolderMode === "year-month-day" && driveFolderId && driveFolderId.trim().length > 0) {
-        baseFolderId = await getOrCreateYearMonthDayFolder(drive, driveFolderId, data.date);
-    } else if (driveFolderMode === "date-subfolder" && driveFolderId && driveFolderId.trim().length > 0) {
-        baseFolderId = await getOrCreateDateSubfolder(drive, driveFolderId, data.date);
-    } else if (driveFolderId && driveFolderId.trim().length > 0) {
-        baseFolderId = driveFolderId;
-    } else {
-        baseFolderId = await getOrCreateFolder(drive, data.date);
-    }
-
-    const folderId = data.paymentSuccess
-        ? baseFolderId
-        : await getOrCreateFailedSubfolder(drive, baseFolderId);
+    const folderId = await resolveTargetFolderId(
+        drive,
+        data.date,
+        driveFolderId,
+        driveFolderMode,
+        data.paymentSuccess,
+    );
 
     const { Readable } = await import("stream");
     const fileStream = Readable.from(fileBuffer);

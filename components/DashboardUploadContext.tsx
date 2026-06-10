@@ -5,7 +5,6 @@ import {
     memo,
     useCallback,
     useContext,
-    useEffect,
     useRef,
     useState,
 } from "react";
@@ -26,9 +25,11 @@ export interface InvoiceResult {
     driveLink: string;
     billed_to: string;
     paymentSuccess?: boolean;
+    requiresReview?: boolean;
+    missingFields?: string[];
 }
 
-type ResultItem = InvoiceResult | { filename: string; error: string };
+type ResultItem = InvoiceResult | { filename: string; error: string; code?: string; status?: number };
 
 export interface ActiveFile {
     file: File;
@@ -37,6 +38,107 @@ export interface ActiveFile {
 }
 
 const CONCURRENCY = 3;
+
+type UploadSessionResponse = {
+    data?: { accessToken?: string };
+    code?: string;
+    error?: string;
+    errorTh?: string;
+    errorEn?: string;
+};
+
+type DriveUploadResponse = {
+    id?: string;
+    name?: string;
+    webViewLink?: string;
+    error?: { message?: string };
+};
+
+type UploadFlowError = Error & {
+    code?: string;
+    status?: number;
+    data?: UploadSessionResponse | ProcessUploadResponse;
+};
+
+type ProcessUploadResponse = {
+    code?: string;
+    error?: string;
+    errorTh?: string;
+    errorEn?: string;
+    requiresReview?: boolean;
+    missingFields?: string[];
+    data?: InvoiceResult;
+};
+
+async function uploadFileDirectToDrive(file: File, signal: AbortSignal) {
+    const sessionRes = await fetch("/api/google/access-token", { signal });
+    const sessionRaw = await sessionRes.text();
+    let sessionData: UploadSessionResponse | null = null;
+    try { sessionData = sessionRaw ? JSON.parse(sessionRaw) as UploadSessionResponse : null; } catch { sessionData = null; }
+
+    const accessToken = sessionData?.data?.accessToken;
+    if (!sessionRes.ok || !accessToken) {
+        const fallback = sessionRaw && sessionRaw.length < 200 ? sessionRaw : `Google token request failed (${sessionRes.status})`;
+        const err = new Error(sessionData?.error ?? fallback) as UploadFlowError;
+        err.code = sessionData?.code;
+        err.status = sessionRes.status;
+        err.data = sessionData ?? undefined;
+        throw err;
+    }
+
+    const boundary = `filesgo_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const safeName = file.name.replace(/[<>:"\\|?*\x00-\x1f]/g, "_");
+    const metadata = {
+        name: `PENDING_${Date.now()}_${safeName}`,
+        parents: ["1l9gD9sNTtfJ0Yl9CiWeLyRmhLthPk9-S"],
+    };
+    const uploadBody = new Blob([
+        `--${boundary}\r\n`,
+        "Content-Type: application/json; charset=UTF-8\r\n\r\n",
+        JSON.stringify(metadata),
+        "\r\n",
+        `--${boundary}\r\n`,
+        `Content-Type: ${file.type || "application/pdf"}\r\n\r\n`,
+        file,
+        "\r\n",
+        `--${boundary}--`,
+    ], { type: `multipart/related; boundary=${boundary}` });
+
+    const uploadRes = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": `multipart/related; boundary=${boundary}`,
+            },
+            body: uploadBody,
+            signal,
+        },
+    );
+    const uploadRaw = await uploadRes.text();
+    let uploadData: DriveUploadResponse | null = null;
+    try { uploadData = uploadRaw ? JSON.parse(uploadRaw) as DriveUploadResponse : null; } catch { uploadData = null; }
+
+    if (!uploadRes.ok || !uploadData?.id) {
+        const fallback = uploadRaw && uploadRaw.length < 200 ? uploadRaw : `Drive upload failed (${uploadRes.status})`;
+        throw new Error(uploadData?.error?.message ?? fallback);
+    }
+
+    return uploadData as { id: string; name?: string; webViewLink?: string };
+}
+
+async function processViaServerUpload(file: File, sheetId: string, signal: AbortSignal) {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (sheetId) formData.append("sheetId", sheetId);
+
+    return fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+        signal,
+    });
+}
 
 type DashboardUploadContextValue = {
     queue: File[];
@@ -146,23 +248,40 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
             abortControllersRef.current.set(fileIndex, ctrl);
 
             try {
-                const formData = new FormData();
-                formData.append("file", file);
                 const sheetId = (sessionRef.current?.user as { sheetId?: string })?.sheetId ?? "";
-                if (sheetId) formData.append("sheetId", sheetId);
 
                 stageTimeouts.push(window.setTimeout(() => setFileStageById(fileIndex, "extracting"), 800));
                 stageTimeouts.push(window.setTimeout(() => setFileStageById(fileIndex, "drive"), 2500));
                 stageTimeouts.push(window.setTimeout(() => setFileStageById(fileIndex, "sheets"), 4000));
 
-                const res = await fetch("/api/upload", {
-                    method: "POST",
-                    body: formData,
-                    signal: ctrl.signal,
+                const uploaded = await uploadFileDirectToDrive(file, ctrl.signal).catch((directUploadError) => {
+                    console.warn("Direct Google Drive upload failed; falling back to server upload.", directUploadError);
+                    return null;
                 });
+
+                let res: Response;
+                setFileStageById(fileIndex, "extracting");
+
+                if (!uploaded) {
+                    res = await processViaServerUpload(file, sheetId, ctrl.signal);
+                } else {
+                    res = await fetch("/api/upload", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            driveFileId: uploaded.id,
+                            originalFilename: file.name,
+                            mimeType: file.type || "application/pdf",
+                            size: file.size,
+                            sheetId,
+                        }),
+                        signal: ctrl.signal,
+                    });
+                }
+
                 const raw = await res.text();
-                let data: any = null;
-                try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
+                let data: ProcessUploadResponse | null = null;
+                try { data = raw ? JSON.parse(raw) as ProcessUploadResponse : null; } catch { data = null; }
 
                 if (!res.ok) {
                     if (res.status === 401 || data?.code === "GOOGLE_REAUTH_REQUIRED") {
@@ -177,12 +296,20 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                     const useThai = language === "th";
                     const localizedError = useThai ? data?.errorTh : data?.errorEn;
                     const fallback = raw && raw.length < 200 ? raw : `Upload failed (${res.status})`;
-                    throw new Error(localizedError ?? data?.error ?? fallback);
+                    const err = new Error(localizedError ?? data?.error ?? fallback) as UploadFlowError;
+                    err.code = data?.code;
+                    err.status = res.status;
+                    err.data = data ?? undefined;
+                    throw err;
                 }
 
                 if (!data?.data) throw new Error("Upload response is not valid JSON data");
 
-                const newResult = data.data as InvoiceResult;
+                const newResult: InvoiceResult = {
+                    ...data.data,
+                    requiresReview: data.requiresReview === true,
+                    missingFields: data.missingFields ?? [],
+                };
                 resultsRef.current = [...resultsRef.current, newResult];
                 setResults([...resultsRef.current]);
 
@@ -193,8 +320,19 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
 
             } catch (err: unknown) {
                 if (isCancelledRef.current) return;
-                const message = err instanceof Error ? err.message : "An unexpected error occurred";
-                resultsRef.current = [...resultsRef.current, { filename: file.name, error: message }];
+                const richErr = err as UploadFlowError;
+                if (richErr?.status === 409 || richErr?.code === "DUPLICATE_FILE") {
+                    setDuplicateAlertFilename(file.name);
+                }
+                const useThai = language === "th";
+                const localizedError = useThai ? richErr?.data?.errorTh : richErr?.data?.errorEn;
+                const message = localizedError ?? (err instanceof Error ? err.message : "An unexpected error occurred");
+                resultsRef.current = [...resultsRef.current, {
+                    filename: file.name,
+                    error: message,
+                    code: richErr?.code,
+                    status: richErr?.status,
+                }];
                 setResults([...resultsRef.current]);
             } finally {
                 for (const id of stageTimeouts) window.clearTimeout(id);
@@ -342,7 +480,7 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
             {/* Floating upload progress — persists across in-app navigation */}
             {(showFloat || floatDone) && (
                 <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className={`bg-white rounded-xl shadow-2xl border px-4 py-3 flex items-center gap-3 min-w-[220px] max-w-xs ${floatDone ? "border-emerald-200" : "border-slate-200"}`}>
+                    <div className={`bg-white rounded-xl shadow-2xl border px-4 py-3 flex items-center gap-3 min-w-[220px] max-w-xs ${floatDone ? "border-emerald-200" : "border-gray-200"}`}>
                         {floatDone ? (
                             <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
                                 <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -358,12 +496,12 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                             </div>
                         )}
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-slate-800 truncate">
+                            <p className="text-xs font-semibold text-gray-800 truncate">
                                 {floatDone
                                     ? t("ประมวลผลเสร็จแล้ว", "Processing complete")
                                     : t("กำลังประมวลผลไฟล์", "Processing files")}
                             </p>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
+                            <p className="text-[11px] text-gray-500 mt-0.5">
                                 {floatDone
                                     ? t(`${completedCount} ไฟล์เสร็จแล้ว`, `${completedCount} file${completedCount !== 1 ? "s" : ""} done`)
                                     : t(`${completedCount}/${queue.length} ไฟล์`, `${completedCount} / ${queue.length} files`)}
@@ -371,7 +509,7 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                         </div>
                         <Link
                             href="/dashboard"
-                            className="text-[11px] font-medium text-teal-600 hover:text-teal-800 hover:underline shrink-0 transition-colors"
+                            className="text-[11px] font-medium text-brand-600 hover:text-brand-800 hover:underline shrink-0 transition-colors"
                         >
                             {t("ดู", "View")}
                         </Link>

@@ -269,16 +269,16 @@ export default function HistoryPage() {
     <div className="max-w-7xl mx-auto w-full min-w-0">
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
             {t("ประวัติใบแจ้งหนี้", "Invoice History")}
           </h1>
-          <p className="text-slate-500">
+          <p className="text-gray-500">
             {t(`${total} รายการในช่วงเวลานี้`, `${total} invoice${total !== 1 ? "s" : ""} in this period`)}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-          <label htmlFor="range" className="text-sm font-medium text-slate-600 shrink-0">
+          <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+          <label htmlFor="range" className="text-sm font-medium text-gray-600 shrink-0">
             {t("วันที่ประมวลผล:", "Date (processed):")}
           </label>
           <div className="relative">
@@ -289,7 +289,7 @@ export default function HistoryPage() {
                 setRange(e.target.value);
                 setPage(1);
               }}
-              className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 cursor-pointer min-w-[140px]"
+              className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-gray-200 bg-white text-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 cursor-pointer min-w-[140px]"
             >
               {RANGE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -297,7 +297,7 @@ export default function HistoryPage() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           </div>
         </div>
       </div>
@@ -348,18 +348,18 @@ export default function HistoryPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
+            <Loader2 className="w-6 h-6 text-brand-500 animate-spin" />
           </div>
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center mb-4">
-              <FileText className="w-7 h-7 text-slate-400" />
+            <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center mb-4">
+              <FileText className="w-7 h-7 text-gray-400" />
             </div>
-            <p className="font-semibold text-slate-700 mb-1">{t("ไม่มีใบแจ้งหนี้ในช่วงเวลานี้", "No invoices in this period")}</p>
-            <p className="text-slate-400 text-sm">
+            <p className="font-semibold text-gray-700 mb-1">{t("ไม่มีใบแจ้งหนี้ในช่วงเวลานี้", "No invoices in this period")}</p>
+            <p className="text-gray-400 text-sm">
               {t("ลองเปลี่ยนช่วงวันที่หรืออัปโหลดใบแจ้งหนี้", "Try another date range or upload an invoice.")}
             </p>
           </div>
@@ -379,7 +379,7 @@ export default function HistoryPage() {
                 <col style={{ width: "76px" }} />
               </colgroup>
               <thead>
-                <tr className="border-b border-slate-100">
+                <tr className="border-b border-gray-100">
                   {[
                     t("#", "#"),
                     t("วันที่ประมวลผล", "Processed"),
@@ -393,7 +393,7 @@ export default function HistoryPage() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="text-left px-3 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap truncate"
+                      className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap truncate"
                     >
                       {h}
                     </th>
@@ -404,15 +404,15 @@ export default function HistoryPage() {
                 {logs.map((log, i) => (
                   <tr
                     key={log.id}
-                    className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${
-                      i % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                    className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${
+                      i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                     } ${deletingIds.has(log.id) ? "opacity-40" : queuedIds.has(log.id) ? "opacity-60" : ""}`}
                   >
-                    <td className="px-3 py-2.5 text-slate-400 text-xs font-mono whitespace-nowrap truncate">
+                    <td className="px-3 py-2.5 text-gray-400 text-xs font-mono whitespace-nowrap truncate">
                       {(page - 1) * limit + i + 1}
                     </td>
                     <td
-                      className="px-3 py-2.5 text-slate-600 whitespace-nowrap text-xs truncate"
+                      className="px-3 py-2.5 text-gray-600 whitespace-nowrap text-xs truncate"
                       title={new Date(log.createdAt).toLocaleString()}
                     >
                       {new Date(log.createdAt).toLocaleString(undefined, {
@@ -425,33 +425,33 @@ export default function HistoryPage() {
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-6 h-6 rounded bg-teal-50 flex items-center justify-center shrink-0">
-                          <FileText className="w-3 h-3 text-teal-500" />
+                        <div className="w-6 h-6 rounded bg-brand-50 flex items-center justify-center shrink-0">
+                          <FileText className="w-3 h-3 text-brand-500" />
                         </div>
                         <span
-                          className="font-medium text-slate-800 truncate text-xs min-w-0"
+                          className="font-medium text-gray-800 truncate text-xs min-w-0"
                           title={log.filename}
                         >
                           {log.filename}
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-slate-600 text-xs truncate">
-                      {log.invoiceDate ?? <span className="text-slate-300">—</span>}
+                    <td className="px-3 py-2.5 text-gray-600 text-xs truncate">
+                      {log.invoiceDate ?? <span className="text-gray-300">—</span>}
                     </td>
-                    <td className="px-3 py-2.5 text-slate-600 font-mono text-xs truncate">
-                      {log.cardLast4 ? log.cardLast4 : <span className="text-slate-300">—</span>}
+                    <td className="px-3 py-2.5 text-gray-600 font-mono text-xs truncate">
+                      {log.cardLast4 ? log.cardLast4 : <span className="text-gray-300">—</span>}
                     </td>
-                    <td className="px-3 py-2.5 text-slate-800 font-semibold text-xs truncate">
+                    <td className="px-3 py-2.5 text-gray-800 font-semibold text-xs truncate">
                       {log.amount != null ? (
                         <>
-                          <span className="text-slate-400 font-normal text-xs mr-1">
+                          <span className="text-gray-400 font-normal text-xs mr-1">
                             {log.currency}
                           </span>
                           {log.amount.toLocaleString()}
                         </>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-gray-300">—</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5">
@@ -477,12 +477,12 @@ export default function HistoryPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={t("เปิดใน Drive", "Open in Drive")}
-                          className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800 font-medium transition-colors text-xs"
+                          className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-800 font-medium transition-colors text-xs"
                         >
                           {t("เปิด", "View")} <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-gray-300">—</span>
                       )}
                     </td>
 
@@ -493,7 +493,7 @@ export default function HistoryPage() {
                           onClick={() => openEdit(log)}
                           disabled={deletingIds.has(log.id) || queuedIds.has(log.id)}
                           title={t("แก้ไขรายการนี้", "Edit this record")}
-                          className="p-1.5 rounded-md text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-colors disabled:opacity-40 cursor-pointer"
+                          className="p-1.5 rounded-md text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 cursor-pointer"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -504,7 +504,7 @@ export default function HistoryPage() {
                             "ลบรายการ ไฟล์ใน Drive และแถวใน Sheets",
                             "Delete record, Drive file, and Sheets row"
                           )}
-                          className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 cursor-pointer"
+                          className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 cursor-pointer"
                         >
                           {deletingIds.has(log.id) || queuedIds.has(log.id) ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -523,42 +523,42 @@ export default function HistoryPage() {
 
         {/* Pagination */}
         {!loading && logs.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 gap-3 flex-wrap">
+          <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-gray-400">
                 {t(`หน้า ${page} จาก ${totalPages}`, `Page ${page} of ${totalPages}`)}
                 {range !== "all" && ` · ${t(rangeLabelTh, rangeLabel)}`}
               </p>
               {/* Limit selector */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400">{t("แสดง", "Show")}</span>
+                <span className="text-xs text-gray-400">{t("แสดง", "Show")}</span>
                 <select
                   value={limit}
                   onChange={(e) => {
                     setLimit(Number(e.target.value));
                     setPage(1);
                   }}
-                  className="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                  className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
                 >
                   {[50, 100, 200, 500].map((n) => (
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
-                <span className="text-xs text-slate-400">{t("แถว", "rows")}</span>
+                <span className="text-xs text-gray-400">{t("แถว", "rows")}</span>
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-2 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="p-2 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-2 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="p-2 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -582,10 +582,10 @@ export default function HistoryPage() {
                 <Trash2 className="w-5 h-5 text-red-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="text-base font-semibold text-gray-900">
                   {t("ยืนยันการลบรายการ", "Delete this record?")}
                 </h2>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                   {t(
                     "ระบบจะลบไฟล์ใน Google Drive และแถวที่ตรงกันใน Google Sheet ของคุณ การลบนี้ไม่สามารถย้อนกลับได้",
                     "We will remove the file from Google Drive and the matching row in your Google Sheet. This cannot be undone."
@@ -595,39 +595,39 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setConfirmLog(null)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5">
+            <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
                 <span
-                  className="text-xs font-medium text-slate-700 truncate"
+                  className="text-xs font-medium text-gray-700 truncate"
                   title={confirmLog.filename}
                 >
                   {confirmLog.filename}
                 </span>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-gray-500">
                 {confirmLog.invoiceDate && (
                   <span>
-                    <span className="text-slate-400">{t("วันที่: ", "Date: ")}</span>
+                    <span className="text-gray-400">{t("วันที่: ", "Date: ")}</span>
                     {confirmLog.invoiceDate}
                   </span>
                 )}
                 {confirmLog.cardLast4 && (
                   <span className="font-mono">
-                    <span className="text-slate-400 font-sans">{t("บัตร: ", "Card: ")}</span>
+                    <span className="text-gray-400 font-sans">{t("บัตร: ", "Card: ")}</span>
                     •••• {confirmLog.cardLast4}
                   </span>
                 )}
                 {confirmLog.amount != null && (
                   <span>
-                    <span className="text-slate-400">{t("ยอด: ", "Amount: ")}</span>
+                    <span className="text-gray-400">{t("ยอด: ", "Amount: ")}</span>
                     {confirmLog.currency ? `${confirmLog.currency} ` : ""}
                     {confirmLog.amount.toLocaleString()}
                   </span>
@@ -639,7 +639,7 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setConfirmLog(null)}
-                className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
               >
                 {t("ยกเลิก", "Cancel")}
               </button>
@@ -672,16 +672,16 @@ export default function HistoryPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-5 sm:px-6 pt-5 pb-3 border-b border-slate-100 flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
-                <Pencil className="w-4 h-4 text-teal-600" />
+            <div className="px-5 sm:px-6 pt-5 pb-3 border-b border-gray-100 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+                <Pencil className="w-4 h-4 text-brand-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="text-base font-semibold text-gray-900">
                   {t("แก้ไขรายการ", "Edit record")}
                 </h2>
                 <p
-                  className="text-xs text-slate-500 truncate mt-0.5"
+                  className="text-xs text-gray-500 truncate mt-0.5"
                   title={editingLog.filename}
                 >
                   {editingLog.filename}
@@ -691,7 +691,7 @@ export default function HistoryPage() {
                 type="button"
                 onClick={closeEdit}
                 disabled={saving}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-50 cursor-pointer"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
@@ -743,7 +743,7 @@ export default function HistoryPage() {
                 />
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-[11px] text-gray-400 leading-relaxed">
                 {t(
                   "กดบันทึกแล้วระบบจะอัปเดตทั้งฐานข้อมูลและแถวที่ตรงกันใน Google Sheet ของคุณ",
                   "Saving updates both the database and the matching row in your Google Sheet."
@@ -776,7 +776,7 @@ export default function HistoryPage() {
                   type="button"
                   onClick={closeEdit}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
                 >
                   {t("ยกเลิก", "Cancel")}
                 </button>
@@ -825,7 +825,7 @@ function DialogField({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</span>
+      <span className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</span>
       <input
         type="text"
         inputMode={inputMode}
@@ -833,7 +833,7 @@ function DialogField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+        className={`w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
           mono ? "font-mono" : ""
         }`}
       />

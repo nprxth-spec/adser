@@ -1,7 +1,14 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { extractInvoiceData, InvoiceData } from "@/lib/openai";
-import { syncToGoogle, uploadFileToDrive, getActualSheetLastRow } from "@/lib/google";
+import {
+    appendToSheet,
+    downloadDriveFileBuffer,
+    getActualSheetLastRow,
+    organizeExistingDriveFile,
+    syncToGoogle,
+    uploadFileToDrive,
+} from "@/lib/google";
 import { prisma, Prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
 import { ensureFreeCreditsReset } from "@/lib/credits";
@@ -25,6 +32,14 @@ const LOCKED_FILENAME_TEMPLATE: TemplateItem[] = [
     { type: "field",   key: "billed_to",        id: "t7" },
     { type: "literal", value: ")",              id: "t8" },
 ];
+
+type DirectDriveUploadBody = {
+    driveFileId?: string;
+    originalFilename?: string;
+    mimeType?: string;
+    size?: number;
+    sheetId?: string;
+};
 
 let _pdfParse: ((buffer: Buffer) => Promise<{ text: string }>) | null = null;
 async function getPdfParse() {
@@ -135,32 +150,71 @@ export async function POST(request: Request) {
         );
     }
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    const sheetId = (formData.get("sheetId") as string) || user.sheetId || "";
-
-    if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-
     const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-    const contentType = (file as any).type as string | undefined;
-    const size = (file as any).size as number | undefined;
+    const contentTypeHeader = request.headers.get("content-type") ?? "";
+    const isDirectDriveUpload = contentTypeHeader.includes("application/json");
 
-    if (size !== undefined && size > MAX_FILE_SIZE_BYTES) {
-        return NextResponse.json({ error: "File too large. Please upload a PDF smaller than 10 MB." }, { status: 413 });
-    }
+    let driveFileId: string | null = null;
+    let originalFilename = "";
+    let sheetId = user.sheetId || "";
+    let buffer: Buffer;
 
-    const isPdf =
-        contentType === "application/pdf" ||
-        (!contentType && file.name.toLowerCase().endsWith(".pdf"));
-    if (!isPdf) {
-        return NextResponse.json({ error: "Invalid file type. Only PDF invoices are allowed." }, { status: 400 });
+    if (isDirectDriveUpload) {
+        const body = (await request.json()) as DirectDriveUploadBody;
+        driveFileId = typeof body.driveFileId === "string" ? body.driveFileId.trim() : "";
+        originalFilename = typeof body.originalFilename === "string" ? body.originalFilename : "";
+        sheetId = body.sheetId || sheetId;
+
+        const contentType = body.mimeType;
+        const size = body.size;
+
+        if (!driveFileId) return NextResponse.json({ error: "No Drive file uploaded" }, { status: 400 });
+        if (!originalFilename) return NextResponse.json({ error: "Original filename is required" }, { status: 400 });
+        if (size !== undefined && size > MAX_FILE_SIZE_BYTES) {
+            return NextResponse.json({ error: "File too large. Please upload a PDF smaller than 10 MB." }, { status: 413 });
+        }
+
+        const isPdf =
+            contentType === "application/pdf" ||
+            (!contentType && originalFilename.toLowerCase().endsWith(".pdf"));
+        if (!isPdf) {
+            return NextResponse.json({ error: "Invalid file type. Only PDF invoices are allowed." }, { status: 400 });
+        }
+
+        buffer = await downloadDriveFileBuffer(driveFileId, accessToken);
+        if (buffer.byteLength > MAX_FILE_SIZE_BYTES) {
+            return NextResponse.json({ error: "File too large. Please upload a PDF smaller than 10 MB." }, { status: 413 });
+        }
+    } else {
+        const formData = await request.formData();
+        const file = formData.get("file") as File | null;
+        sheetId = (formData.get("sheetId") as string) || sheetId;
+
+        if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+
+        const contentType = file.type || undefined;
+        const size = file.size;
+
+        if (size !== undefined && size > MAX_FILE_SIZE_BYTES) {
+            return NextResponse.json({ error: "File too large. Please upload a PDF smaller than 10 MB." }, { status: 413 });
+        }
+
+        const isPdf =
+            contentType === "application/pdf" ||
+            (!contentType && file.name.toLowerCase().endsWith(".pdf"));
+        if (!isPdf) {
+            return NextResponse.json({ error: "Invalid file type. Only PDF invoices are allowed." }, { status: 400 });
+        }
+
+        originalFilename = file.name;
+        const arrayBuffer = await file.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
     }
 
     if (!sheetId) {
         return NextResponse.json({ error: "No Google Sheet ID configured. Please set it in Integrations settings." }, { status: 400 });
     }
 
-    const originalFilename = file.name;
     const sanitizedOriginal = originalFilename.replace(/[<>:"\\|?*\x00-\x1f]/g, "_");
     let filename = sanitizedOriginal;
 
@@ -186,9 +240,6 @@ export async function POST(request: Request) {
             { status: 409 }
         );
     }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     let invoiceData: InvoiceData;
     let driveLink = "";
@@ -230,13 +281,23 @@ export async function POST(request: Request) {
 
         if (missingFields.length > 0) {
             const reviewFilename = "REVIEW_" + filename;
-            const driveResult = await uploadFileToDrive(
-                buffer, reviewFilename, accessToken,
-                invoiceData.date ?? "",
-                LOCKED_DRIVE_FOLDER_ID,
-                LOCKED_DRIVE_FOLDER_MODE,
-                invoiceData.paymentSuccess ?? true,
-            );
+            const driveResult = driveFileId
+                ? await organizeExistingDriveFile(
+                    driveFileId,
+                    reviewFilename,
+                    accessToken,
+                    invoiceData.date ?? "",
+                    LOCKED_DRIVE_FOLDER_ID,
+                    LOCKED_DRIVE_FOLDER_MODE,
+                    invoiceData.paymentSuccess ?? true,
+                )
+                : await uploadFileToDrive(
+                    buffer, reviewFilename, accessToken,
+                    invoiceData.date ?? "",
+                    LOCKED_DRIVE_FOLDER_ID,
+                    LOCKED_DRIVE_FOLDER_MODE,
+                    invoiceData.paymentSuccess ?? true,
+                );
 
             const pendingData = {
                 invoiceData,
@@ -292,6 +353,29 @@ export async function POST(request: Request) {
             const rowSeed = await getActualSheetLastRow(accessToken, sheetId, user.sheetName, user.sheetMapping);
             const reservedRow = await reserveSheetRow(userId, rowSeed);
 
+            if (driveFileId) {
+                const driveResult = await organizeExistingDriveFile(
+                    driveFileId,
+                    filename,
+                    accessToken,
+                    invoiceData.date ?? "",
+                    LOCKED_DRIVE_FOLDER_ID,
+                    LOCKED_DRIVE_FOLDER_MODE,
+                    invoiceData.paymentSuccess ?? true,
+                );
+                const writtenRow = await appendToSheet(
+                    invoiceData,
+                    filename,
+                    driveResult.driveLink,
+                    accessToken,
+                    sheetId,
+                    user.sheetName,
+                    user.sheetMapping,
+                    reservedRow,
+                );
+                return { driveLink: driveResult.driveLink, sheetRow: writtenRow };
+            }
+
             return await syncToGoogle(
                 invoiceData, buffer, filename, accessToken,
                 sheetId, user.sheetName, user.sheetMapping,
@@ -307,6 +391,22 @@ export async function POST(request: Request) {
     } catch (err: any) {
         console.error("Processing error:", err);
         status = "error";
+        if (driveFileId && !partialDriveLink) {
+            try {
+                const failedDriveResult = await organizeExistingDriveFile(
+                    driveFileId,
+                    "ERROR_" + (filename !== sanitizedOriginal ? filename : sanitizedOriginal),
+                    accessToken,
+                    partialInvoiceData?.date ?? "",
+                    LOCKED_DRIVE_FOLDER_ID,
+                    LOCKED_DRIVE_FOLDER_MODE,
+                    false,
+                );
+                partialDriveLink = failedDriveResult.driveLink;
+            } catch (driveErr) {
+                console.error("Failed to move errored Drive upload:", driveErr);
+            }
+        }
         // Include whatever partial data was extracted/uploaded for traceability
         await prisma.processingLog.create({
             data: {

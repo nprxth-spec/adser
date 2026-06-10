@@ -24,21 +24,23 @@ export default function AdminHeader({
   const title = matched?.title ?? "Admin";
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
       <div className="flex h-14 items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
             aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
             title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
             {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
           </button>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Files Go Admin</p>
-            <h1 className="text-sm font-semibold text-slate-900">{title}</h1>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Files Go Admin
+            </p>
+            <h1 className="text-theme-sm font-semibold text-gray-900 dark:text-white">{title}</h1>
           </div>
         </div>
       </div>

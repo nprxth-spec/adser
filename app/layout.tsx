@@ -1,13 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-heading",
-});
+const outfit = Outfit({ subsets: ["latin"] });
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -28,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" className={`${inter.variable} ${plusJakarta.variable}`}>
-      <body className="min-h-screen antialiased font-sans">
+    <html lang="th">
+      <body className={`${outfit.className} min-h-screen antialiased dark:bg-gray-900`}>
         <Providers>{children}</Providers>
       </body>
     </html>

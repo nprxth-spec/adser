@@ -124,7 +124,7 @@ export default async function AdminUsersPage({
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-xl font-bold text-slate-900">Users & Credits</h1>
+          <h1 className="text-xl font-bold text-gray-900">Users & Credits</h1>
           <LogsRangeSelect basePath="/admin/users" currentRange={range} dateLabel="Date:" />
         </div>
         <LogsSearchClient
@@ -132,27 +132,27 @@ export default async function AdminUsersPage({
           placeholder="Search by email, name, sheet, or Drive folder"
         />
       </div>
-      <p className="text-sm text-slate-500">Add credits for users to test. Changes apply immediately.</p>
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <p className="text-sm text-gray-500">Add credits for users to test. Changes apply immediately.</p>
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap w-12">#</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Email</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Name</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Plan</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Credits</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Last reset</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Next reset</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Days left</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">sheetId</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">sheetName</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">sheetMapping</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">filenameMapping</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">driveFolderId</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">สิทธิ์ Google</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Actions</th>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap w-12">#</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Email</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Name</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Plan</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Credits</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Last reset</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Next reset</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Days left</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">sheetId</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">sheetName</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">sheetMapping</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">filenameMapping</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">driveFolderId</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">สิทธิ์ Google</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -162,33 +162,33 @@ export default async function AdminUsersPage({
                   user.lastCreditsReset
                 );
                 return (
-                  <tr key={user.id} className="border-b border-slate-100">
-                    <td className="px-4 py-2 text-slate-500 tabular-nums whitespace-nowrap">
+                  <tr key={user.id} className="border-b border-gray-100">
+                    <td className="px-4 py-2 text-gray-500 tabular-nums whitespace-nowrap">
                       {i + 1}
                     </td>
-                    <td className="px-4 py-2 text-slate-700 whitespace-nowrap">{user.email ?? "—"}</td>
-                    <td className="px-4 py-2 text-slate-600 whitespace-nowrap">{user.name ?? "—"}</td>
+                    <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.email ?? "—"}</td>
+                    <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{user.name ?? "—"}</td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       <span
                         className={
                           user.plan === "pro"
                             ? "text-emerald-600 font-medium"
-                            : "text-slate-600"
+                            : "text-gray-600"
                         }
                       >
                         {user.plan}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-slate-700 whitespace-nowrap">{user.credits}</td>
-                    <td className="px-4 py-2 text-slate-500 whitespace-nowrap">
+                    <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.credits}</td>
+                    <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
                       {user.lastCreditsReset
                         ? new Date(user.lastCreditsReset).toLocaleDateString()
                         : "—"}
                     </td>
-                    <td className="px-4 py-2 text-slate-500 whitespace-nowrap">
+                    <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
                       {nextReset ? nextReset.toLocaleDateString() : "—"}
                     </td>
-                    <td className="px-4 py-2 text-slate-500 whitespace-nowrap">
+                    <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
                       {daysLeft !== null ? `${daysLeft} days` : "—"}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">

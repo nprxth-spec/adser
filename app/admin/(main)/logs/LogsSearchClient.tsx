@@ -56,13 +56,13 @@ export function LogsSearchClient({
               applySearch("");
             }
           }}
-          className="flex-1 px-3 py-1.5 rounded-md border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="flex-1 px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           disabled={isPending}
         />
         <button
           type="submit"
           disabled={isPending}
-          className="px-3 py-1.5 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="px-3 py-1.5 rounded-md border border-gray-200 bg-gray-50 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           {isPending ? "Searching..." : "Search"}
         </button>
@@ -71,7 +71,7 @@ export function LogsSearchClient({
         type="button"
         onClick={handleRefresh}
         disabled={isPending}
-        className="inline-flex items-center justify-center px-2.5 py-1.5 rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        className="inline-flex items-center justify-center px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         aria-label="Refresh logs"
       >
         <RotateCw className={`w-4 h-4 mr-1 ${isPending ? "animate-spin" : ""}`} />

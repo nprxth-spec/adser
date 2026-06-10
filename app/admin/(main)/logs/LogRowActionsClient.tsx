@@ -75,11 +75,11 @@ function EditModal({
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
             <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                    <h2 className="text-sm font-semibold text-slate-900">Edit Log Entry</h2>
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                    <h2 className="text-sm font-semibold text-gray-900">Edit Log Entry</h2>
                     <button
                         onClick={onClose}
-                        className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 cursor-pointer"
+                        className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 cursor-pointer"
                     >
                         <XIcon className="w-4 h-4" />
                     </button>
@@ -95,23 +95,23 @@ function EditModal({
                         { key: "sheetRow",    label: "Sheet Row",    placeholder: "5" },
                     ] as { key: keyof LogFields; label: string; placeholder: string }[]).map(({ key, label, placeholder }) => (
                         <div key={key}>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
                             <input
                                 type="text"
                                 value={fields[key]}
                                 onChange={set(key)}
                                 placeholder={placeholder}
-                                className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                             />
                         </div>
                     ))}
 
                     <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                         <select
                             value={fields.status}
                             onChange={set("status")}
-                            className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                         >
                             <option value="success">success</option>
                             <option value="review">review</option>
@@ -120,23 +120,23 @@ function EditModal({
                     </div>
 
                     <div className="col-span-2">
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Filename</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Filename</label>
                         <input
                             type="text"
                             value={fields.filename}
                             onChange={set("filename")}
-                            className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                         />
                     </div>
 
                     <div className="col-span-2">
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Drive Link</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Drive Link</label>
                         <input
                             type="text"
                             value={fields.driveLink}
                             onChange={set("driveLink")}
                             placeholder="https://drive.google.com/..."
-                            className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                         />
                     </div>
                 </div>
@@ -162,18 +162,18 @@ function EditModal({
                 )}
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100">
                     <button
                         onClick={onClose}
                         disabled={saving}
-                        className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+                        className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 cursor-pointer disabled:opacity-50"
                     >
                         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                         Save
@@ -239,7 +239,7 @@ export function LogRowActionsClient({
                 <button
                     type="button"
                     onClick={() => setEditOpen(true)}
-                    className="inline-flex items-center justify-center px-2 py-1 rounded border border-slate-200 text-[11px] font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    className="inline-flex items-center justify-center px-2 py-1 rounded border border-gray-200 text-[11px] font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
                     title="Edit log entry"
                 >
                     <Pencil className="w-3 h-3 mr-0.5" />

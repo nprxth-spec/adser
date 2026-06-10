@@ -46,8 +46,8 @@ export default function GoogleReauthDialog() {
             <AlertCircle className="w-5 h-5 text-amber-700" />
           </div>
           <div>
-            <p className="text-base font-semibold text-slate-900">{t("เซสชัน Google หมดอายุ", "Google session expired")}</p>
-            <p className="text-sm text-slate-500 mt-1">{message}</p>
+            <p className="text-base font-semibold text-gray-900">{t("เซสชัน Google หมดอายุ", "Google session expired")}</p>
+            <p className="text-sm text-gray-500 mt-1">{message}</p>
           </div>
         </div>
         <div className="flex justify-end">

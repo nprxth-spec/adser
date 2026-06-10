@@ -97,9 +97,9 @@ export default function AdminFilenameMappingEditor({
         type="button"
         onClick={openDialog}
         title="Click to edit filenameMapping"
-        className="block max-w-xs overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent p-0 text-left text-slate-600 leading-5 hover:text-teal-700"
+        className="block max-w-xs overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent p-0 text-left text-gray-600 leading-5 hover:text-brand-700"
       >
-        {initialPreview || <span className="text-slate-400">— (click to add)</span>}
+        {initialPreview || <span className="text-gray-400">— (click to add)</span>}
       </button>
 
       {open && (
@@ -113,8 +113,8 @@ export default function AdminFilenameMappingEditor({
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-slate-900">Edit filenameMapping</h3>
-                <p className="mt-0.5 truncate text-xs text-slate-500" title={userLabel}>
+                <h3 className="text-sm font-semibold text-gray-900">Edit filenameMapping</h3>
+                <p className="mt-0.5 truncate text-xs text-gray-500" title={userLabel}>
                   {userLabel}
                 </p>
               </div>
@@ -122,22 +122,22 @@ export default function AdminFilenameMappingEditor({
                 type="button"
                 onClick={closeDialog}
                 disabled={saving}
-                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >
                 Close
               </button>
             </div>
 
-            <p className="mb-2 text-xs text-slate-500">
+            <p className="mb-2 text-xs text-gray-500">
               JSON object mapping last digits of card → filename prefix.
-              Example: <code className="rounded bg-slate-100 px-1 py-0.5">{`{ "1234": "VISA-A", "5678": "MC-B" }`}</code>
+              Example: <code className="rounded bg-gray-100 px-1 py-0.5">{`{ "1234": "VISA-A", "5678": "MC-B" }`}</code>
             </p>
 
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               spellCheck={false}
-              className="block h-64 w-full resize-y rounded border border-slate-300 bg-slate-50 p-3 font-mono text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              className="block h-64 w-full resize-y rounded border border-gray-300 bg-gray-50 p-3 font-mono text-xs text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
 
             {error && (
@@ -149,7 +149,7 @@ export default function AdminFilenameMappingEditor({
                 type="button"
                 onClick={closeDialog}
                 disabled={saving}
-                className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -157,7 +157,7 @@ export default function AdminFilenameMappingEditor({
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+                className="rounded bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Save"}
               </button>

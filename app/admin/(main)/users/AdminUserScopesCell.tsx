@@ -66,7 +66,7 @@ export default function AdminUserScopesCell({ userId }: { userId: string }) {
         type="button"
         onClick={handleCheck}
         disabled={loading}
-        className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-700 text-xs font-medium hover:bg-slate-50 disabled:opacity-50 w-fit"
+        className="px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 text-xs font-medium hover:bg-gray-50 disabled:opacity-50 w-fit"
       >
         {loading ? "กำลังตรวจ..." : "ตรวจสอบสิทธิ์"}
       </button>
@@ -81,14 +81,14 @@ export default function AdminUserScopesCell({ userId }: { userId: string }) {
             <div className="text-amber-800 space-y-0.5">
               <span className="font-medium">⚠ ตรวจโทเค็นไม่ได้</span>
               {result.message && (
-                <p className="text-slate-600 mt-0.5">{result.message}</p>
+                <p className="text-gray-600 mt-0.5">{result.message}</p>
               )}
               {result.hint && (
-                <p className="text-slate-500 mt-0.5">{result.hint}</p>
+                <p className="text-gray-500 mt-0.5">{result.hint}</p>
               )}
               {result.grantedFromLogin && result.grantedFromLogin.length > 0 && (
-                <div className="mt-1 text-slate-600">
-                  <span className="font-medium text-slate-700">
+                <div className="mt-1 text-gray-600">
+                  <span className="font-medium text-gray-700">
                     สโคปตอนล็อกอินล่าสุด (จากฐานข้อมูล):
                   </span>
                   <ul className="list-disc list-inside mt-0.5">
@@ -111,14 +111,14 @@ export default function AdminUserScopesCell({ userId }: { userId: string }) {
             <div className="text-amber-700 space-y-0.5">
               <span className="font-medium">✗ สโคปไม่ครบ</span>
               {result.missing.length > 0 && (
-                <ul className="list-disc list-inside mt-0.5 text-slate-600">
+                <ul className="list-disc list-inside mt-0.5 text-gray-600">
                   {result.missing.map((s) => (
                     <li key={s}>{scopeLabel(s)}</li>
                   ))}
                 </ul>
               )}
               {result.message && (
-                <p className="text-slate-500 mt-0.5">{result.message}</p>
+                <p className="text-gray-500 mt-0.5">{result.message}</p>
               )}
             </div>
           )}

@@ -38,7 +38,7 @@ export default function AdminDashboardFilters({
         value={currentUserId ?? ""}
         onChange={(e) => updateParam("userId", e.target.value)}
         disabled={isPending}
-        className="w-64 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        className="w-64 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <option value="">All users</option>
         {users.map((user) => (
@@ -52,7 +52,7 @@ export default function AdminDashboardFilters({
         value={currentInterval}
         onChange={(e) => updateParam("interval", e.target.value)}
         disabled={isPending}
-        className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <option value="day">By day</option>
         <option value="month">Current month (daily)</option>

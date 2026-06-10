@@ -60,13 +60,13 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
     }, [refreshKey]);
 
     return (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-                <h2 className="font-semibold text-slate-900">{t("ไฟล์ล่าสุด", "Recent Files")}</h2>
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <h2 className="font-semibold text-gray-900">{t("ไฟล์ล่าสุด", "Recent Files")}</h2>
                 <Link
                     href="/history"
-                    className="text-sm text-teal-600 hover:text-teal-800 font-medium transition-colors"
+                    className="text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors"
                 >
                     {t("ดูทั้งหมด", "View all")} →
                 </Link>
@@ -75,15 +75,15 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
             {/* Body */}
             {loading ? (
                 <div className="flex items-center justify-center py-16">
-                    <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
+                    <Loader2 className="w-6 h-6 text-brand-500 animate-spin" />
                 </div>
             ) : files.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-3">
-                        <FileText className="w-6 h-6 text-slate-400" />
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
+                        <FileText className="w-6 h-6 text-gray-400" />
                     </div>
-                    <p className="text-slate-500 text-sm font-medium">{t("ยังไม่มีไฟล์ที่ประมวลผล", "No files processed yet")}</p>
-                    <p className="text-slate-400 text-xs mt-1">
+                    <p className="text-gray-500 text-sm font-medium">{t("ยังไม่มีไฟล์ที่ประมวลผล", "No files processed yet")}</p>
+                    <p className="text-gray-400 text-xs mt-1">
                         {t("อัปโหลดใบแจ้งหนี้ PDF ไฟล์แรกเพื่อเริ่มต้น", "Drop your first PDF invoice to get started.")}
                     </p>
                 </div>
@@ -100,7 +100,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                             <col style={{ width: "80px" }} />
                         </colgroup>
                         <thead>
-                            <tr className="border-b border-slate-100">
+                            <tr className="border-b border-gray-100">
                                 {[
                                     t("วันที่", "Date"),
                                     t("ชื่อไฟล์", "Filename"),
@@ -112,7 +112,7 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                 ].map((h) => (
                                     <th
                                         key={h}
-                                        className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap"
+                                        className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap"
                                     >
                                         {h}
                                     </th>
@@ -123,12 +123,12 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                             {files.map((log, i) => (
                                 <tr
                                     key={log.id}
-                                    className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${
-                                        i % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                                    className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${
+                                        i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                                     }`}
                                 >
                                     {/* Processed date */}
-                                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap text-xs">
+                                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">
                                         {new Date(log.createdAt).toLocaleString(undefined, {
                                             dateStyle: "short",
                                             timeStyle: "short",
@@ -138,11 +138,11 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                     {/* Filename */}
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded bg-teal-50 flex items-center justify-center shrink-0">
-                                                <FileText className="w-3 h-3 text-teal-500" />
+                                            <div className="w-6 h-6 rounded bg-brand-50 flex items-center justify-center shrink-0">
+                                                <FileText className="w-3 h-3 text-brand-500" />
                                             </div>
                                             <span
-                                                className="font-medium text-slate-800 block max-w-[380px] truncate text-xs"
+                                                className="font-medium text-gray-800 block max-w-[380px] truncate text-xs"
                                                 title={log.filename}
                                             >
                                                 {log.filename}
@@ -151,24 +151,24 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                     </td>
 
                                     {/* Invoice Date */}
-                                    <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">
-                                        {log.invoiceDate ?? <span className="text-slate-300">—</span>}
+                                    <td className="px-4 py-3 text-gray-600 text-xs whitespace-nowrap">
+                                        {log.invoiceDate ?? <span className="text-gray-300">—</span>}
                                     </td>
 
                                     {/* Card */}
-                                    <td className="px-4 py-3 text-slate-600 font-mono text-xs whitespace-nowrap">
-                                        {log.cardLast4 ? log.cardLast4 : <span className="text-slate-300">—</span>}
+                                    <td className="px-4 py-3 text-gray-600 font-mono text-xs whitespace-nowrap">
+                                        {log.cardLast4 ? log.cardLast4 : <span className="text-gray-300">—</span>}
                                     </td>
 
                                     {/* Amount */}
-                                    <td className="px-4 py-3 text-slate-800 font-semibold text-xs whitespace-nowrap">
+                                    <td className="px-4 py-3 text-gray-800 font-semibold text-xs whitespace-nowrap">
                                         {log.amount != null ? (
                                             <>
-                                                <span className="text-slate-400 font-normal mr-1">{log.currency}</span>
+                                                <span className="text-gray-400 font-normal mr-1">{log.currency}</span>
                                                 {log.amount.toLocaleString()}
                                             </>
                                         ) : (
-                                            <span className="text-slate-300">—</span>
+                                            <span className="text-gray-300">—</span>
                                         )}
                                     </td>
 
@@ -195,12 +195,12 @@ function RecentUploads({ refreshKey }: { refreshKey: number }) {
                                                 href={log.driveLink}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center gap-1 text-teal-600 hover:text-teal-800 font-medium text-xs transition-colors"
+                                                className="flex items-center gap-1 text-brand-600 hover:text-brand-800 font-medium text-xs transition-colors"
                                             >
                                                 {t("เปิด", "View")} <ExternalLink className="w-3 h-3" />
                                             </a>
                                         ) : (
-                                            <span className="text-slate-300">—</span>
+                                            <span className="text-gray-300">—</span>
                                         )}
                                     </td>
                                 </tr>
@@ -240,6 +240,48 @@ export default function DashboardPage() {
     } = upload;
 
     const [refreshKey, setRefreshKey] = useState(0);
+
+    const missingFieldLabels: Record<string, string> = {
+        card_prefix: t("รหัสบัตร", "Card prefix"),
+        date: t("วันที่", "Date"),
+        reference_number: t("เลขอ้างอิง", "Reference number"),
+        billed_to: t("ผู้ถูกเรียกเก็บ", "Billed to"),
+    };
+
+    const batchSummary = results.reduce(
+        (summary, item) => {
+            if ("error" in item) {
+                const isDuplicate =
+                    item.code === "DUPLICATE_FILE" ||
+                    item.status === 409 ||
+                    /duplicate|ไฟล์ซ้ำ|ซ้ำ/i.test(item.error);
+                if (isDuplicate) summary.duplicate += 1;
+                else summary.failed += 1;
+                return summary;
+            }
+
+            if (item.requiresReview) {
+                summary.review += 1;
+                for (const field of item.missingFields ?? []) {
+                    summary.missingFields[field] = (summary.missingFields[field] ?? 0) + 1;
+                }
+            } else {
+                summary.success += 1;
+            }
+            return summary;
+        },
+        {
+            success: 0,
+            review: 0,
+            duplicate: 0,
+            failed: 0,
+            missingFields: {} as Record<string, number>,
+        },
+    );
+
+    const missingFieldSummary = Object.entries(batchSummary.missingFields)
+        .sort((a, b) => b[1] - a[1])
+        .map(([field, count]) => `${missingFieldLabels[field] ?? field} ${count}`);
 
 
     // Bump refreshKey when a batch finishes (results change from 0 → N)
@@ -400,8 +442,8 @@ export default function DashboardPage() {
                 {/* ── Dashboard Header ── */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">{t("อัปโหลด", "Upload")}</h1>
-                        <p className="text-slate-500 text-sm mt-0.5">
+                        <h1 className="text-2xl font-bold text-gray-900">{t("อัปโหลด", "Upload")}</h1>
+                        <p className="text-gray-500 text-sm mt-0.5">
                             {t("ติดตามการประมวลผลใบแจ้งหนี้ของคุณ", "Monitor your invoice processing pipeline")}
                         </p>
                     </div>
@@ -417,7 +459,7 @@ export default function DashboardPage() {
                         {(stage === "done" || results.length > 0) && (
                             <button
                                 onClick={resetState}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-white rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                                className="flex items-center gap-1.5 px-4 py-2 bg-white rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
                             >
                                 <X className="w-4 h-4" /> {t("ล้าง", "Clear")}
                             </button>
@@ -430,11 +472,11 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
                     {/* Drive destination — locked */}
-                    <div className="bg-white rounded-lg border border-slate-200 p-4">
-                        <p className="text-sm font-semibold text-slate-800 mb-1">{t("ปลายทาง Drive", "Drive destination")}</p>
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <p className="text-sm font-semibold text-gray-800 mb-1">{t("ปลายทาง Drive", "Drive destination")}</p>
 
-                        <div className="mt-2 rounded-md bg-slate-50 border border-slate-100 px-3.5 py-2.5 space-y-1.5">
-                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">{t("ปลายทางซิงก์", "Sync destination")}</p>
+                        <div className="mt-2 rounded-md bg-gray-50 border border-gray-100 px-3.5 py-2.5 space-y-1.5">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t("ปลายทางซิงก์", "Sync destination")}</p>
 
                             {/* Drive folder row — auto-managed */}
                             <div className="flex flex-wrap items-center gap-1.5 text-xs">
@@ -446,16 +488,16 @@ export default function DashboardPage() {
                                     height={16}
                                     className="flex-shrink-0"
                                 />
-                                <span className="text-slate-500">
+                                <span className="text-gray-500">
                                     {t("ระบบจัดเก็บอัตโนมัติตามวันที่ใบเสร็จ", "Auto-organised by receipt date")}
                                 </span>
-                                <span className="text-slate-300">·</span>
-                                <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{t("ปี", "Year")}</span>
-                                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <span className="text-gray-300">·</span>
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{t("ปี", "Year")}</span>
+                                <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
-                                <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{t("เดือน", "Month")}</span>
-                                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{t("เดือน", "Month")}</span>
+                                <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                                 <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
@@ -476,12 +518,12 @@ export default function DashboardPage() {
                                     {effectiveSheetId ? (
                                         <>
                                             {spreadsheetTitle !== null && spreadsheetTitle !== "" && (
-                                                <span className="px-1.5 py-0.5 rounded text-slate-400">
+                                                <span className="px-1.5 py-0.5 rounded text-gray-400">
                                                     {spreadsheetTitle}
                                                 </span>
                                             )}
                                             {spreadsheetTitle !== null && spreadsheetTitle !== "" && effectiveSheetName && (
-                                                <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                 </svg>
                                             )}
@@ -503,11 +545,11 @@ export default function DashboardPage() {
                                                 );
                                             })()}
                                             {spreadsheetTitle === null && (
-                                                <span className="text-slate-400">Loading…</span>
+                                                <span className="text-gray-400">Loading…</span>
                                             )}
                                         </>
                                     ) : (
-                                        <span className="text-slate-400 italic">{t("ยังไม่ตั้งค่า — ไปตั้งค่าใน Integrations", "Not set — configure in Integrations")}</span>
+                                        <span className="text-gray-400 italic">{t("ยังไม่ตั้งค่า — ไปตั้งค่าใน Integrations", "Not set — configure in Integrations")}</span>
                                     )}
                                 </div>
                             </div>
@@ -519,26 +561,26 @@ export default function DashboardPage() {
                             {...getRootProps()}
                             className={`flex-1 flex flex-col items-center justify-center min-h-[220px] relative rounded-lg border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200 ${
                                 isDragActive
-                                    ? "border-teal-500 bg-teal-50"
+                                    ? "border-brand-500 bg-brand-50"
                                     : stage === "done"
                                     ? "border-green-400 bg-green-50"
-                                    : "border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50/30"
+                                    : "border-gray-200 bg-white hover:border-brand-300 hover:bg-brand-50/30"
                             }`}
                         >
                             <input {...getInputProps()} />
 
                             {stage === "idle" && (
                                 <div>
-                                    <div className="w-12 h-12 rounded-lg bg-teal-50 flex items-center justify-center mx-auto mb-3">
-                                        <Upload className="w-6 h-6 text-teal-500" />
+                                    <div className="w-12 h-12 rounded-lg bg-brand-50 flex items-center justify-center mx-auto mb-3">
+                                        <Upload className="w-6 h-6 text-brand-500" />
                                     </div>
-                                    <p className="text-sm font-semibold text-slate-700 mb-1">
+                                    <p className="text-sm font-semibold text-gray-700 mb-1">
                                         {isDragActive ? t("วางไฟล์ PDF ที่นี่…", "Drop PDFs here…") : t("ลากและวางไฟล์ใบแจ้งหนี้ PDF", "Drag & drop invoice PDFs")}
                                     </p>
-                                    <p className="text-xs text-slate-400 mb-3">
+                                    <p className="text-xs text-gray-400 mb-3">
                                         Select or drop multiple files at once
                                     </p>
-                                    <span className="inline-block px-3 py-1 rounded-full bg-slate-100 text-xs text-slate-500">
+                                    <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-500">
                                         {t("เฉพาะ PDF", "PDF only")}
                                     </span>
                                 </div>
@@ -547,25 +589,25 @@ export default function DashboardPage() {
                             {isProcessing && activeFiles.length > 0 && (
                                 <div className="w-full space-y-2">
                                     <div className="flex items-center justify-between mb-1">
-                                        <p className="text-xs font-semibold text-slate-600">
+                                        <p className="text-xs font-semibold text-gray-600">
                                             {t("กำลังประมวลผล", "Processing")}
-                                            <span className="ml-1 text-teal-600">{completedCount}/{queue.length}</span>
-                                            <span className="ml-1 text-slate-400">{t("ไฟล์", "files")}</span>
+                                            <span className="ml-1 text-brand-600">{completedCount}/{queue.length}</span>
+                                            <span className="ml-1 text-gray-400">{t("ไฟล์", "files")}</span>
                                         </p>
-                                        <Loader2 className="w-3 h-3 animate-spin text-teal-500" />
+                                        <Loader2 className="w-3 h-3 animate-spin text-brand-500" />
                                     </div>
                                     {activeFiles.map((af: ActiveFile) => {
                                         const pct = af.stage === "uploading" ? 25 : af.stage === "extracting" ? 60 : af.stage === "drive" ? 85 : af.stage === "sheets" ? 95 : 100;
                                         const stageLabel = af.stage === "uploading" ? t("อัปโหลด", "Uploading") : af.stage === "extracting" ? t("AI ดึงข้อมูล", "AI Extract") : af.stage === "drive" ? t("Drive", "Drive") : af.stage === "sheets" ? t("Sheets", "Sheets") : t("เสร็จ", "Done");
                                         return (
-                                            <div key={af.index} className="bg-slate-50 rounded-md px-3 py-2">
+                                            <div key={af.index} className="bg-gray-50 rounded-md px-3 py-2">
                                                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                                                    <p className="text-[11px] font-medium text-slate-700 truncate flex-1">{af.file.name}</p>
-                                                    <span className="text-[10px] text-teal-600 font-semibold shrink-0">{stageLabel}</span>
+                                                    <p className="text-[11px] font-medium text-gray-700 truncate flex-1">{af.file.name}</p>
+                                                    <span className="text-[10px] text-brand-600 font-semibold shrink-0">{stageLabel}</span>
                                                 </div>
-                                                <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
+                                                <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
                                                     <div
-                                                        className="h-full bg-teal-500 rounded-full transition-all duration-700 ease-out"
+                                                        className="h-full bg-brand-500 rounded-full transition-all duration-700 ease-out"
                                                         style={{ width: `${pct}%` }}
                                                     />
                                                 </div>
@@ -573,7 +615,7 @@ export default function DashboardPage() {
                                         );
                                     })}
                                     {completedCount > 0 && (
-                                        <p className="text-[10px] text-slate-400 text-center">
+                                        <p className="text-[10px] text-gray-400 text-center">
                                             {t(`เสร็จแล้ว ${completedCount} ไฟล์`, `${completedCount} file${completedCount > 1 ? "s" : ""} done`)}
                                         </p>
                                     )}
@@ -586,7 +628,7 @@ export default function DashboardPage() {
                                         <CheckCircle2 className="w-6 h-6 text-green-600" />
                                     </div>
                                     <p className="font-semibold text-green-700 mb-1">{t("เสร็จสิ้นทั้งชุด!", "Batch Complete!")}</p>
-                                    <p className="text-slate-500 text-xs">
+                                    <p className="text-gray-500 text-xs">
                                         {t(`ประมวลผลแล้ว ${results.length} ไฟล์`, `Processed ${results.length} file${results.length > 1 ? "s" : ""}`)}
                                     </p>
                                 </div>
@@ -596,7 +638,7 @@ export default function DashboardPage() {
                         {/* Results List (compact) */}
                         {results.length > 0 && (
                             <div className="space-y-2">
-                                <h3 className="text-sm font-semibold text-slate-700">{t("ผลการประมวลผล", "Processing Results")}</h3>
+                                <h3 className="text-sm font-semibold text-gray-700">{t("ผลการประมวลผล", "Processing Results")}</h3>
                                 {results.map((res, idx) => {
                                     if ("error" in res) {
                                         return (
@@ -610,13 +652,13 @@ export default function DashboardPage() {
                                         );
                                     }
                                     return (
-                                        <div key={idx} className="bg-white border border-slate-100 rounded-lg p-3 flex items-center gap-3 shadow-sm">
+                                        <div key={idx} className="bg-white border border-gray-100 rounded-lg p-3 flex items-center gap-3 shadow-sm">
                                             <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center shrink-0">
                                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-semibold text-slate-900 truncate">{res.filename}</p>
-                                                <p className="text-xs text-slate-500">
+                                                <p className="text-xs font-semibold text-gray-900 truncate">{res.filename}</p>
+                                                <p className="text-xs text-gray-500">
                                                     {res.amount?.toLocaleString()} {res.currency} · {res.date}
                                                 </p>
                                             </div>
@@ -625,7 +667,7 @@ export default function DashboardPage() {
                                                     href={res.driveLink}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border border-teal-100 bg-teal-50 text-teal-600 text-xs font-semibold hover:bg-teal-100"
+                                                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border border-brand-100 bg-brand-50 text-brand-600 text-xs font-semibold hover:bg-brand-100"
                                                 >
                                                     <HardDrive className="w-3 h-3" /> Drive
                                                 </a>
@@ -650,12 +692,40 @@ export default function DashboardPage() {
                                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                                 </div>
                                 <div>
-                                    <p className="text-base font-semibold text-slate-900">{t("เสร็จสิ้นทั้งชุด!", "Batch Complete!")}</p>
-                                    <p className="text-xs text-slate-500">
+                                    <p className="text-base font-semibold text-gray-900">{t("เสร็จสิ้นทั้งชุด!", "Batch Complete!")}</p>
+                                    <p className="text-xs text-gray-500">
                                         {t(`ประมวลผลแล้ว ${results.length} ไฟล์ ดูรายละเอียดด้านล่าง`, `Processed ${results.length} file${results.length > 1 ? "s" : ""}. See the details below.`)}
                                     </p>
                                 </div>
                             </div>
+                            <div className="grid grid-cols-2 gap-2 mb-4">
+                                <div className="rounded-lg border border-green-100 bg-green-50 px-3 py-2">
+                                    <p className="text-[11px] font-medium text-green-700">{t("สำเร็จ", "Success")}</p>
+                                    <p className="text-lg font-semibold text-green-900">{batchSummary.success}</p>
+                                </div>
+                                <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+                                    <p className="text-[11px] font-medium text-amber-700">{t("ต้องตรวจสอบ", "Needs Review")}</p>
+                                    <p className="text-lg font-semibold text-amber-900">{batchSummary.review}</p>
+                                </div>
+                                <div className="rounded-lg border border-orange-100 bg-orange-50 px-3 py-2">
+                                    <p className="text-[11px] font-medium text-orange-700">{t("ไฟล์ซ้ำ", "Duplicate")}</p>
+                                    <p className="text-lg font-semibold text-orange-900">{batchSummary.duplicate}</p>
+                                </div>
+                                <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2">
+                                    <p className="text-[11px] font-medium text-red-700">{t("ไม่สำเร็จ", "Failed")}</p>
+                                    <p className="text-lg font-semibold text-red-900">{batchSummary.failed}</p>
+                                </div>
+                            </div>
+                            {missingFieldSummary.length > 0 && (
+                                <div className="mb-4 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+                                    <p className="text-xs font-semibold text-amber-900 mb-1">
+                                        {t("ข้อมูลที่ขาด", "Missing fields")}
+                                    </p>
+                                    <p className="text-xs text-amber-800 leading-relaxed">
+                                        {missingFieldSummary.join(" / ")}
+                                    </p>
+                                </div>
+                            )}
                             <div className="flex justify-end gap-2">
                                 <button
                                     type="button"

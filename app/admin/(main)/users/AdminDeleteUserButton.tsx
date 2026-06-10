@@ -42,7 +42,7 @@ export default function AdminDeleteUserButton({
         <p className="text-amber-700 font-medium">
           ลบ user นี้และข้อมูลทั้งหมด (บัญชี Google, session, ประวัติ) หรือไม่?
         </p>
-        <p className="text-slate-500 truncate" title={userLabel}>
+        <p className="text-gray-500 truncate" title={userLabel}>
           {userLabel}
         </p>
         <div className="flex gap-2">
@@ -58,7 +58,7 @@ export default function AdminDeleteUserButton({
             type="button"
             onClick={() => { setConfirming(false); setError(null); }}
             disabled={loading}
-            className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            className="px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
           >
             ยกเลิก
           </button>

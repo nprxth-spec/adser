@@ -48,12 +48,12 @@ export default function AdminAddCreditsForm({
         max={9999}
         value={amount}
         onChange={(e) => setAmount(parseInt(e.target.value, 10) || 1)}
-        className="h-6 w-16 rounded border border-slate-200 px-2 text-[11px] text-slate-800"
+        className="h-6 w-16 rounded border border-gray-200 px-2 text-[11px] text-gray-800"
       />
       <button
         type="submit"
         disabled={loading}
-        className="inline-flex h-6 items-center rounded bg-teal-600 px-2 text-[11px] font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+        className="inline-flex h-6 items-center rounded bg-brand-600 px-2 text-[11px] font-medium text-white hover:bg-brand-700 disabled:opacity-50"
       >
         {loading ? "..." : "Add"}
       </button>

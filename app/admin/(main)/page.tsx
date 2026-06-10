@@ -175,7 +175,7 @@ export default async function AdminDashboardPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-3">
           <AdminDateRangeFilter currentFrom={fromParam} currentTo={toParam} />
           <AdminDashboardFilters
@@ -189,53 +189,53 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link
           href="/admin/logs"
-          className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300"
+          className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300"
         >
-          <p className="text-2xl font-bold text-slate-900">{logCount}</p>
-          <p className="text-sm text-slate-500">Uploads ({selectedUserId ? "selected user" : "all users"})</p>
+          <p className="text-2xl font-bold text-gray-900">{logCount}</p>
+          <p className="text-sm text-gray-500">Uploads ({selectedUserId ? "selected user" : "all users"})</p>
         </Link>
         <Link
           href="/admin/users"
-          className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300"
+          className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300"
         >
-          <p className="text-2xl font-bold text-slate-900">{userCount}</p>
-          <p className="text-sm text-slate-500">Users</p>
+          <p className="text-2xl font-bold text-gray-900">{userCount}</p>
+          <p className="text-sm text-gray-500">Users</p>
         </Link>
-        <div className="p-4 bg-white rounded-lg border border-slate-200">
-          <p className="text-2xl font-bold text-slate-900">{formatAmount(totalAmount)}</p>
-          <p className="text-sm text-slate-500">Total bill amount</p>
+        <div className="p-4 bg-white rounded-lg border border-gray-200">
+          <p className="text-2xl font-bold text-gray-900">{formatAmount(totalAmount)}</p>
+          <p className="text-sm text-gray-500">Total bill amount</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-900">Per-user uploads and amount</h2>
-          <span className="text-xs text-slate-500">{statsRows.length} users</span>
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900">Per-user uploads and amount</h2>
+          <span className="text-xs text-gray-500">{statsRows.length} users</span>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">#</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">User</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Name</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Uploads</th>
-                <th className="text-left px-4 py-2 font-medium text-slate-600 whitespace-nowrap">Total amount</th>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">#</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">User</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Name</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Uploads</th>
+                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Total amount</th>
               </tr>
             </thead>
             <tbody>
               {statsRows.map((row, i) => (
-                <tr key={row.userId} className="border-b border-slate-100">
-                  <td className="px-4 py-2 text-slate-500 whitespace-nowrap">{i + 1}</td>
-                  <td className="px-4 py-2 text-slate-700 whitespace-nowrap">{row.userLabel}</td>
-                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">{row.userName}</td>
-                  <td className="px-4 py-2 text-slate-700 whitespace-nowrap">{row.uploadCount}</td>
-                  <td className="px-4 py-2 text-slate-700 whitespace-nowrap">{formatAmount(row.totalAmount)}</td>
+                <tr key={row.userId} className="border-b border-gray-100">
+                  <td className="px-4 py-2 text-gray-500 whitespace-nowrap">{i + 1}</td>
+                  <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{row.userLabel}</td>
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{row.userName}</td>
+                  <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{row.uploadCount}</td>
+                  <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{formatAmount(row.totalAmount)}</td>
                 </tr>
               ))}
               {statsRows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
                     No upload data for this filter.
                   </td>
                 </tr>
@@ -245,12 +245,12 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-slate-900">
+          <h2 className="font-semibold text-gray-900">
             Trend by {interval === "month" ? "day (current month)" : "day"}
           </h2>
-          <p className="text-xs text-slate-500">{chartData.length} points</p>
+          <p className="text-xs text-gray-500">{chartData.length} points</p>
         </div>
         <AdminDashboardChart data={chartData} interval={interval} users={chartUsers} />
       </div>

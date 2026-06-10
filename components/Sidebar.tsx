@@ -16,28 +16,39 @@ import {
     AlertTriangle,
     SlidersHorizontal,
     Plug,
+    type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 import ChangelogBell from "@/components/ChangelogBell";
 
+type NavLink = {
+    href: string;
+    label: string;
+    icon: LucideIcon;
+    badge?: number;
+};
+
 export default function Sidebar() {
     const pathname = usePathname();
     const { t } = useAppPreferences();
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => {
+        if (typeof window === "undefined") return false;
+        return window.localStorage.getItem("sidebar-collapsed") === "true" || window.innerWidth < 768;
+    });
     const [reviewCount, setReviewCount] = useState(0);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const settingsRootRef = useRef<HTMLDivElement>(null);
 
-    const navLinks = [
+    const navLinks: NavLink[] = [
         { href: "/dashboard", label: t("อัปโหลด", "Upload"), icon: Upload },
         {
-            href: "/review",
+            href: "/dashboard/review",
             label: t("ต้องตรวจสอบ", "Needs Review"),
             icon: AlertTriangle,
             badge: reviewCount > 0 ? reviewCount : undefined,
         },
-        { href: "/history", label: t("ประวัติ", "History"), icon: History },
+        { href: "/dashboard/history", label: t("ประวัติ", "History"), icon: History },
         { href: "/analytics", label: t("วิเคราะห์", "Analytics"), icon: BarChart3 },
         { href: "/integrations", label: t("ตั้งค่า Sheet", "Sheet Settings"), icon: Table2 },
         { href: "/connectors", label: t("คอนเนคเตอร์", "Connectors"), icon: Plug },
@@ -56,13 +67,6 @@ export default function Sidebar() {
         pathname === "/billing" ||
         pathname.startsWith("/billing/") ||
         pathname.startsWith("/dashboard/billing");
-
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        const stored = window.localStorage.getItem("sidebar-collapsed");
-        const isNarrow = window.innerWidth < 768;
-        if (stored === "true" || isNarrow) setCollapsed(true);
-    }, []);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -94,13 +98,8 @@ export default function Sidebar() {
             } catch {}
         };
 
-        // Fetch immediately on mount / pathname change
         fetchCount();
-
-        // Poll every 30 s as a background fallback
         const interval = setInterval(fetchCount, 30_000);
-
-        // Re-fetch instantly on any in-app action that changes the review queue
         const handleReviewUpdate = () => { void fetchCount(); };
         window.addEventListener("filesgo:review-update", handleReviewUpdate);
 
@@ -119,7 +118,9 @@ export default function Sidebar() {
             pathname === "/billing" ||
             pathname.startsWith("/billing/") ||
             pathname.startsWith("/dashboard/billing");
-        if (shouldExpand) setSettingsOpen(true);
+        if (!shouldExpand) return;
+        const id = window.setTimeout(() => setSettingsOpen(true), 0);
+        return () => window.clearTimeout(id);
     }, [pathname]);
 
     useEffect(() => {
@@ -137,46 +138,48 @@ export default function Sidebar() {
         <aside
             className={`${
                 collapsed ? "w-16" : "w-16 md:w-64"
-            } h-screen bg-slate-900 text-white flex flex-col shrink-0 sticky top-0 overflow-x-visible transition-[width] duration-200`}
+            } h-screen bg-gray-900 text-white flex flex-col shrink-0 sticky top-0 overflow-x-visible transition-[width] duration-200 dark:bg-gray-dark`}
         >
+            {/* Logo */}
             <div
-                className={`h-14 sm:h-16 border-b border-slate-800 flex items-center ${
+                className={`h-14 sm:h-16 border-b border-gray-800 flex items-center ${
                     collapsed ? "px-0 justify-center" : "px-4"
                 }`}
             >
                 <div className={`flex items-center gap-3 min-w-0 ${collapsed ? "justify-center" : ""}`}>
-                    <div className="w-9 h-9 rounded-lg landing-accent-bg flex items-center justify-center shadow-lg shadow-teal-900/30 shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-900/30 shrink-0">
                         <Zap className="w-5 h-5 text-white" />
                     </div>
                     {!collapsed && (
                         <div className="min-w-0 whitespace-nowrap overflow-hidden">
-                            <p className="font-bold text-base truncate">Files Go</p>
-                            <p className="text-xs text-slate-400 truncate">{t("แปลงใบแจ้งหนี้เข้า Google Sheets", "Invoices to Google Sheets")}</p>
+                            <p className="font-semibold text-base truncate text-white">Files Go</p>
+                            <p className="text-xs text-gray-400 truncate">{t("แปลงใบแจ้งหนี้เข้า Google Sheets", "Invoices to Google Sheets")}</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            <nav className="flex-1 p-3 space-y-1 overflow-y-auto overflow-x-visible">
-                {navLinks.map(({ href, label, icon: Icon, badge }: any) => {
+            {/* Nav */}
+            <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto overflow-x-visible custom-scrollbar">
+                {navLinks.map(({ href, label, icon: Icon, badge }) => {
                     const isActive = pathname === href;
                     return (
                         <Link
                             key={href}
                             href={href}
                             prefetch={true}
-                            className={`flex items-center ${
+                            className={`group flex items-center ${
                                 collapsed ? "justify-center" : "gap-3"
-                            } px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
+                            } px-3 py-2.5 rounded-lg text-theme-sm font-medium transition-colors ${
                                 isActive
-                                    ? "landing-accent-bg text-white shadow-lg shadow-teal-900/30"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                    ? "bg-brand-500 text-white shadow-sm shadow-brand-900/20"
+                                    : "text-gray-400 hover:text-white hover:bg-gray-800"
                             }`}
                         >
                             <div className="relative shrink-0">
                                 <Icon className="w-5 h-5" />
                                 {collapsed && badge !== undefined && (
-                                    <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 flex items-center justify-center rounded-full bg-amber-400 text-slate-900 text-[9px] font-bold px-0.5">
+                                    <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 flex items-center justify-center rounded-full bg-warning-500 text-white text-[9px] font-bold px-0.5">
                                         {badge > 99 ? "99+" : badge}
                                     </span>
                                 )}
@@ -185,7 +188,7 @@ export default function Sidebar() {
                                 <>
                                     <span className="flex-1 truncate">{label}</span>
                                     {badge !== undefined && (
-                                        <span className="ml-auto min-w-[20px] h-5 flex items-center justify-center rounded-full bg-amber-400 text-slate-900 text-[10px] font-bold px-1">
+                                        <span className="ml-auto min-w-[20px] h-5 flex items-center justify-center rounded-full bg-warning-500 text-white text-[10px] font-bold px-1">
                                             {badge > 99 ? "99+" : badge}
                                         </span>
                                     )}
@@ -195,19 +198,19 @@ export default function Sidebar() {
                     );
                 })}
 
-                {/* Settings: expandable — General + Package */}
+                {/* Settings expandable */}
                 <div className="relative" ref={settingsRootRef}>
                     <button
                         type="button"
                         onClick={() => setSettingsOpen((v) => !v)}
                         title={collapsed ? t("ตั้งค่า", "Settings") : undefined}
-                        className={`w-full flex items-center ${
+                        className={`w-full group flex items-center ${
                             collapsed ? "justify-center" : "gap-3"
-                        } px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left cursor-pointer ${
+                        } px-3 py-2.5 rounded-lg text-theme-sm font-medium transition-colors text-left cursor-pointer ${
                             isUnderSettings
-                                ? "bg-slate-800 text-white"
-                                : "text-slate-400 hover:text-white hover:bg-slate-800"
-                        } ${collapsed && settingsOpen ? "ring-2 ring-teal-500/60" : ""}`}
+                                ? "bg-gray-800 text-white"
+                                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                        } ${collapsed && settingsOpen ? "ring-2 ring-brand-500/60" : ""}`}
                     >
                         <Settings className="w-5 h-5 shrink-0" />
                         {!collapsed && (
@@ -223,7 +226,7 @@ export default function Sidebar() {
                     </button>
 
                     {!collapsed && settingsOpen && (
-                        <div className="mt-0.5 ml-2 pl-3 border-l border-slate-700 space-y-0.5 py-1">
+                        <div className="mt-0.5 ml-2 pl-3 border-l border-gray-700 space-y-0.5 py-1">
                             {settingsChildLinks.map(({ href, label, icon: Icon }) => {
                                 const isActive =
                                     href === "/settings"
@@ -238,10 +241,10 @@ export default function Sidebar() {
                                         key={href}
                                         href={href}
                                         prefetch={true}
-                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-theme-sm font-medium transition-colors ${
                                             isActive
-                                                ? "landing-accent-bg text-white shadow-md shadow-teal-900/20"
-                                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                                ? "bg-brand-500 text-white shadow-sm shadow-brand-900/20"
+                                                : "text-gray-400 hover:text-white hover:bg-gray-800"
                                         }`}
                                     >
                                         <Icon className="w-4 h-4 shrink-0 opacity-90" />
@@ -253,7 +256,7 @@ export default function Sidebar() {
                     )}
 
                     {collapsed && settingsOpen && (
-                        <div className="absolute left-full top-0 ml-1.5 z-50 min-w-[168px] rounded-lg border border-slate-700 bg-slate-800 py-1 shadow-xl shadow-black/40">
+                        <div className="absolute left-full top-0 ml-1.5 z-50 min-w-[168px] rounded-lg border border-gray-700 bg-gray-800 py-1 shadow-theme-xl">
                             {settingsChildLinks.map(({ href, label, icon: Icon }) => {
                                 const isActive =
                                     href === "/settings"
@@ -269,10 +272,10 @@ export default function Sidebar() {
                                         href={href}
                                         prefetch={true}
                                         onClick={() => setSettingsOpen(false)}
-                                        className={`flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors ${
+                                        className={`flex items-center gap-2.5 px-3 py-2.5 text-theme-sm font-medium transition-colors ${
                                             isActive
-                                                ? "bg-teal-600/30 text-white"
-                                                : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                                                ? "bg-brand-500/30 text-white"
+                                                : "text-gray-300 hover:bg-gray-700 hover:text-white"
                                         }`}
                                     >
                                         <Icon className="w-4 h-4 shrink-0" />
@@ -285,7 +288,8 @@ export default function Sidebar() {
                 </div>
             </nav>
 
-            <div className="p-3 border-t border-slate-800">
+            {/* Bottom */}
+            <div className="p-3 border-t border-gray-800">
                 <ChangelogBell collapsed={collapsed} />
             </div>
         </aside>

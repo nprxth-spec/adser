@@ -74,7 +74,7 @@ export default function IntegrationsPage() {
                 if (serverProfiles.length === 0) {
                     const initial: SheetProfile = {
                         id: "default",
-                        name: "Default",
+                        name: t("ค่าเริ่มต้น", "Default"),
                         sheetId: user?.sheetId ?? "",
                         sheetName: user?.sheetName ?? "",
                         sheetGid: null,
@@ -217,7 +217,7 @@ export default function IntegrationsPage() {
 
         const newProfile: SheetProfile = {
             id,
-            name: mode === "duplicate" && activeProfile ? `${activeProfile.name} copy` : `Profile ${profiles.length + 1}`,
+            name: mode === "duplicate" && activeProfile ? `${activeProfile.name} (${t("คัดลอก", "copy")})` : `${t("โปรไฟล์", "Profile")} ${profiles.length + 1}`,
             sheetId: base.sheetId || "",
             sheetName: base.sheetName || "",
             sheetGid: (base as SheetProfile).sheetGid ?? null,
@@ -315,12 +315,12 @@ export default function IntegrationsPage() {
                                     <img src="/sheet.webp" alt="" width={16} height={16} className="shrink-0" />
                                     <span className={`min-w-0 flex-1 truncate ${sheetId ? "text-gray-800 dark:text-gray-200" : "text-gray-400 dark:text-gray-500"}`}>
                                         {loadingSheets
-                                            ? "Loading sheets..."
+                                            ? t("กำลังโหลดสเปรดชีต...", "Loading sheets...")
                                             : sheets.length === 0
-                                                ? "No Google Sheets available"
+                                                ? t("ไม่มีไฟล์ Google Sheets", "No Google Sheets available")
                                                 : sheetId
-                                                    ? sheets.find((s) => s.id === sheetId)?.name ?? "Select a sheet"
-                                                    : "Select a sheet"}
+                                                    ? sheets.find((s) => s.id === sheetId)?.name ?? t("เลือกสเปรดชีต", "Select a sheet")
+                                                    : t("เลือกสเปรดชีต", "Select a sheet")}
                                     </span>
                                 </button>
                                 {sheetMenuOpen && !loadingSheets && sheets.length > 0 && (
@@ -340,7 +340,7 @@ export default function IntegrationsPage() {
                                     </div>
                                 )}
                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                                    Sheets are loaded from your Google Drive account. Make sure the target sheet is shared with this app.
+                                    {t("ไฟล์สเปรดชีตถูกดึงมาจากบัญชี Google Drive ของคุณ โปรดตรวจสอบว่าเปิดการแชร์ให้แอปแล้ว", "Sheets are loaded from your Google Drive account. Make sure the target sheet is shared with this app.")}
                                 </p>
                             </div>
 
@@ -359,7 +359,7 @@ export default function IntegrationsPage() {
                                     className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-750 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-gray-50 dark:disabled:bg-gray-900/50 disabled:text-gray-400 dark:disabled:text-gray-650 cursor-pointer disabled:cursor-not-allowed text-gray-800 dark:text-gray-200"
                                 >
                                     <span className={sheetName ? "text-gray-800 dark:text-gray-200" : "text-gray-400 dark:text-gray-500"}>
-                                        {loadingTabs ? "Loading tabs…" : sheetName || (tabs.length > 0 ? "Select a tab" : "Select a sheet first")}
+                                        {loadingTabs ? t("กำลังโหลดแท็บ...", "Loading tabs…") : sheetName || (tabs.length > 0 ? t("เลือกแท็บ", "Select a tab") : t("กรุณาเลือกไฟล์สเปรดชีตก่อน", "Select a sheet first"))}
                                     </span>
                                 </button>
                                 {tabMenuOpen && tabs.length > 0 && (
@@ -383,20 +383,20 @@ export default function IntegrationsPage() {
                     {/* Step 3: Column Mapping */}
                     <div>
                         <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
-                            3. Column Mapping
+                            {t("3. แมปคอลัมน์", "3. Column Mapping")}
                         </label>
                         <div className="bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-100 dark:border-gray-850 p-5">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-5 gap-x-4">
                                 {[
-                                    { label: "File Name", key: "filename" },
-                                    { label: "Invoice Date", key: "date" },
-                                    { label: "Billed To", key: "billed_to" },
-                                    { label: "Card (Last 4)", key: "card_last_4" },
-                                    { label: "Amount (successful)", key: "amount" },
-                                    { label: "Amount (unsuccessful)", key: "amountFailed" },
-                                    { label: "Currency", key: "currency" },
-                                    { label: "Drive Link", key: "driveLink" },
-                                    { label: "Reference No.", key: "reference" },
+                                    { label: t("ชื่อไฟล์", "File Name"), key: "filename" },
+                                    { label: t("วันที่ในใบแจ้งหนี้", "Invoice Date"), key: "date" },
+                                    { label: t("ชื่อผู้รับบิล", "Billed To"), key: "billed_to" },
+                                    { label: t("เลขท้ายบัตร (4 หลัก)", "Card (Last 4)"), key: "card_last_4" },
+                                    { label: t("ยอดเงิน (สำเร็จ)", "Amount (successful)"), key: "amount" },
+                                    { label: t("ยอดเงิน (ไม่สำเร็จ)", "Amount (unsuccessful)"), key: "amountFailed" },
+                                    { label: t("สกุลเงิน", "Currency"), key: "currency" },
+                                    { label: t("ลิงก์ Drive", "Drive Link"), key: "driveLink" },
+                                    { label: t("เลขที่อ้างอิง", "Reference No."), key: "reference" },
                                 ].map((field) => (
                                     <div key={field.key} className="flex flex-col gap-1.5">
                                         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -407,9 +407,9 @@ export default function IntegrationsPage() {
                                             onChange={e => updateMapping(field.key as any, e.target.value)}
                                             className="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono w-full"
                                         >
-                                            <option value="">- Skip -</option>
+                                            <option value="">{t("- ข้าม -", "- Skip -")}</option>
                                             {colOptions.map(col => (
-                                                <option key={col} value={col}>Column {col}</option>
+                                                <option key={col} value={col}>{t(`คอลัมน์ ${col}`, `Column ${col}`)}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -417,7 +417,7 @@ export default function IntegrationsPage() {
                             </div>
                         </div>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                            Choose which column (A-Z) each piece of extracted data should be inserted into.
+                            {t("เลือกคอลัมน์ (A-Z) ที่ต้องการบันทึกข้อมูลแต่ละประเภทที่ดึงได้จากใบแจ้งหนี้", "Choose which column (A-Z) each piece of extracted data should be inserted into.")}
                         </p>
                     </div>
 
@@ -430,7 +430,7 @@ export default function IntegrationsPage() {
                             rel="noopener noreferrer"
                             className="flex items-center gap-1.5 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 transition-colors order-2 sm:order-1"
                         >
-                            Create new Sheet <ExternalLink className="w-3.5 h-3.5" />
+                            {t("สร้างไฟล์ Sheet ใหม่", "Create new Sheet")} <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                         <button
                             onClick={handleSave}
@@ -444,7 +444,7 @@ export default function IntegrationsPage() {
                             ) : (
                                 <Save className="w-4 h-4" />
                             )}
-                            {saved ? "Saved Configuration" : "Save All Changes"}
+                            {saved ? t("บันทึกการตั้งค่าแล้ว", "Saved Configuration") : t("บันทึกการเปลี่ยนแปลงทั้งหมด", "Save All Changes")}
                         </button>
                     </div>
                 </div>

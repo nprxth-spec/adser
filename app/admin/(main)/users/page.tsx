@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import AdminAddCreditsForm from "./AdminAddCreditsForm";
 import AdminUserScopesCell from "./AdminUserScopesCell";
 import AdminDeleteUserButton from "./AdminDeleteUserButton";
 import AdminTruncatedCell from "./AdminTruncatedCell";
@@ -8,20 +7,7 @@ import AdminSheetMappingEditor from "./AdminSheetMappingEditor";
 import LogsRangeSelect from "../logs/LogsRangeSelect";
 import { LogsSearchClient } from "../logs/LogsSearchClient";
 
-/** Next credits reset = 1st of next month after last reset. For free only. */
-function getNextResetAndDays(
-  plan: string,
-  lastCreditsReset: Date | null
-): { nextReset: Date | null; daysLeft: number | null } {
-  if (plan !== "free") return { nextReset: null, daysLeft: null };
-  const now = new Date();
-  const base = lastCreditsReset ?? now;
-  const nextReset = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 1));
-  const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const daysLeft = Math.max(0, Math.ceil((nextReset.getTime() - nowUTC) / msPerDay));
-  return { nextReset, daysLeft };
-}
+
 
 type DateRangePreset = "today" | "yesterday" | "this_week" | "this_month" | "last_month" | "this_year";
 
@@ -108,9 +94,6 @@ export default async function AdminUsersPage({
       id: true,
       email: true,
       name: true,
-      credits: true,
-      plan: true,
-      lastCreditsReset: true,
       createdAt: true,
       sheetId: true,
       sheetName: true,
@@ -124,7 +107,7 @@ export default async function AdminUsersPage({
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-xl font-bold text-gray-900">Users & Credits</h1>
+          <h1 className="text-xl font-bold text-gray-900">Users</h1>
           <LogsRangeSelect basePath="/admin/users" currentRange={range} dateLabel="Date:" />
         </div>
         <LogsSearchClient
@@ -132,7 +115,7 @@ export default async function AdminUsersPage({
           placeholder="Search by email, name, sheet, or Drive folder"
         />
       </div>
-      <p className="text-sm text-gray-500">Add credits for users to test. Changes apply immediately.</p>
+      <p className="text-sm text-gray-500">Manage registered users. Changes apply immediately.</p>
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -141,11 +124,6 @@ export default async function AdminUsersPage({
                 <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap w-12">#</th>
                 <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Email</th>
                 <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Name</th>
-                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Plan</th>
-                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Credits</th>
-                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Last reset</th>
-                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Next reset</th>
-                <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">Days left</th>
                 <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">sheetId</th>
                 <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">sheetName</th>
                 <th className="text-left px-4 py-2 font-medium text-gray-600 whitespace-nowrap">sheetMapping</th>
@@ -157,10 +135,6 @@ export default async function AdminUsersPage({
             </thead>
             <tbody>
               {users.map((user, i) => {
-                const { nextReset, daysLeft } = getNextResetAndDays(
-                  user.plan,
-                  user.lastCreditsReset
-                );
                 return (
                   <tr key={user.id} className="border-b border-gray-100">
                     <td className="px-4 py-2 text-gray-500 tabular-nums whitespace-nowrap">
@@ -168,29 +142,6 @@ export default async function AdminUsersPage({
                     </td>
                     <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.email ?? "—"}</td>
                     <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{user.name ?? "—"}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <span
-                        className={
-                          user.plan === "pro"
-                            ? "text-emerald-600 font-medium"
-                            : "text-gray-600"
-                        }
-                      >
-                        {user.plan}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.credits}</td>
-                    <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
-                      {user.lastCreditsReset
-                        ? new Date(user.lastCreditsReset).toLocaleDateString()
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
-                      {nextReset ? nextReset.toLocaleDateString() : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
-                      {daysLeft !== null ? `${daysLeft} days` : "—"}
-                    </td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       <AdminTruncatedCell value={user.sheetId} />
                     </td>
@@ -219,7 +170,6 @@ export default async function AdminUsersPage({
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       <div className="flex items-center gap-2 whitespace-nowrap">
-                        <AdminAddCreditsForm userId={user.id} userEmail={user.email ?? user.id} />
                         <AdminDeleteUserButton
                           userId={user.id}
                           userLabel={user.email ?? user.name ?? user.id}

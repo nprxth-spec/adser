@@ -138,18 +138,18 @@ function ReviewDialog({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border dark:border-gray-800">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-start gap-3 rounded-t-lg z-10">
-          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0 mt-0.5">
-            <FileText className="w-4 h-4 text-amber-500" />
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 py-4 flex items-start gap-3 rounded-t-lg z-10">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center shrink-0 mt-0.5">
+            <FileText className="w-4 h-4 text-amber-500 dark:text-amber-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-sm truncate">
+            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
               {item.originalFilename ?? item.filename}
             </p>
             <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 {new Date(item.createdAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
               </p>
               {item.driveLink && (
@@ -157,7 +157,7 @@ function ReviewDialog({
                   href={item.driveLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-0.5 text-xs text-brand-600 hover:underline"
+                  className="inline-flex items-center gap-0.5 text-xs text-brand-600 dark:text-brand-400 hover:underline"
                 >
                   <ExternalLink className="w-3 h-3" />
                   {t("ดูไฟล์", "View file")}
@@ -167,7 +167,7 @@ function ReviewDialog({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 dark:text-gray-550 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
           >
             <XIcon className="w-4 h-4" />
           </button>
@@ -177,11 +177,11 @@ function ReviewDialog({
           {/* Missing field badges */}
           {missingFields.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              <span className="text-xs text-gray-500 mr-1">{t("ขาด:", "Missing:")}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">{t("ขาด:", "Missing:")}</span>
               {missingFields.map((f) => (
                 <span
                   key={f}
-                  className="text-[11px] font-medium bg-red-50 text-red-600 border border-red-200 rounded-full px-2 py-0.5"
+                  className="text-[11px] font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-full px-2 py-0.5"
                 >
                   {t(FIELD_LABELS[f]?.th ?? f, FIELD_LABELS[f]?.en ?? f)}
                 </span>
@@ -191,7 +191,7 @@ function ReviewDialog({
 
           {/* Re-scan notice */}
           {rescanNotice && (
-            <div className="rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700">
+            <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
               {rescanNotice}
             </div>
           )}
@@ -203,7 +203,7 @@ function ReviewDialog({
               const labels = FIELD_LABELS[key];
               return (
                 <div key={key}>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                     {t(labels.th, labels.en)}
                     {isMissing && <span className="ml-1 text-red-500">*</span>}
                   </label>
@@ -215,8 +215,8 @@ function ReviewDialog({
                     className={[
                       "w-full px-3 py-2 rounded-md border text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent",
                       isMissing && !fields[key].trim() && (key !== "reference_number" || paymentSucceeded)
-                        ? "border-red-300 bg-red-50"
-                        : "border-gray-200 bg-white",
+                        ? "border-red-300 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 text-red-900 dark:text-red-200"
+                        : "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200",
                     ].join(" ")}
                   />
                 </div>
@@ -226,26 +226,26 @@ function ReviewDialog({
 
           {/* Filename preview */}
           {preview && (
-            <div className="rounded-md bg-brand-50 border border-brand-200 px-3 py-2">
-              <p className="text-[11px] font-medium text-brand-700 mb-0.5">
+            <div className="rounded-md bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-900/50 px-3 py-2">
+              <p className="text-[11px] font-medium text-brand-700 dark:text-brand-400 mb-0.5">
                 {t("ตัวอย่างชื่อไฟล์", "Filename preview")}
               </p>
-              <p className="font-mono text-xs text-brand-900 break-all">{preview}</p>
+              <p className="font-mono text-xs text-brand-900 dark:text-brand-200 break-all">{preview}</p>
             </div>
           )}
 
           {error && (
-            <p className="text-xs text-red-600 bg-red-50 rounded-md px-3 py-2">{error}</p>
+            <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 rounded-md px-3 py-2">{error}</p>
           )}
         </div>
 
         {/* Footer actions */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center gap-2 rounded-b-lg">
+        <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-850 px-6 py-4 flex items-center gap-2 rounded-b-lg">
           {/* Re-scan */}
           <button
             onClick={handleRescan}
             disabled={rescanning || approving}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer"
           >
             {rescanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ScanSearch className="w-3.5 h-3.5" />}
             {t("สแกนซ้ำ", "Re-scan")}
@@ -257,7 +257,7 @@ function ReviewDialog({
           <button
             onClick={handleDiscardClick}
             disabled={approving || rescanning}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 disabled:opacity-50 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-850 text-xs text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-200 dark:hover:border-red-900/50 hover:text-red-600 dark:hover:text-red-450 disabled:opacity-50 transition-colors cursor-pointer"
           >
             <XCircle className="w-3.5 h-3.5" />
             {t("ยกเลิก", "Discard")}
@@ -299,14 +299,14 @@ function ReviewRow({
   const missingFields = pending?.missingFields ?? [];
 
   return (
-    <tr className={`border-b border-gray-100 last:border-0 hover:bg-gray-50/60 transition-colors group ${selected ? "bg-brand-50/40" : ""}`}>
+    <tr className={`border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors group ${selected ? "bg-brand-50/40 dark:bg-brand-950/20" : ""}`}>
       {/* Checkbox */}
       <td className="py-3 pl-4 pr-2 w-10">
         <input
           type="checkbox"
           checked={selected}
           onChange={() => onToggleSelect(item.id)}
-          className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+          className="w-4 h-4 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-850 text-brand-600 focus:ring-brand-500 cursor-pointer"
           aria-label={t("เลือกรายการ", "Select item")}
         />
       </td>
@@ -314,17 +314,17 @@ function ReviewRow({
       {/* File */}
       <td className="py-3 pr-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-amber-50 flex items-center justify-center shrink-0">
-            <FileText className="w-3.5 h-3.5 text-amber-500" />
+          <div className="w-7 h-7 rounded-md bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center shrink-0">
+            <FileText className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
           </div>
           <div className="min-w-0">
             <p
-              className="text-sm font-medium text-gray-800 truncate w-full max-w-[min(55vw,36rem)]"
+              className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate w-full max-w-[min(55vw,36rem)]"
               title={item.originalFilename ?? item.filename}
             >
               {item.originalFilename ?? item.filename}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               {new Date(item.createdAt).toLocaleDateString("th-TH", { dateStyle: "medium" })}
             </p>
           </div>
@@ -337,12 +337,12 @@ function ReviewRow({
           {missingFields.length > 0 ? missingFields.map((f) => (
             <span
               key={f}
-              className="text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 rounded-full px-1.5 py-0.5"
+              className="text-[10px] font-medium bg-red-50 dark:bg-red-950/30 text-red-650 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-full px-1.5 py-0.5"
             >
               {t(FIELD_LABELS[f]?.th ?? f, FIELD_LABELS[f]?.en ?? f)}
             </span>
           )) : (
-            <span className="text-[10px] text-gray-400">{t("ครบแล้ว", "Complete")}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500">{t("ครบแล้ว", "Complete")}</span>
           )}
         </div>
       </td>
@@ -350,11 +350,11 @@ function ReviewRow({
       {/* Amount */}
       <td className="py-3 px-3 hidden md:table-cell text-right">
         {item.amount != null ? (
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-350">
             {item.amount.toLocaleString()} {item.currency}
           </span>
         ) : (
-          <span className="text-xs text-gray-300">—</span>
+          <span className="text-xs text-gray-300 dark:text-gray-700">—</span>
         )}
       </td>
 
@@ -365,13 +365,13 @@ function ReviewRow({
             href={item.driveLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-brand-600 dark:text-brand-400 hover:underline"
           >
             <ExternalLink className="w-3 h-3" />
             Drive
           </a>
         ) : (
-          <span className="text-xs text-gray-300">—</span>
+          <span className="text-xs text-gray-300 dark:text-gray-700">—</span>
         )}
       </td>
 
@@ -388,7 +388,7 @@ function ReviewRow({
           <button
             onClick={() => onRequestDelete(item)}
             disabled={discarding}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-gray-200 text-xs text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 disabled:opacity-50 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-200 dark:hover:border-red-900/50 hover:text-red-650 dark:hover:text-red-400 disabled:opacity-50 transition-colors cursor-pointer"
           >
             {discarding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
             {t("ลบ", "Delete")}
@@ -549,10 +549,10 @@ export default function ReviewPage() {
       {/* Page header */}
       <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
             {t("ต้องตรวจสอบ", "Needs Review")}
           </h1>
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             {t(
               "ไฟล์ที่ข้อมูลไม่ครบ — กดตรวจสอบเพื่อกรอกข้อมูลและอนุมัติ",
               "Files with incomplete data — click Review to complete and approve."
@@ -562,7 +562,7 @@ export default function ReviewPage() {
         <button
           onClick={() => fetchItems(false)}
           disabled={refreshing || loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition-colors cursor-pointer shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-450 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer shrink-0"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
           {t("รีเฟรช", "Refresh")}
@@ -570,20 +570,20 @@ export default function ReviewPage() {
       </div>
 
       {deleteWarnings.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
+          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-xs font-semibold text-amber-800">
+            <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
               {t("ลบจากฐานข้อมูลแล้ว แต่มีข้อควรระวัง:", "Deleted from database, but note:")}
             </p>
             {deleteWarnings.map((w, i) => (
-              <p key={i} className="text-xs text-amber-700 mt-0.5">{w}</p>
+              <p key={i} className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{w}</p>
             ))}
           </div>
           <button
             type="button"
             onClick={() => setDeleteWarnings([])}
-            className="text-amber-600 hover:text-amber-800 text-xs shrink-0 cursor-pointer"
+            className="text-amber-600 dark:text-amber-400 hover:text-amber-850 dark:hover:text-amber-200 text-xs shrink-0 cursor-pointer"
           >
             ✕
           </button>
@@ -596,14 +596,14 @@ export default function ReviewPage() {
           <span className="text-sm">{t("กำลังโหลด...", "Loading...")}</span>
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
-          <div className="w-14 h-14 rounded-xl bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-450">
+          <div className="w-14 h-14 rounded-xl bg-gray-50 dark:bg-gray-950/50 flex items-center justify-center">
             <CheckCircle className="w-7 h-7 text-emerald-400" />
           </div>
-          <p className="text-sm font-medium text-gray-600">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
             {t("ไม่มีรายการที่ต้องตรวจสอบ", "No items need review")}
           </p>
-          <p className="text-xs text-gray-400 text-center max-w-xs">
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center max-w-xs">
             {t(
               "ไฟล์ที่ข้อมูลไม่ครบจะปรากฏที่นี่เพื่อให้คุณกรอกข้อมูลและอนุมัติ",
               "Files with incomplete data will appear here for you to complete and approve."
@@ -614,8 +614,8 @@ export default function ReviewPage() {
         <div>
           <div className="flex items-center justify-between gap-2 mb-3 min-h-[28px]">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <p className="text-sm text-gray-600">
+              <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 {t(
                   `${items.length} รายการรอตรวจสอบ`,
                   `${items.length} item${items.length !== 1 ? "s" : ""} awaiting review`
@@ -624,13 +624,13 @@ export default function ReviewPage() {
             </div>
             {selectedIds.size > 0 && (
               <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-150">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
                   {t(`เลือก ${selectedIds.size} รายการ`, `${selectedIds.size} selected`)}
                 </span>
                 <button
                   type="button"
                   onClick={clearSelection}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded-md hover:bg-gray-100 cursor-pointer"
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                 >
                   {t("ล้าง", "Clear")}
                 </button>
@@ -647,10 +647,10 @@ export default function ReviewPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-gray-50 dark:bg-gray-950/40 border-b border-gray-100 dark:border-gray-800">
                   <th className="py-3 pl-4 pr-2 w-10">
                     <input
                       type="checkbox"
@@ -659,20 +659,20 @@ export default function ReviewPage() {
                         if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < items.length;
                       }}
                       onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-850 text-brand-600 focus:ring-brand-500 cursor-pointer"
                       aria-label={t("เลือกทั้งหมด", "Select all")}
                     />
                   </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide py-3 pr-3">
+                  <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide py-3 pr-3">
                     {t("ไฟล์", "File")}
                   </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide py-3 px-3 hidden sm:table-cell">
+                  <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide py-3 px-3 hidden sm:table-cell">
                     {t("ข้อมูลที่ขาด", "Missing fields")}
                   </th>
-                  <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide py-3 px-3 hidden md:table-cell">
+                  <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide py-3 px-3 hidden md:table-cell">
                     {t("ยอด", "Amount")}
                   </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide py-3 px-3 hidden lg:table-cell">
+                  <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide py-3 px-3 hidden lg:table-cell">
                     {t("ไฟล์", "File link")}
                   </th>
                   <th className="py-3 pl-3 pr-4" />
@@ -703,21 +703,21 @@ export default function ReviewPage() {
           onClick={() => !bulkDeleting && setBulkConfirmOpen(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border dark:border-gray-800"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 sm:px-6 pt-5 pb-3 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5 text-red-500" />
+              <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-955/20 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-500 dark:text-red-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-semibold text-gray-900">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {t(
                     `ยืนยันการลบ ${selectedIds.size} รายการ`,
                     `Delete ${selectedIds.size} item${selectedIds.size !== 1 ? "s" : ""}?`
                   )}
                 </h2>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                   {t(
                     "ระบบจะลบรายการที่เลือกจากฐานข้อมูลและพยายามลบไฟล์บน Google Drive การกระทำนี้ไม่สามารถย้อนกลับได้",
                     "This removes the selected records from the database and tries to delete the files from Google Drive. This cannot be undone."
@@ -727,7 +727,7 @@ export default function ReviewPage() {
               <button
                 type="button"
                 onClick={() => !bulkDeleting && setBulkConfirmOpen(false)}
-                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer disabled:opacity-50"
+                className="p-1 rounded-md text-gray-400 dark:text-gray-550 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer disabled:opacity-50"
                 aria-label="Close"
               >
                 <XIcon className="w-5 h-5" />
@@ -735,7 +735,7 @@ export default function ReviewPage() {
             </div>
 
             {deleteError && (
-              <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-950/20 px-3 py-2 text-xs text-red-700 dark:text-red-400">
                 {deleteError}
               </div>
             )}
@@ -745,7 +745,7 @@ export default function ReviewPage() {
                 type="button"
                 onClick={() => !bulkDeleting && setBulkConfirmOpen(false)}
                 disabled={bulkDeleting}
-                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer disabled:opacity-50 bg-white dark:bg-gray-900"
               >
                 {t("ยกเลิก", "Cancel")}
               </button>
@@ -779,18 +779,18 @@ export default function ReviewPage() {
           onClick={() => !discardingId && setDeleteConfirmItem(null)}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border dark:border-gray-800"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 sm:px-6 pt-5 pb-3 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5 text-red-500" />
+              <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-955/20 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-500 dark:text-red-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-semibold text-gray-900">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {t("ยืนยันการลบรายการ", "Delete this item?")}
                 </h2>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                   {t(
                     "ระบบจะลบรายการจากฐานข้อมูลและพยายามลบไฟล์บน Google Drive การกระทำนี้ไม่สามารถย้อนกลับได้",
                     "This removes the record from the database and tries to delete the file from Google Drive. This cannot be undone."
@@ -800,39 +800,39 @@ export default function ReviewPage() {
               <button
                 type="button"
                 onClick={() => !discardingId && setDeleteConfirmItem(null)}
-                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer disabled:opacity-50"
+                className="p-1 rounded-md text-gray-400 dark:text-gray-550 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer disabled:opacity-50"
                 aria-label="Close"
               >
                 <XIcon className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2.5">
+            <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-950/50 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                <FileText className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
                 <span
-                  className="text-xs font-medium text-gray-700 truncate"
+                  className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate"
                   title={deleteConfirmItem.originalFilename ?? deleteConfirmItem.filename}
                 >
                   {deleteConfirmItem.originalFilename ?? deleteConfirmItem.filename}
                 </span>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-gray-500">
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
                 {deleteConfirmItem.invoiceDate && (
                   <span>
-                    <span className="text-gray-400">{t("วันที่: ", "Date: ")}</span>
+                    <span className="text-gray-400 dark:text-gray-550">{t("วันที่: ", "Date: ")}</span>
                     {deleteConfirmItem.invoiceDate}
                   </span>
                 )}
                 {deleteConfirmItem.cardLast4 && (
                   <span className="font-mono">
-                    <span className="text-gray-400 font-sans">{t("บัตร: ", "Card: ")}</span>
+                    <span className="text-gray-400 dark:text-gray-550 font-sans">{t("บัตร: ", "Card: ")}</span>
                     •••• {deleteConfirmItem.cardLast4}
                   </span>
                 )}
                 {deleteConfirmItem.amount != null && (
                   <span>
-                    <span className="text-gray-400">{t("ยอด: ", "Amount: ")}</span>
+                    <span className="text-gray-400 dark:text-gray-550">{t("ยอด: ", "Amount: ")}</span>
                     {deleteConfirmItem.currency ? `${deleteConfirmItem.currency} ` : ""}
                     {deleteConfirmItem.amount.toLocaleString()}
                   </span>
@@ -841,7 +841,7 @@ export default function ReviewPage() {
             </div>
 
             {deleteError && (
-              <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <div className="mx-5 sm:mx-6 mb-4 rounded-lg border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-950/20 px-3 py-2 text-xs text-red-700 dark:text-red-400">
                 {deleteError}
               </div>
             )}
@@ -851,7 +851,7 @@ export default function ReviewPage() {
                 type="button"
                 onClick={() => !discardingId && setDeleteConfirmItem(null)}
                 disabled={!!discardingId}
-                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer disabled:opacity-50 bg-white dark:bg-gray-900"
               >
                 {t("ยกเลิก", "Cancel")}
               </button>

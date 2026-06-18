@@ -8,8 +8,6 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
-      credits?: number;
-      plan?: string;
       sheetId?: string | null;
       sheetName?: string | null;
       sheetGid?: number | null;
@@ -20,8 +18,6 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     userId?: string;
-    credits?: number;
-    plan?: string;
     sheetId?: string | null;
     sheetName?: string | null;
     sheetGid?: number | null;

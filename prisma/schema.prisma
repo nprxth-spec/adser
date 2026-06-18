@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -16,13 +16,13 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
+  scope             String? @db.Text
+  id_token          String? @db.Text
+  session_state     String? @db.Text
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -43,9 +43,6 @@ model User {
   email              String?   @unique
   emailVerified      DateTime?
   image              String?
-  credits            Int       @default(9999)
-  plan               String    @default("free") // "free" | "pro"
-  lastCreditsReset   DateTime? // last time free-plan credits were reset to 9999
   sheetId            String?
   sheetName          String?
   sheetGid           Int?     // numeric GID ของ sheet tab สำหรับลิงก์ตรงแท็บ
@@ -103,9 +100,9 @@ model MetaConnection {
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   fbUserId       String
   fbUserName     String?
-  accessToken    String          // long-lived user access token
+  accessToken    String          @db.Text // long-lived user access token
   tokenExpiresAt DateTime?
-  scopes         String?
+  scopes         String?         @db.Text
   lastSyncedAt   DateTime?
   adAccounts     MetaAdAccount[]
   createdAt      DateTime        @default(now())
@@ -140,7 +137,7 @@ model AuditLog {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String   // "login" | "config_drive" | "config_sheet" | "config_naming" | "config_plan"
+  type        String   // "login" | "config_drive" | "config_sheet" | "config_naming"
   description String?
   metadata    Json?    // optional extra (e.g. what changed)
   ip          String?  // client IP when available

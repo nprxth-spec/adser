@@ -42,31 +42,25 @@ export default function Sidebar() {
 
     const navLinks: NavLink[] = [
         { href: "/dashboard", label: t("อัปโหลด", "Upload"), icon: Upload },
-        {
-            href: "/dashboard/review",
-            label: t("ต้องตรวจสอบ", "Needs Review"),
-            icon: AlertTriangle,
-            badge: reviewCount > 0 ? reviewCount : undefined,
-        },
+        { href: "/dashboard/review", label: t("ตรวจสอบ", "Review"), icon: AlertTriangle, badge: reviewCount > 0 ? reviewCount : undefined },
         { href: "/dashboard/history", label: t("ประวัติ", "History"), icon: History },
         { href: "/analytics", label: t("วิเคราะห์", "Analytics"), icon: BarChart3 },
         { href: "/integrations", label: t("ตั้งค่า Sheet", "Sheet Settings"), icon: Table2 },
-        { href: "/connectors", label: t("คอนเนคเตอร์", "Connectors"), icon: Plug },
         { href: "/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },
     ];
 
     const settingsChildLinks = [
         { href: "/settings", label: t("ทั่วไป", "General"), icon: SlidersHorizontal },
-        { href: "/billing", label: t("แพ็กเกจ", "Package"), icon: CreditCard },
+        { href: "/connectors", label: t("คอนเนคเตอร์", "Connectors"), icon: Plug },
     ];
 
     const isUnderSettings =
         pathname === "/settings" ||
         pathname.startsWith("/settings/") ||
         pathname.startsWith("/dashboard/settings") ||
-        pathname === "/billing" ||
-        pathname.startsWith("/billing/") ||
-        pathname.startsWith("/dashboard/billing");
+        pathname === "/connectors" ||
+        pathname.startsWith("/connectors/") ||
+        pathname.startsWith("/dashboard/connectors");
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -115,9 +109,9 @@ export default function Sidebar() {
             pathname === "/settings" ||
             pathname.startsWith("/settings/") ||
             pathname.startsWith("/dashboard/settings") ||
-            pathname === "/billing" ||
-            pathname.startsWith("/billing/") ||
-            pathname.startsWith("/dashboard/billing");
+            pathname === "/connectors" ||
+            pathname.startsWith("/connectors/") ||
+            pathname.startsWith("/dashboard/connectors");
         if (!shouldExpand) return;
         const id = window.setTimeout(() => setSettingsOpen(true), 0);
         return () => window.clearTimeout(id);
@@ -233,9 +227,9 @@ export default function Sidebar() {
                                         ? pathname === "/settings" ||
                                           pathname.startsWith("/settings/") ||
                                           pathname.startsWith("/dashboard/settings")
-                                        : pathname === "/billing" ||
-                                          pathname.startsWith("/billing/") ||
-                                          pathname.startsWith("/dashboard/billing");
+                                        : pathname === "/connectors" ||
+                                          pathname.startsWith("/connectors/") ||
+                                          pathname.startsWith("/dashboard/connectors");
                                 return (
                                     <Link
                                         key={href}
@@ -263,9 +257,9 @@ export default function Sidebar() {
                                         ? pathname === "/settings" ||
                                           pathname.startsWith("/settings/") ||
                                           pathname.startsWith("/dashboard/settings")
-                                        : pathname === "/billing" ||
-                                          pathname.startsWith("/billing/") ||
-                                          pathname.startsWith("/dashboard/billing");
+                                        : pathname === "/connectors" ||
+                                          pathname.startsWith("/connectors/") ||
+                                          pathname.startsWith("/dashboard/connectors");
                                 return (
                                     <Link
                                         key={href}

@@ -20,6 +20,17 @@ export async function POST(request: Request) {
   const ip = getClientIp(request);
 
   try {
+    // Check if user exists in the database to avoid foreign key violation
+    // if a stale JWT session cookie is present but the database has been reset.
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!userExists) {
+      return NextResponse.json({ error: "User not found in database" }, { status: 401 });
+    }
+
     const lastLogin = await prisma.auditLog.findFirst({
       where: { userId, type: "login" },
       orderBy: { createdAt: "desc" },

@@ -14,12 +14,8 @@ type HeaderUser = {
 
 export function DashboardHeader({
   user,
-  credits,
-  plan = "free",
 }: {
   user: HeaderUser | null | undefined;
-  credits: number;
-  plan?: string;
 }) {
   const { t } = useAppPreferences();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -83,15 +79,7 @@ export function DashboardHeader({
         </button>
 
         <div className="flex items-center gap-2 sm:gap-4 relative" ref={menuRef}>
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-brand-50 border border-brand-100 dark:bg-brand-500/10 dark:border-brand-500/20">
-            <Zap className="w-3.5 h-3.5 text-brand-600 shrink-0 dark:text-brand-400" />
-            <span className="text-xs sm:text-sm font-semibold text-brand-700 dark:text-brand-400">
-              {plan === "pro" ? t("ไม่จำกัด", "Unlimited") : credits}
-            </span>
-            <span className="hidden sm:inline text-xs text-brand-500 dark:text-brand-500">
-              {t("เครดิต", "credits")}
-            </span>
-          </div>
+
 
           <button
             type="button"

@@ -12,20 +12,12 @@ export default async function DashboardLayout({
 }) {
     const session = await auth();
     const user = session?.user;
-    const dbUser = user?.id
-        ? await prisma.user.findUnique({
-            where: { id: user.id },
-            select: { credits: true, plan: true },
-        })
-        : null;
-    const credits = dbUser?.credits ?? (user as any)?.credits ?? 0;
-    const plan = dbUser?.plan ?? (user as any)?.plan ?? "free";
 
     return (
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
             <Sidebar />
             <div className="flex-1 flex flex-col min-w-0 min-h-0">
-                <DashboardHeader user={user} credits={credits} plan={plan} />
+                <DashboardHeader user={user} />
                 <GoogleReauthDialog />
                 <DashboardUploadProvider>
                     {children}

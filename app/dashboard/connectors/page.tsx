@@ -13,6 +13,7 @@ import {
     Building2,
     Search,
     CreditCard,
+    ChevronDown,
 } from "lucide-react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
@@ -139,6 +140,7 @@ export default function ConnectorsPage() {
     const [notice, setNotice] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
     const [togglingId, setTogglingId] = useState<string | null>(null);
+    const [showMore, setShowMore] = useState(false);
 
     const loadMeta = async () => {
         const res = await fetch("/api/connectors/meta");
@@ -221,17 +223,17 @@ export default function ConnectorsPage() {
     return (
         <div className="max-w-4xl mx-auto pb-12 w-full min-w-0">
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">{t("คอนเนคเตอร์", "Connectors")}</h1>
-                <p className="text-gray-500">{t("เชื่อมต่อแหล่งข้อมูลเพื่อดึงและส่งข้อมูลเข้า Google Sheets", "Connect data sources to pull and push data into Google Sheets.")}</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{t("คอนเนคเตอร์", "Connectors")}</h1>
+                <p className="text-gray-500 dark:text-gray-400">{t("เชื่อมต่อแหล่งข้อมูลเพื่อดึงและส่งข้อมูลเข้า Google Sheets", "Connect data sources to pull and push data into Google Sheets.")}</p>
             </div>
 
             {notice && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
                     <CheckCircle2 className="w-4 h-4 shrink-0" /><span>{notice}</span>
                 </div>
             )}
             {error && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400">
                     <AlertTriangle className="w-4 h-4 shrink-0" /><span>{error}</span>
                 </div>
             )}
@@ -247,41 +249,54 @@ export default function ConnectorsPage() {
                     disconnectedLabel={t("ยังไม่เชื่อมต่อ", "Not connected")} />
             </div>
 
-            {/* Meta Ads card */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-lg shadow-gray-200/60 p-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                        <MetaIcon className="w-6 h-6" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-gray-900">Meta Ads</p>
-                        <p className="text-sm text-gray-400">{t("เชื่อม Facebook เพื่อดึงบัญชีโฆษณา", "Connect Facebook to pull ad accounts")}</p>
-                    </div>
-                    {loading ? (
-                        <Loader2 className="w-5 h-5 animate-spin text-gray-400 shrink-0" />
-                    ) : !meta?.configured ? (
-                        <span className="text-xs text-gray-400 shrink-0">{t("ยังไม่ได้ตั้งค่า", "Not configured")}</span>
-                    ) : !meta.connected ? (
-                        <a href="/api/connectors/meta/connect"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1877F2] text-white text-sm font-medium hover:opacity-95 transition-all shadow-sm cursor-pointer shrink-0">
-                            <Plug className="w-4 h-4" />{t("เชื่อมต่อ", "Connect")}
-                        </a>
-                    ) : (
-                        <div className="flex items-center gap-2 shrink-0">
-                            <StatusBadge connected={true} label={t("เชื่อมต่อแล้ว", "Connected")} />
-                            <button type="button" onClick={() => setDialogOpen(true)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer">
-                                <Settings2 className="w-4 h-4" />{t("จัดการ", "Manage")}
-                            </button>
+            <div className="flex justify-center mb-6">
+                <button
+                    type="button"
+                    onClick={() => setShowMore(!showMore)}
+                    className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all shadow-sm hover:shadow-md cursor-pointer"
+                >
+                    <span>{showMore ? t("ดูน้อยลง", "See less") : t("ดูเพิ่มเติม", "See more")}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 text-gray-500 ${showMore ? "rotate-180" : ""}`} />
+                </button>
+            </div>
+
+            {/* Collapsible container for Meta Ads */}
+            <div className={`transition-all duration-500 ease-in-out overflow-hidden ${showMore ? "max-h-[500px] opacity-100 mb-4 scale-100 translate-y-0" : "max-h-0 opacity-0 mb-0 scale-95 -translate-y-2 pointer-events-none"}`}>
+                <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-lg shadow-gray-200/60 dark:shadow-none p-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center shrink-0">
+                            <MetaIcon className="w-6 h-6" />
                         </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">Meta Ads</p>
+                            <p className="text-sm text-gray-400 dark:text-gray-400">{t("เชื่อม Facebook เพื่อดึงบัญชีโฆษณา", "Connect Facebook to pull ad accounts")}</p>
+                        </div>
+                        {loading ? (
+                            <Loader2 className="w-5 h-5 animate-spin text-gray-400 shrink-0" />
+                        ) : !meta?.configured ? (
+                            <span className="text-xs text-gray-400 shrink-0">{t("ยังไม่ได้ตั้งค่า", "Not configured")}</span>
+                        ) : !meta.connected ? (
+                            <a href="/api/connectors/meta/connect"
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1877F2] text-white text-sm font-medium hover:opacity-95 transition-all shadow-sm cursor-pointer shrink-0">
+                                <Plug className="w-4 h-4" />{t("เชื่อมต่อ", "Connect")}
+                            </a>
+                        ) : (
+                            <div className="flex items-center gap-2 shrink-0">
+                                <StatusBadge connected={true} label={t("เชื่อมต่อแล้ว", "Connected")} />
+                                <button type="button" onClick={() => setDialogOpen(true)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                                    <Settings2 className="w-4 h-4" />{t("จัดการ", "Manage")}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    {!loading && !meta?.configured && (
+                        <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">{t("กรุณาตั้งค่า FACEBOOK_APP_ID และ FACEBOOK_APP_SECRET", "Set FACEBOOK_APP_ID and FACEBOOK_APP_SECRET to enable.")}</p>
+                    )}
+                    {!loading && meta?.configured && !meta.connected && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">{t("ดึงข้อมูล: ID บัญชีโฆษณา, สถานะ, ไทม์โซน, บัญชีธุรกิจที่ดูแล", "Pulls: ad account IDs, status, timezone, and managed business accounts.")}</p>
                     )}
                 </div>
-                {!loading && !meta?.configured && (
-                    <p className="mt-3 text-xs text-gray-400">{t("กรุณาตั้งค่า FACEBOOK_APP_ID และ FACEBOOK_APP_SECRET", "Set FACEBOOK_APP_ID and FACEBOOK_APP_SECRET to enable.")}</p>
-                )}
-                {!loading && meta?.configured && !meta.connected && (
-                    <p className="text-xs text-gray-400 mt-3">{t("ดึงข้อมูล: ID บัญชีโฆษณา, สถานะ, ไทม์โซน, บัญชีธุรกิจที่ดูแล", "Pulls: ad account IDs, status, timezone, and managed business accounts.")}</p>
-                )}
             </div>
 
             {dialogOpen && meta && (
@@ -330,26 +345,26 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
     return (
         <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
             onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}>
-            <div className="bg-white rounded-2xl shadow-theme-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div className="bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-theme-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center shrink-0">
                             <MetaIcon className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="font-semibold text-gray-900">{t("จัดการ Meta Ads", "Manage Meta Ads")}</p>
-                            {meta.connection?.fbUserName && <p className="text-xs text-gray-400">{meta.connection.fbUserName}</p>}
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">{t("จัดการ Meta Ads", "Manage Meta Ads")}</p>
+                            {meta.connection?.fbUserName && <p className="text-xs text-gray-400 dark:text-gray-400">{meta.connection.fbUserName}</p>}
                         </div>
                     </div>
-                    <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer" aria-label="Close">
+                    <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer" aria-label="Close">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Toolbar */}
-                <div className="px-6 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
+                <div className="px-6 py-3 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
                     {/* Search */}
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -358,12 +373,12 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder={t("ค้นหาบัญชี, ชื่อธุรกิจ, บัตร...", "Search accounts, business, card...")}
-                            className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-colors"
+                            className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-colors"
                         />
                     </div>
                     {/* Stats + actions */}
                     <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 dark:text-gray-400">
                             {t(`เปิด ${enabledCount}/${meta.adAccounts.length} บัญชี`, `${enabledCount}/${meta.adAccounts.length} enabled`)}
                             {q && filtered.length !== meta.adAccounts.length && (
                                 <span className="ml-1 text-brand-500">· {t(`พบ ${filtered.length} รายการ`, `${filtered.length} results`)}</span>
@@ -375,7 +390,7 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
                             {t("ดึงข้อมูล", "Sync")}
                         </button>
                         <button type="button" onClick={onDisconnect} disabled={disconnecting}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed">
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed">
                             {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />}
                             {t("ตัดการเชื่อมต่อ", "Disconnect")}
                         </button>
@@ -384,8 +399,8 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
 
                 {/* Sync timestamp */}
                 {meta.connection?.lastSyncedAt && (
-                    <div className="px-6 py-1.5 bg-gray-50 border-b border-gray-100 shrink-0">
-                        <p className="text-xs text-gray-400">
+                    <div className="px-6 py-1.5 bg-gray-50 dark:bg-gray-800/40 border-b border-gray-100 dark:border-gray-800 shrink-0">
+                        <p className="text-xs text-gray-400 dark:text-gray-400">
                             {t(`ดึงข้อมูลล่าสุด: ${new Date(meta.connection.lastSyncedAt).toLocaleString()}`,
                                `Last synced: ${new Date(meta.connection.lastSyncedAt).toLocaleString()}`)}
                         </p>
@@ -393,19 +408,19 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
                 )}
 
                 {/* Table */}
-                <div className="overflow-auto flex-1 bg-white">
+                <div className="overflow-auto flex-1 bg-white dark:bg-gray-900">
                     {meta.adAccounts.length === 0 ? (
-                        <div className="px-6 py-12 text-center text-sm text-gray-400">
+                        <div className="px-6 py-12 text-center text-sm text-gray-400 dark:text-gray-500">
                             {t('ยังไม่มีข้อมูล — กด "ดึงข้อมูล" เพื่อโหลดบัญชีโฆษณา', 'No data yet — click "Sync" to load ad accounts.')}
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="px-6 py-12 text-center text-sm text-gray-400">
+                        <div className="px-6 py-12 text-center text-sm text-gray-400 dark:text-gray-500">
                             {t("ไม่พบรายการที่ตรงกัน", "No matching accounts")}
                         </div>
                     ) : (
-                        <table className="w-full text-sm bg-white">
-                            <thead className="sticky top-0 z-10">
-                                <tr className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100 bg-white">
+                        <table className="w-full text-sm bg-white dark:bg-gray-900">
+                            <thead className="sticky top-0 z-10 bg-white dark:bg-gray-900">
+                                <tr className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
                                     <th className="px-5 py-3 w-14">{t("ใช้", "On")}</th>
                                     <th className="px-4 py-3">{t("บัญชีโฆษณา", "Ad Account")}</th>
                                     <th className="px-4 py-3">{t("สถานะ", "Status")}</th>
@@ -415,37 +430,37 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
                                     <th className="px-4 py-3 hidden xl:table-cell">{t("สกุลเงิน", "Currency")}</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white">
+                            <tbody className="bg-white dark:bg-gray-900">
                                 {groups.map((group, gi) => (
                                     <React.Fragment key={group.key}>
                                         {/* Business group header */}
-                                        <tr className={gi > 0 ? "border-t-2 border-gray-100" : ""}>
-                                            <td colSpan={COL} className="px-5 py-2 bg-gray-50">
+                                        <tr className={gi > 0 ? "border-t-2 border-gray-100 dark:border-gray-800" : ""}>
+                                            <td colSpan={COL} className="px-5 py-2 bg-gray-50 dark:bg-gray-800/40">
                                                 <div className="flex items-center gap-2">
-                                                    <Building2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                                    <span className="text-xs font-semibold text-gray-600">{group.label}</span>
-                                                    <span className="text-xs text-gray-400">({group.accounts.length} {t("บัญชี", "accounts")})</span>
+                                                    <Building2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 shrink-0" />
+                                                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{group.label}</span>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-400">({group.accounts.length} {t("บัญชี", "accounts")})</span>
                                                 </div>
                                             </td>
                                         </tr>
 
                                         {/* Account rows */}
                                         {group.accounts.map((a) => (
-                                            <tr key={a.id} className="bg-white hover:bg-gray-50 transition-colors border-t border-gray-100">
+                                            <tr key={a.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-t border-gray-100 dark:border-gray-800">
                                                 {/* Toggle */}
                                                 <td className="px-5 py-3">
                                                     <button type="button" role="switch" aria-checked={a.enabled}
                                                         disabled={togglingId === a.id}
                                                         onClick={() => onToggleAccount(a.id, !a.enabled)}
-                                                        className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${a.enabled ? "bg-brand-500" : "bg-gray-300"}`}>
+                                                        className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${a.enabled ? "bg-brand-500" : "bg-gray-300 dark:bg-gray-700"}`}>
                                                         <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${a.enabled ? "translate-x-4" : "translate-x-0.5"}`} />
                                                     </button>
                                                 </td>
 
                                                 {/* Name + ID */}
                                                 <td className="px-4 py-3">
-                                                    <div className="font-medium text-gray-900">{a.name || "—"}</div>
-                                                    <div className="font-mono text-xs text-gray-400">{a.accountId}</div>
+                                                    <div className="font-medium text-gray-900 dark:text-gray-100">{a.name || "—"}</div>
+                                                    <div className="font-mono text-xs text-gray-400 dark:text-gray-400">{a.accountId}</div>
                                                 </td>
 
                                                 {/* Status */}
@@ -467,11 +482,11 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
 
                                                 {/* Timezone */}
                                                 <td className="px-4 py-3 hidden xl:table-cell">
-                                                    <span className="text-xs text-gray-500 whitespace-nowrap">{formatTimezone(a.timezoneName)}</span>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatTimezone(a.timezoneName)}</span>
                                                 </td>
 
                                                 {/* Currency */}
-                                                <td className="px-4 py-3 hidden xl:table-cell text-xs text-gray-500">
+                                                <td className="px-4 py-3 hidden xl:table-cell text-xs text-gray-500 dark:text-gray-400">
                                                     {a.currency || "—"}
                                                 </td>
                                             </tr>
@@ -484,9 +499,9 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-3 border-t border-gray-100 shrink-0 flex justify-end bg-white rounded-b-2xl">
+                <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-800 shrink-0 flex justify-end bg-white dark:bg-gray-900 rounded-b-2xl">
                     <button type="button" onClick={onClose}
-                        className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+                        className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                         {t("ปิด", "Close")}
                     </button>
                 </div>
@@ -512,7 +527,7 @@ const BRAND_FALLBACK_LABEL: Record<string, string> = {
 
 function PaymentCell({ src }: { src: FundingSource | null }) {
     const brand = detectCardBrand(src);
-    if (!brand || !src) return <span className="text-gray-300 text-xs">—</span>;
+    if (!brand || !src) return <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>;
 
     const last4 = extractLast4(src.display_string);
     const iconSrc = BRAND_ICON[brand];
@@ -523,13 +538,13 @@ function PaymentCell({ src }: { src: FundingSource | null }) {
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={iconSrc} alt={brand} className="h-5 w-auto object-contain" />
             ) : (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide bg-gray-100 text-gray-600 border border-gray-200">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                     {BRAND_FALLBACK_LABEL[brand] ?? brand.toUpperCase()}
                 </span>
             )}
-            {last4 && <span className="text-xs text-gray-500 font-mono">****{last4}</span>}
+            {last4 && <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">****{last4}</span>}
             {!last4 && src.display_string && (
-                <span className="text-xs text-gray-500 truncate max-w-[100px]">{src.display_string}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{src.display_string}</span>
             )}
         </div>
     );
@@ -542,7 +557,7 @@ function SpendCell({ spent, cap, currency, t }: {
     spent: number | null; cap: number | null; currency: string | null;
     t: (th: string, en: string) => string;
 }) {
-    if (spent == null) return <span className="text-gray-300 text-xs">—</span>;
+    if (spent == null) return <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>;
 
     const hasLimit = cap != null && cap > 0;
     const pct = hasLimit ? Math.min((spent / cap!) * 100, 100) : 0;
@@ -551,20 +566,20 @@ function SpendCell({ spent, cap, currency, t }: {
     return (
         <div className="min-w-[120px]">
             <div className="flex items-center justify-between gap-2 text-xs mb-1">
-                <span className="text-gray-700 font-medium">{formatMoney(spent, currency)}</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">{formatMoney(spent, currency)}</span>
                 {hasLimit ? (
-                    <span className="text-gray-400">{formatMoney(cap, currency)}</span>
+                    <span className="text-gray-400 dark:text-gray-500">{formatMoney(cap, currency)}</span>
                 ) : (
-                    <span className="text-gray-300">{t("ไม่จำกัด", "No limit")}</span>
+                    <span className="text-gray-300 dark:text-gray-600">{t("ไม่จำกัด", "No limit")}</span>
                 )}
             </div>
             {hasLimit && (
-                <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
                     <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
                 </div>
             )}
             {hasLimit && (
-                <div className="text-right text-[10px] text-gray-400 mt-0.5">{pct.toFixed(0)}%</div>
+                <div className="text-right text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{pct.toFixed(0)}%</div>
             )}
         </div>
     );
@@ -583,7 +598,7 @@ function MetaIcon({ className }: { className?: string }) {
 
 function StatusBadge({ connected, label }: { connected: boolean; label: string }) {
     return (
-        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium shrink-0 ${connected ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium shrink-0 ${connected ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30" : "bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-emerald-500" : "bg-gray-400"}`} />
             {label}
         </span>
@@ -595,15 +610,15 @@ function ConnectorCard({ iconSrc, title, subtitle, status, connectedLabel, disco
     connectedLabel: string; disconnectedLabel: string;
 }) {
     return (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-lg shadow-gray-200/60 p-5">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-lg shadow-gray-200/60 dark:shadow-none p-5">
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={iconSrc} alt={title} width={22} height={22} className="w-[22px] h-[22px]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-gray-900 truncate">{title}</p>
-                    <p className="text-sm text-gray-400 truncate">{subtitle}</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{title}</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-400 truncate">{subtitle}</p>
                 </div>
             </div>
             <div className="mt-4">

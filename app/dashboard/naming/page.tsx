@@ -8,17 +8,17 @@ import { useAppPreferences } from "@/components/AppPreferencesProvider";
 type TokenField = { key: string; label: string; labelEn: string; example: string; color: string };
 
 const TOKEN_FIELDS: TokenField[] = [
-  { key: "card_prefix",       label: "ชื่อบัตร",          labelEn: "Card name",        example: "WF-0004-1",    color: "bg-violet-100 text-violet-700 border-violet-200" },
-  { key: "original_filename", label: "ชื่อไฟล์เดิม",       labelEn: "Original filename", example: "invoice_2024-01", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  { key: "billed_to",         label: "ใบเสร็จสำหรับ",      labelEn: "Billed to",        example: "John Doe",     color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  { key: "date",              label: "วันที่เรียกเก็บ",     labelEn: "Invoice date",     example: "2024-01-15",   color: "bg-amber-100 text-amber-700 border-amber-200" },
-  { key: "amount",            label: "Amount",             labelEn: "Amount",           example: "150.00",       color: "bg-orange-100 text-orange-700 border-orange-200" },
-  { key: "currency",          label: "สกุลเงิน",           labelEn: "Currency",         example: "USD",          color: "bg-pink-100 text-pink-700 border-pink-200" },
-  { key: "payment_method",    label: "วิธีการชำระเงิน",    labelEn: "Payment method",   example: "Visa",         color: "bg-cyan-100 text-cyan-700 border-cyan-200" },
-  { key: "invoice_number",    label: "หมายเลขใบเรียกเก็บเงิน", labelEn: "Invoice no.", example: "INV-2026-001", color: "bg-lime-100 text-lime-700 border-lime-200" },
-  { key: "reference_number",  label: "หมายเลขอ้างอิง",     labelEn: "Reference no.",    example: "REF-123456",   color: "bg-brand-100 text-brand-700 border-brand-200" },
-  { key: "transaction_id",    label: "ID ธุรกรรม",         labelEn: "Transaction ID",   example: "TXN-789012",   color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
-  { key: "account_id",        label: "ID บัญชี",           labelEn: "Account ID",       example: "ACC-456789",   color: "bg-rose-100 text-rose-700 border-rose-200" },
+  { key: "card_prefix",       label: "ชื่อบัตร",          labelEn: "Card name",        example: "WF-0004-1",    color: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-900/50" },
+  { key: "original_filename", label: "ชื่อไฟล์เดิม",       labelEn: "Original filename", example: "invoice_2024-01", color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50" },
+  { key: "billed_to",         label: "ใบเสร็จสำหรับ",      labelEn: "Billed to",        example: "John Doe",     color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50" },
+  { key: "date",              label: "วันที่เรียกเก็บ",     labelEn: "Invoice date",     example: "2024-01-15",   color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50" },
+  { key: "amount",            label: "Amount",             labelEn: "Amount",           example: "150.00",       color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50" },
+  { key: "currency",          label: "สกุลเงิน",           labelEn: "Currency",         example: "USD",          color: "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/50" },
+  { key: "payment_method",    label: "วิธีการชำระเงิน",    labelEn: "Payment method",   example: "Visa",         color: "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/50" },
+  { key: "invoice_number",    label: "หมายเลขใบเรียกเก็บเงิน", labelEn: "Invoice no.", example: "INV-2026-001", color: "bg-lime-100 text-lime-700 border-lime-200 dark:bg-lime-950/30 dark:text-lime-400 dark:border-lime-900/50" },
+  { key: "reference_number",  label: "หมายเลขอ้างอิง",     labelEn: "Reference no.",    example: "REF-123456",   color: "bg-brand-100 text-brand-700 border-brand-200 dark:bg-brand-950/30 dark:text-brand-400 dark:border-brand-900/50" },
+  { key: "transaction_id",    label: "ID ธุรกรรม",         labelEn: "Transaction ID",   example: "TXN-789012",   color: "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50" },
+  { key: "account_id",        label: "ID บัญชี",           labelEn: "Account ID",       example: "ACC-456789",   color: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50" },
 ];
 const FIELD_MAP = Object.fromEntries(TOKEN_FIELDS.map((f) => [f.key, f]));
 
@@ -133,10 +133,10 @@ export default function NamingRulesPage() {
     <div className="max-w-3xl mx-auto pb-12 w-full min-w-0">
 
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
           {t("กฎการตั้งชื่อไฟล์", "Filename Rules")}
         </h1>
-        <p className="text-gray-500">
+        <p className="text-gray-500 dark:text-gray-400">
           {t(
             "รูปแบบชื่อไฟล์ถูกกำหนดไว้แล้ว — แก้ไขได้เฉพาะการจับคู่ชื่อบัตร",
             "The filename format is fixed — you can only edit the card name mapping."
@@ -145,31 +145,31 @@ export default function NamingRulesPage() {
       </div>
 
       {saved && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold">✓</span>
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-[10px] font-bold">✓</span>
           <span>{t("บันทึกกฎชื่อไฟล์สำเร็จ", "Filename rules saved successfully")}</span>
         </div>
       )}
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-600">{error}</div>
+        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 text-sm text-red-600 dark:text-red-400">{error}</div>
       )}
 
       {/* ── Locked Template Display ── */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5 mb-5">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 space-y-5 mb-5">
 
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center shrink-0 mt-0.5">
-            <FileText className="w-5 h-5 text-violet-500" />
+          <div className="w-10 h-10 rounded-lg bg-violet-50 dark:bg-violet-950/30 flex items-center justify-center shrink-0 mt-0.5">
+            <FileText className="w-5 h-5 text-violet-500 dark:text-violet-400" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-semibold text-gray-900">{t("รูปแบบชื่อไฟล์", "Filename Template")}</p>
-              <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+              <p className="font-semibold text-gray-900 dark:text-gray-100">{t("รูปแบบชื่อไฟล์", "Filename Template")}</p>
+              <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-full px-2 py-0.5">
                 <Lock className="w-3 h-3" />
                 {t("ล็อก", "Locked")}
               </span>
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
               {t(
                 "รูปแบบนี้ถูกกำหนดไว้แล้วและไม่สามารถเปลี่ยนแปลงได้",
                 "This format is fixed and cannot be changed."
@@ -179,18 +179,18 @@ export default function NamingRulesPage() {
         </div>
 
         {/* ── Read-only template chips ── */}
-        <div className="min-h-[52px] p-3 rounded-lg bg-gray-50 border border-gray-200 flex flex-wrap gap-y-2 items-center">
+        <div className="min-h-[52px] p-3 rounded-lg bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 flex flex-wrap gap-y-2 items-center">
           {LOCKED_TEMPLATE.map((item) => {
             const field = item.type === "field" ? FIELD_MAP[item.key] : null;
             return (
               <div key={item.id} className="flex items-center">
                 {item.type === "field" ? (
-                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-medium ${field?.color ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
+                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-medium ${field?.color ?? "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"}`}>
                     <Lock className="w-2.5 h-2.5 opacity-50" />
                     {t(field?.label ?? item.key, field?.labelEn ?? item.key)}
                   </span>
                 ) : (
-                  <span className="px-1 text-xs font-mono text-gray-500">{item.value}</span>
+                  <span className="px-1 text-xs font-mono text-gray-500 dark:text-gray-400">{item.value}</span>
                 )}
               </div>
             );
@@ -198,27 +198,27 @@ export default function NamingRulesPage() {
         </div>
 
         {/* ── Live preview ── */}
-        <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-50 to-white dark:from-gray-950 dark:to-gray-900/40 p-4">
           <div className="flex items-center gap-2 mb-1.5">
-            <Eye className="w-4 h-4 text-gray-400" />
-            <p className="text-xs font-medium text-gray-500">{t("ตัวอย่างชื่อไฟล์", "Filename preview")}</p>
+            <Eye className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("ตัวอย่างชื่อไฟล์", "Filename preview")}</p>
           </div>
-          <p className="font-mono text-sm text-gray-900 break-all leading-relaxed">{preview}</p>
-          <p className="text-[11px] text-gray-400 mt-2">
+          <p className="font-mono text-sm text-gray-900 dark:text-gray-100 break-all leading-relaxed">{preview}</p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
             {t("ค่าด้านบนเป็นตัวอย่าง — ค่าจริงจะมาจากใบเสร็จที่อัปโหลด", "Values above are examples — actual values come from uploaded invoices.")}
           </p>
         </div>
       </div>
 
       {/* ── Card name mapping ── */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4 mb-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 space-y-4 mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-            <FileText className="w-5 h-5 text-indigo-500" />
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
           </div>
           <div>
-            <p className="font-semibold text-gray-900">{t("ชื่อบัตรตามเลข 4 ตัวท้าย", "Card name by last 4 digits")}</p>
-            <p className="text-sm text-gray-400">
+            <p className="font-semibold text-gray-900 dark:text-gray-100">{t("ชื่อบัตรตามเลข 4 ตัวท้าย", "Card name by last 4 digits")}</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
               {t("ตัวอย่าง:", "Example:")}{" "}
               <span className="font-mono text-gray-600">5991=WF-0004-1;</span>
             </p>

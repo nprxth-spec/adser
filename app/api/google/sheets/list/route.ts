@@ -29,20 +29,19 @@ export async function GET() {
       q: "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
       fields: "files(id, name)",
       orderBy: "name_natural",
+      pageSize: 1000,
       spaces: "drive",
       corpora: "allDrives",
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
     });
-
     const allFiles = resDrive.data.files ?? [];
     const sheets = allFiles
+      .filter((f) => (f.name ?? "").startsWith("101วิเคราะห์แอด"))
       .map((f) => ({
         id: f.id ?? "",
         name: f.name ?? "",
-      }))
-      // Keep only sheets whose names start with the desired prefix
-      .filter((f) => f.name.startsWith("101วิเคราะห์แอด"));
+      }));
 
     return NextResponse.json({ data: sheets });
   } catch (err: any) {

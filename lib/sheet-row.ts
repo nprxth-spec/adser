@@ -46,20 +46,30 @@ export async function reserveSheetRow(
 ): Promise<number> {
     const effectiveSeed = seed ?? 1;
 
-    const result = await prisma.$queryRaw<[{ sheetWriteRow: number }]>`
-        UPDATE "User"
-        SET    "sheetWriteRow" = (
-            CASE
-                WHEN "sheetWriteRow" IS NULL THEN ${effectiveSeed}::int
-                WHEN "sheetWriteRow" > ${effectiveSeed}::int + ${SHEET_ROW_DRIFT_RESET_THRESHOLD}::int THEN ${effectiveSeed}::int
-                ELSE GREATEST("sheetWriteRow", ${effectiveSeed}::int)
-            END
-        ) + 1
-        WHERE  id = ${userId}
-        RETURNING "sheetWriteRow"
-    `;
+    return await prisma.$transaction(async (tx) => {
+        const users = await tx.$queryRaw<[{ sheetWriteRow: number | null }]>`
+            SELECT sheetWriteRow FROM User WHERE id = ${userId} FOR UPDATE
+        `;
 
-    return result[0]?.sheetWriteRow ?? 0;
+        const currentVal = users[0]?.sheetWriteRow;
+        let newVal: number;
+
+        if (currentVal === null || currentVal === undefined) {
+            newVal = effectiveSeed;
+        } else if (currentVal > effectiveSeed + SHEET_ROW_DRIFT_RESET_THRESHOLD) {
+            newVal = effectiveSeed;
+        } else {
+            newVal = Math.max(currentVal, effectiveSeed);
+        }
+        newVal += 1;
+
+        await tx.user.update({
+            where: { id: userId },
+            data: { sheetWriteRow: newVal },
+        });
+
+        return newVal;
+    });
 }
 
 export async function realignSheetRowCounter(

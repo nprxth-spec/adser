@@ -11,7 +11,6 @@ import {
 } from "@/lib/google";
 import { prisma, Prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken } from "@/lib/google-auth";
-import { ensureFreeCreditsReset } from "@/lib/credits";
 import { reserveSheetRow, withUserSheetWriteLock } from "@/lib/sheet-row";
 
 export const runtime = "nodejs";
@@ -121,23 +120,12 @@ export async function POST(request: Request) {
     const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
-            plan: true, credits: true, sheetId: true, sheetName: true,
+            sheetId: true, sheetName: true,
             sheetMapping: true, filenameMapping: true, filenameTemplate: true,
             driveFolderId: true, driveFolderMode: true,
         },
     });
     if (!user) return NextResponse.json({ error: "User not found." }, { status: 401 });
-
-    const isPro = user.plan === "pro";
-    if (!isPro) {
-        const creditsAfterReset = await ensureFreeCreditsReset(userId);
-        if (creditsAfterReset <= 0) {
-            return NextResponse.json(
-                { error: "No credits remaining this month. Resets next month or upgrade to Pro for unlimited." },
-                { status: 402 }
-            );
-        }
-    }
 
     const accessToken = await getValidGoogleAccessToken(userId);
     if (!accessToken) {
@@ -312,28 +300,22 @@ export async function POST(request: Request) {
                 driveFolderMode: LOCKED_DRIVE_FOLDER_MODE,
             };
 
-            let reviewLogId: string | undefined;
-            await prisma.$transaction(async (tx) => {
-                if (!isPro) {
-                    await tx.user.update({ where: { id: userId }, data: { credits: { decrement: 1 } } });
-                }
-                const log = await tx.processingLog.create({
-                    data: {
-                        userId,
-                        filename: reviewFilename,
-                        originalFilename,
-                        invoiceDate: invoiceData.date,
-                        cardLast4: invoiceData.card_last_4,
-                        amount: invoiceData.amount,
-                        currency: invoiceData.currency,
-                        driveLink: driveResult.driveLink,
-                        sheetRow: null,
-                        status: "review",
-                        pendingData: pendingData as unknown as Prisma.InputJsonValue,
-                    },
-                });
-                reviewLogId = log.id;
+            const log = await prisma.processingLog.create({
+                data: {
+                    userId,
+                    filename: reviewFilename,
+                    originalFilename,
+                    invoiceDate: invoiceData.date,
+                    cardLast4: invoiceData.card_last_4,
+                    amount: invoiceData.amount,
+                    currency: invoiceData.currency,
+                    driveLink: driveResult.driveLink,
+                    sheetRow: null,
+                    status: "review",
+                    pendingData: pendingData as unknown as Prisma.InputJsonValue,
+                },
             });
+            const reviewLogId = log.id;
 
             return NextResponse.json({
                 requiresReview: true,
@@ -428,20 +410,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: safeMessage }, { status: 500 });
     }
 
-    await prisma.$transaction(async (tx) => {
-        if (!isPro) {
-            await tx.user.update({ where: { id: userId }, data: { credits: { decrement: 1 } } });
-        }
-        await tx.processingLog.create({
-            data: {
-                userId, filename, originalFilename,
-                invoiceDate: invoiceData?.date,
-                cardLast4: invoiceData?.card_last_4,
-                amount: invoiceData?.amount,
-                currency: invoiceData?.currency,
-                driveLink, sheetRow, status,
-            },
-        });
+    await prisma.processingLog.create({
+        data: {
+            userId, filename, originalFilename,
+            invoiceDate: invoiceData?.date,
+            cardLast4: invoiceData?.card_last_4,
+            amount: invoiceData?.amount,
+            currency: invoiceData?.currency,
+            driveLink, sheetRow, status,
+        },
     });
 
     return NextResponse.json({

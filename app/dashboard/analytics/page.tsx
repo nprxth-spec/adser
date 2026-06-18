@@ -92,11 +92,11 @@ function CustomBarTooltip({ active, payload, label }: TooltipProps) {
   if (!active || !payload || !payload.length) return null;
   const item = payload[0];
   return (
-    <div className="bg-white border border-gray-200 rounded-md shadow-lg px-4 py-3 text-sm">
-      <p className="font-semibold text-gray-700 mb-1">{label}</p>
-      <p className="text-brand-600 font-bold tabular-nums">{fmtMoney(item.value)}</p>
+    <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-md shadow-lg px-4 py-3 text-sm">
+      <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">{label}</p>
+      <p className="text-brand-600 dark:text-brand-400 font-bold tabular-nums">{fmtMoney(item.value)}</p>
       {(item.payload.count ?? 0) > 0 && (
-        <p className="text-gray-400 text-xs">{item.payload.count} invoices</p>
+        <p className="text-gray-400 dark:text-gray-500 text-xs">{item.payload.count} invoices</p>
       )}
     </div>
   );
@@ -106,12 +106,12 @@ function CustomPieTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload || !payload.length) return null;
   const item = payload[0];
   return (
-    <div className="bg-white border border-gray-200 rounded-md shadow-lg px-4 py-3 text-sm">
-      <p className="font-semibold text-gray-700">{cardLabel(String(item.name ?? ""))}</p>
+    <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-md shadow-lg px-4 py-3 text-sm">
+      <p className="font-semibold text-gray-700 dark:text-gray-300">{cardLabel(String(item.name ?? ""))}</p>
       <p className="font-bold tabular-nums" style={{ color: item.payload.fill }}>
         {fmtMoney(item.value)}
       </p>
-      <p className="text-gray-400 text-xs">{item.payload.pct ?? 0}% of total</p>
+      <p className="text-gray-400 dark:text-gray-500 text-xs">{item.payload.pct ?? 0}% of total</p>
     </div>
   );
 }
@@ -130,14 +130,14 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-md border border-gray-100 shadow-sm p-5 flex gap-4 items-start">
+    <div className="bg-white dark:bg-gray-900 rounded-md border border-gray-100 dark:border-gray-800 shadow-sm p-5 flex gap-4 items-start">
       <div className={`w-11 h-11 rounded-md flex items-center justify-center shrink-0 ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 leading-none tabular-nums truncate">{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-1 truncate">{sub}</p>}
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-none tabular-nums truncate">{value}</p>
+        {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 truncate">{sub}</p>}
       </div>
     </div>
   );
@@ -234,10 +234,10 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-0.5">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-0.5">
             {t("วิเคราะห์การใช้จ่าย", "Spend Analytics")}
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {t(
               "สรุปยอดใช้จ่ายจากใบแจ้งหนี้ที่ประมวลผลแล้ว",
               "Spending summary from processed invoices"
@@ -248,7 +248,7 @@ export default function AnalyticsPage() {
           <select
             value={range}
             onChange={(e) => setRange(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-2 rounded-md border border-gray-200 bg-white text-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-850 dark:text-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
           >
             {RANGE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -256,7 +256,7 @@ export default function AnalyticsPage() {
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-500 pointer-events-none" />
         </div>
       </div>
 
@@ -276,43 +276,43 @@ export default function AnalyticsPage() {
                 ? others.map(([c, v]) => `${c} ${fmtMoney(v)}`).join(", ")
                 : undefined
             }
-            color="bg-brand-50 text-brand-600"
+            color="bg-brand-50 text-brand-600 dark:bg-brand-950/30 dark:text-brand-400"
           />
           <StatCard
             icon={FileText}
             label={t("จำนวนใบแจ้งหนี้", "Total Invoices")}
             value={(data?.invoiceCount ?? 0).toLocaleString()}
             sub={t("ในช่วงเวลานี้", "in this period")}
-            color="bg-sky-50 text-sky-600"
+            color="bg-sky-50 text-sky-600 dark:bg-sky-950/30 dark:text-sky-400"
           />
           <StatCard
             icon={CreditCard}
             label={t("จำนวนบัตรที่ใช้", "Cards Used")}
             value={String(data?.cardsUsed ?? 0)}
             sub={t("บัตรที่แตกต่างกัน", "unique cards")}
-            color="bg-violet-50 text-violet-600"
+            color="bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400"
           />
           <StatCard
             icon={AlertCircle}
             label={t("ยอดต่อใบ (เฉลี่ย)", "Avg per Invoice")}
             value={avgPerInvoice}
             sub={t("เฉลี่ยต่อใบแจ้งหนี้", "average per invoice")}
-            color="bg-amber-50 text-amber-600"
+            color="bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
           />
         </div>
 
         {/* Monthly + Donut row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-md border border-gray-100 shadow-sm p-5">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-md border border-gray-100 dark:border-gray-800 shadow-sm p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <p className="font-semibold text-gray-800">
+              <p className="font-semibold text-gray-800 dark:text-gray-200">
                 {t("ยอดใช้จ่ายรายเดือน", "Monthly Spend")}
               </p>
               <div className="relative shrink-0">
                 <select
                   value={chartYear}
                   onChange={(e) => setChartYear(Number(e.target.value))}
-                  className="appearance-none pl-3 pr-7 py-1 rounded border border-gray-200 bg-white text-gray-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+                  className="appearance-none pl-3 pr-7 py-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
                 >
                   {yearOptions.map((y) => (
                     <option key={y} value={y}>
@@ -320,7 +320,7 @@ export default function AnalyticsPage() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 dark:text-gray-550 pointer-events-none" />
               </div>
             </div>
             <div
@@ -330,8 +330,8 @@ export default function AnalyticsPage() {
             >
               {allMonthlyEmpty ? (
                 <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-center">
-                  <BarChart2 className="w-8 h-8 text-gray-300" />
-                  <p className="text-sm text-gray-400">
+                  <BarChart2 className="w-8 h-8 text-gray-300 dark:text-gray-700" />
+                  <p className="text-sm text-gray-400 dark:text-gray-550">
                     {t(`ไม่มีข้อมูลยอดใช้จ่ายในปี ${chartYear}`, `No spend data for ${chartYear}`)}
                   </p>
                 </div>
@@ -342,20 +342,22 @@ export default function AnalyticsPage() {
                     barSize={22}
                     margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <CartesianGrid stroke="currentColor" className="text-gray-100 dark:text-gray-800/50" strokeDasharray="3 3" vertical={false} />
                     <XAxis
                       dataKey="month"
-                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      tick={{ fontSize: 11, fill: "currentColor" }}
+                      className="text-gray-400 dark:text-gray-500"
                       axisLine={false}
                       tickLine={false}
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      tick={{ fontSize: 11, fill: "currentColor" }}
+                      className="text-gray-400 dark:text-gray-500"
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v) => fmtCompact(Number(v))}
                     />
-                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "#f8fafc" }} />
+                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "currentColor", opacity: 0.08 }} />
                     <Bar dataKey="total" fill="#14b8a6" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -363,12 +365,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-md border border-gray-100 shadow-sm p-5">
-            <p className="font-semibold text-gray-800 mb-4">
+          <div className="bg-white dark:bg-gray-900 rounded-md border border-gray-100 dark:border-gray-800 shadow-sm p-5">
+            <p className="font-semibold text-gray-800 dark:text-gray-200 mb-4">
               {t("สัดส่วนตามบัตร", "Spend by Card")}
             </p>
             {pieData.length === 0 ? (
-              <div className="flex items-center justify-center h-[260px] text-gray-400 text-sm">
+              <div className="flex items-center justify-center h-[260px] text-gray-400 dark:text-gray-550 text-sm">
                 {t("ไม่มีข้อมูลบัตร", "No card data")}
               </div>
             ) : (
@@ -401,19 +403,19 @@ export default function AnalyticsPage() {
 
         {/* Daily chart + per-card breakdown row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-md border border-gray-100 shadow-sm p-5">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-md border border-gray-100 dark:border-gray-800 shadow-sm p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <p className="font-semibold text-gray-800">
+              <p className="font-semibold text-gray-800 dark:text-gray-200">
                 {t("ยอดใช้จ่ายรายวัน", "Daily Spend")}
               </p>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 dark:text-gray-500">
                 {t("ในช่วงเวลาที่เลือก", "Within selected range")}
               </span>
             </div>
             {(data?.byDay ?? []).every((d) => d.total === 0) ? (
               <div className="flex flex-col items-center justify-center h-[260px] gap-2 text-center">
-                <BarChart2 className="w-8 h-8 text-gray-300" />
-                <p className="text-sm text-gray-400">
+                <BarChart2 className="w-8 h-8 text-gray-300 dark:text-gray-700" />
+                <p className="text-sm text-gray-400 dark:text-gray-550">
                   {t("ไม่มีข้อมูลในช่วงเวลานี้", "No data in this period")}
                 </p>
               </div>
@@ -424,10 +426,11 @@ export default function AnalyticsPage() {
                   barSize={14}
                   margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <CartesianGrid stroke="currentColor" className="text-gray-100 dark:text-gray-800/50" strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                    className="text-gray-400 dark:text-gray-500"
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => String(v).slice(8)}
@@ -435,48 +438,49 @@ export default function AnalyticsPage() {
                     minTickGap={6}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                    className="text-gray-400 dark:text-gray-500"
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => fmtCompact(Number(v))}
                   />
-                  <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "#f8fafc" }} />
+                  <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "currentColor", opacity: 0.08 }} />
                   <Bar dataKey="total" fill="#465fff" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          <div className="bg-white rounded-md border border-gray-100 shadow-sm p-5">
-            <p className="font-semibold text-gray-800 mb-4">
+          <div className="bg-white dark:bg-gray-900 rounded-md border border-gray-100 dark:border-gray-800 shadow-sm p-5">
+            <p className="font-semibold text-gray-800 dark:text-gray-200 mb-4">
               {t("รายละเอียดต่อบัตร", "Per-card Breakdown")}
             </p>
             {pieData.length === 0 ? (
-              <div className="flex items-center justify-center h-[200px] text-gray-400 text-sm">
+              <div className="flex items-center justify-center h-[200px] text-gray-400 dark:text-gray-550 text-sm">
                 {t("ไม่มีข้อมูลบัตร", "No card data")}
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-gray-100 dark:divide-gray-800">
                 {pieData.map((c) => (
                   <li key={c.name} className="py-3">
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
                         <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                           className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: c.fill }}
                         />
-                        <span className="text-sm font-medium text-gray-800 truncate font-mono">
+                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate font-mono">
                           {cardLabel(c.name)}
                         </span>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-sm font-semibold text-gray-900 tabular-nums">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
                           {fmtMoney(c.value)}
                         </div>
-                        <div className="text-xs text-gray-400">{c.pct}%</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">{c.pct}%</div>
                       </div>
                     </div>
-                    <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${c.pct}%`, backgroundColor: c.fill }}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { Save, CheckCircle2, Loader2, ExternalLink, Plus, Copy } from "lucide-react";
+import { Save, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
 const colOptions = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
@@ -265,112 +265,35 @@ export default function IntegrationsPage() {
     return (
         <div className="max-w-3xl mx-auto pb-12 w-full min-w-0">
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">{t("ตั้งค่า Sheet", "Sheet Settings")}</h1>
-                <p className="text-gray-500">{t("เชื่อมต่อ Google Sheets เพื่อรับข้อมูลใบแจ้งหนี้", "Connect Google Sheets to receive invoice data.")}</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{t("ตั้งค่า Sheet", "Sheet Settings")}</h1>
+                <p className="text-gray-500 dark:text-gray-400">{t("เชื่อมต่อ Google Sheets เพื่อรับข้อมูลใบแจ้งหนี้", "Connect Google Sheets to receive invoice data.")}</p>
             </div>
 
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-lg shadow-gray-200/60 p-6 space-y-6">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-lg shadow-gray-200/60 dark:shadow-none p-6 space-y-6">
                 {saved && (
-                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold">
+                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-bold">
                             ✓
                         </span>
                         <span>{t("บันทึกการเชื่อมต่อ Google Sheets และการแมปคอลัมน์สำเร็จ", "Google Sheets connection and column mapping saved successfully")}</span>
                     </div>
                 )}
 
-                <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
-                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                <div className="flex items-center gap-3 pb-2 border-b border-gray-100 dark:border-gray-800">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-950/20 flex items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/sheet.svg" alt="Google Sheets" width={22} height={22} className="w-[22px] h-[22px]" />
                     </div>
                     <div>
-                        <p className="font-semibold text-gray-900">{t("การเชื่อมต่อ Google Sheets", "Google Sheets Connection")}</p>
-                        <p className="text-sm text-gray-400">{t("เพิ่มแถวใบแจ้งหนี้อัตโนมัติลงชีตที่เลือก", "Append invoice rows automatically into your chosen sheet.")}</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">{t("การเชื่อมต่อ Google Sheets", "Google Sheets Connection")}</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-400">{t("เพิ่มแถวใบแจ้งหนี้อัตโนมัติลงชีตที่เลือก", "Append invoice rows automatically into your chosen sheet.")}</p>
                     </div>
                 </div>
 
-                {/* Profile selector */}
-                <div className="space-y-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <div className="flex-1 space-y-2" ref={profileMenuRef}>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                {t("โปรไฟล์ที่ใช้งาน", "Active profile")}
-                            </label>
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
-                                <div className="relative min-w-[160px]">
-                                    <button
-                                        type="button"
-                                        onClick={() => setProfileMenuOpen((v) => !v)}
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 flex items-center justify-between cursor-pointer hover:bg-gray-50"
-                                    >
-                                        <span className="truncate">
-                                            {profiles.find((p) => p.id === activeProfileId)?.name ?? t("เลือกโปรไฟล์", "Select profile")}
-                                        </span>
-                                    </button>
-                                    {profileMenuOpen && (
-                                        <div className="absolute left-0 right-0 mt-2 rounded-xl border border-gray-200 bg-white shadow-lg shadow-gray-200/60 text-sm overflow-hidden z-20">
-                                            {profiles.map((p) => (
-                                                <button
-                                                    key={p.id}
-                                                    type="button"
-                                                    onClick={() => { setProfileMenuOpen(false); handleChangeActiveProfile(p.id); }}
-                                                    className={`w-full px-3 py-2 text-left hover:bg-gray-50 cursor-pointer ${activeProfileId === p.id ? "bg-gray-50 font-medium" : ""}`}
-                                                >
-                                                    {p.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                {activeProfile && (
-                                    <input
-                                        type="text"
-                                        value={activeProfile.name}
-                                        onChange={(e) => {
-                                            const nextProfiles = profiles.map((p) =>
-                                                p.id === activeProfile.id ? { ...p, name: e.target.value } : p
-                                            );
-                                            setProfiles(nextProfiles);
-                                        }}
-                                        className="mt-2 sm:mt-0 w-full max-w-xs px-3 py-2 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                                        placeholder={t("ชื่อโปรไฟล์", "Profile name")}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                            <button type="button" onClick={() => handleCreateProfile("blank")}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">
-                                <Plus className="w-3.5 h-3.5" /> {t("สร้างใหม่", "New blank")}
-                            </button>
-                            <button type="button" onClick={() => handleCreateProfile("duplicate")}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">
-                                <Copy className="w-3.5 h-3.5" /> {t("คัดลอก", "Duplicate")}
-                            </button>
-                            {activeProfile && (
-                                <button
-                                    type="button"
-                                    disabled={profiles.length <= 1}
-                                    onClick={() => {
-                                        if (profiles.length <= 1) return;
-                                        const filtered = profiles.filter((p) => p.id !== activeProfile.id);
-                                        const nextActive = filtered.find((p) => p.id === activeProfileId) ?? filtered[0];
-                                        setProfiles(filtered);
-                                        setActiveProfileId(nextActive.id);
-                                        syncActiveProfileState(filtered, nextActive.id);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                                >
-                                    {t("ลบ", "Delete")}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
+
 
                 {error && (
-                    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-100 text-xs text-red-600">{error}</div>
+                    <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 text-xs text-red-600 dark:text-red-400">{error}</div>
                 )}
 
                 <div className="space-y-5">
@@ -378,7 +301,7 @@ export default function IntegrationsPage() {
                     <div>
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div className="md:col-span-3 relative" ref={sheetMenuRef}>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src="/sheet.webp" alt="" width={18} height={18} className="shrink-0 rounded-sm" />
                                     1. Google Sheet
@@ -386,11 +309,11 @@ export default function IntegrationsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setSheetMenuOpen((v) => !v)}
-                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm bg-white text-left flex items-center gap-2 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent cursor-pointer"
+                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-left flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-750 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent cursor-pointer text-gray-800 dark:text-gray-200"
                                 >
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src="/sheet.webp" alt="" width={16} height={16} className="shrink-0" />
-                                    <span className={`min-w-0 flex-1 truncate ${sheetId ? "text-gray-800" : "text-gray-400"}`}>
+                                    <span className={`min-w-0 flex-1 truncate ${sheetId ? "text-gray-800 dark:text-gray-200" : "text-gray-400 dark:text-gray-500"}`}>
                                         {loadingSheets
                                             ? "Loading sheets..."
                                             : sheets.length === 0
@@ -401,13 +324,13 @@ export default function IntegrationsPage() {
                                     </span>
                                 </button>
                                 {sheetMenuOpen && !loadingSheets && sheets.length > 0 && (
-                                    <div className="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-lg shadow-gray-200/60 max-h-64 overflow-auto text-sm">
+                                    <div className="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg shadow-gray-200/60 dark:shadow-none max-h-64 overflow-auto text-sm">
                                         {sheets.map((s) => (
                                             <button
                                                 key={s.id}
                                                 type="button"
                                                 onClick={() => { setSheetId(s.id); setSheetMenuOpen(false); }}
-                                                className={`w-full px-4 py-2 text-left hover:bg-gray-50 cursor-pointer flex items-center gap-2 min-w-0 ${sheetId === s.id ? "bg-gray-50 font-medium" : ""}`}
+                                                className={`w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer flex items-center gap-2 min-w-0 ${sheetId === s.id ? "bg-gray-50 dark:bg-gray-700/50 font-medium text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300"}`}
                                             >
                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img src="/sheet.webp" alt="" width={16} height={16} className="shrink-0" />
@@ -416,13 +339,13 @@ export default function IntegrationsPage() {
                                         ))}
                                     </div>
                                 )}
-                                <p className="text-xs text-gray-400 mt-2">
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                                     Sheets are loaded from your Google Drive account. Make sure the target sheet is shared with this app.
                                 </p>
                             </div>
 
                             <div className="md:col-span-2 relative" ref={tabMenuRef}>
-                                <label className="block text-sm font-medium text-gray-800 mb-2">
+                                <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
                                     2. Target Sheet Tab
                                 </label>
                                 <button
@@ -433,20 +356,20 @@ export default function IntegrationsPage() {
                                         setTabMenuOpen(true);
                                     }}
                                     disabled={!sheetId}
-                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm bg-white text-left hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-gray-50 disabled:text-gray-400 cursor-pointer disabled:cursor-not-allowed"
+                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-left hover:bg-gray-50 dark:hover:bg-gray-750 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-gray-50 dark:disabled:bg-gray-900/50 disabled:text-gray-400 dark:disabled:text-gray-650 cursor-pointer disabled:cursor-not-allowed text-gray-800 dark:text-gray-200"
                                 >
-                                    <span className={sheetName ? "text-gray-800" : "text-gray-400"}>
+                                    <span className={sheetName ? "text-gray-800 dark:text-gray-200" : "text-gray-400 dark:text-gray-500"}>
                                         {loadingTabs ? "Loading tabs…" : sheetName || (tabs.length > 0 ? "Select a tab" : "Select a sheet first")}
                                     </span>
                                 </button>
                                 {tabMenuOpen && tabs.length > 0 && (
-                                    <div className="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-lg shadow-gray-200/60 max-h-56 overflow-auto text-sm">
+                                    <div className="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg shadow-gray-200/60 dark:shadow-none max-h-56 overflow-auto text-sm">
                                         {tabs.map((tab) => (
                                             <button
                                                 key={tab.id}
                                                 type="button"
                                                 onClick={() => { setSheetName(tab.title); setSheetGid(tab.id ?? null); setTabMenuOpen(false); }}
-                                                className={`w-full px-4 py-2 text-left hover:bg-gray-50 cursor-pointer ${sheetName === tab.title ? "bg-gray-50 font-medium" : ""}`}
+                                                className={`w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer text-gray-700 dark:text-gray-300 ${sheetName === tab.title ? "bg-gray-50 dark:bg-gray-700/50 font-medium text-gray-900 dark:text-gray-100" : ""}`}
                                             >
                                                 {tab.title}
                                             </button>
@@ -459,10 +382,10 @@ export default function IntegrationsPage() {
 
                     {/* Step 3: Column Mapping */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">
+                        <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
                             3. Column Mapping
                         </label>
-                        <div className="bg-gray-50 rounded-lg border border-gray-100 p-5">
+                        <div className="bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-100 dark:border-gray-850 p-5">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-5 gap-x-4">
                                 {[
                                     { label: "File Name", key: "filename" },
@@ -476,13 +399,13 @@ export default function IntegrationsPage() {
                                     { label: "Reference No.", key: "reference" },
                                 ].map((field) => (
                                     <div key={field.key} className="flex flex-col gap-1.5">
-                                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             {field.label}
                                         </span>
                                         <select
                                             value={(sheetMapping as any)[field.key] ?? (defaultMapping as any)[field.key] ?? ""}
                                             onChange={e => updateMapping(field.key as any, e.target.value)}
-                                            className="px-3 py-2 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono text-gray-700 w-full"
+                                            className="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono w-full"
                                         >
                                             <option value="">- Skip -</option>
                                             {colOptions.map(col => (
@@ -493,19 +416,19 @@ export default function IntegrationsPage() {
                                 ))}
                             </div>
                         </div>
-                        <p className="text-xs text-gray-400 mt-2">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                             Choose which column (A-Z) each piece of extracted data should be inserted into.
                         </p>
                     </div>
 
-                    <hr className="border-gray-100" />
+                    <hr className="border-gray-100 dark:border-gray-800" />
 
                     <div className="flex flex-col sm:flex-row items-center gap-4 justify-between pt-2">
                         <a
                             href="https://sheets.google.com/create"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-800 transition-colors order-2 sm:order-1"
+                            className="flex items-center gap-1.5 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 transition-colors order-2 sm:order-1"
                         >
                             Create new Sheet <ExternalLink className="w-3.5 h-3.5" />
                         </a>

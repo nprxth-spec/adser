@@ -17,7 +17,7 @@ export async function GET() {
   const mondayOffset = day === 0 ? -6 : 1 - day;
   weekStart.setDate(weekStart.getDate() + mondayOffset);
 
-  const [totalProcessed, thisWeek, totalFailed, amountAgg, user] = await Promise.all([
+  const [totalProcessed, thisWeek, totalFailed, amountAgg] = await Promise.all([
     prisma.processingLog.count({
       where: { userId, status: "success" },
     }),
@@ -31,10 +31,6 @@ export async function GET() {
       where: { userId, status: "success" },
       _sum: { amount: true },
     }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { credits: true, plan: true },
-    }),
   ]);
 
   return NextResponse.json({
@@ -43,8 +39,6 @@ export async function GET() {
       thisWeek,
       totalFailed,
       totalAmount: amountAgg._sum.amount ?? 0,
-      credits: user?.credits ?? 0,
-      plan: user?.plan ?? "free",
     },
   });
 }

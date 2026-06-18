@@ -370,31 +370,13 @@ export default function HistoryPage() {
   return (
     <div className="max-w-7xl mx-auto w-full min-w-0">
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-              {t("รายการใบแจ้งหนี้", "Invoice List")}
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              {t(`${total} รายการในช่วงเวลานี้`, `${total} invoice${total !== 1 ? "s" : ""} in this period`)}
-            </p>
-          </div>
-          {selectedIds.size > 0 && (
-            <button
-              onClick={handleDeleteSelected}
-              disabled={bulkDeleting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer w-fit"
-            >
-              {bulkDeleting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
-              <span>
-                {t(`ลบที่เลือก (${selectedIds.size})`, `Delete Selected (${selectedIds.size})`)}
-              </span>
-            </button>
-          )}
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+            {t("รายการใบแจ้งหนี้", "Invoice List")}
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            {t(`${total} รายการในช่วงเวลานี้`, `${total} invoice${total !== 1 ? "s" : ""} in this period`)}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-550 shrink-0" />
@@ -464,6 +446,26 @@ export default function HistoryPage() {
             className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 text-xs shrink-0 cursor-pointer"
           >
             ✕
+          </button>
+        </div>
+      )}
+
+      {/* Delete Selected Button (Above table, right side) */}
+      {selectedIds.size > 0 && (
+        <div className="mb-3 flex justify-end">
+          <button
+            onClick={handleDeleteSelected}
+            disabled={bulkDeleting}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer w-fit"
+          >
+            {bulkDeleting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="w-3.5 h-3.5" />
+            )}
+            <span>
+              {t(`ลบที่เลือก (${selectedIds.size})`, `Delete Selected (${selectedIds.size})`)}
+            </span>
           </button>
         </div>
       )}

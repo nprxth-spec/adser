@@ -16,6 +16,7 @@ import {
     ChevronDown,
 } from "lucide-react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
+import { signOut } from "next-auth/react";
 
 type FundingSource = {
     id?: string;
@@ -224,6 +225,33 @@ export default function ConnectorsPage() {
         } finally { setTogglingId(null); }
     };
 
+    const handleGoogleDisconnect = async () => {
+        if (!window.confirm(t("การตัดการเชื่อมต่อ Google จะทำการออกจากระบบ คุณต้องการดำเนินการต่อหรือไม่?", "Disconnecting Google will log you out. Do you want to continue?"))) {
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await fetch("/api/google/connection-status", { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to disconnect Google");
+            await signOut({ callbackUrl: "/login" });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Disconnect failed");
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleReconnect = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/google/connection-status", { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to clear Google connection");
+            await signOut({ callbackUrl: "/login" });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Reconnect failed");
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto pb-12 w-full min-w-0">
             <div className="mb-8">
@@ -246,11 +274,49 @@ export default function ConnectorsPage() {
                 <ConnectorCard iconSrc="/drive.svg" title="Google Drive"
                     subtitle={t("อัปโหลดไฟล์ใบแจ้งหนี้", "Stores invoice files")} status={googleConnected}
                     connectedLabel={t("เชื่อมต่อแล้ว (ผ่านบัญชี Google)", "Connected (via Google sign-in)")}
-                    disconnectedLabel={t("ยังไม่เชื่อมต่อ", "Not connected")} />
+                    disconnectedLabel={t("ยังไม่เชื่อมต่อ", "Not connected")}
+                    actions={
+                        googleConnected ? (
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={handleGoogleReconnect}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
+                                    <RefreshCw className="w-3.5 h-3.5" />{t("เชื่อมต่อใหม่", "Reconnect")}
+                                </button>
+                                <button type="button" onClick={handleGoogleDisconnect}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer shrink-0">
+                                    <Link2Off className="w-3.5 h-3.5" />{t("ตัดการเชื่อมต่อ", "Disconnect")}
+                                </button>
+                            </div>
+                        ) : (
+                            <button type="button" onClick={() => signOut({ callbackUrl: "/login" })}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-medium hover:opacity-95 transition-all shadow-sm cursor-pointer shrink-0">
+                                <Plug className="w-3.5 h-3.5" />{t("เชื่อมต่อ", "Connect")}
+                            </button>
+                        )
+                    } />
                 <ConnectorCard iconSrc="/sheet.svg" title="Google Sheets"
                     subtitle={t("บันทึกข้อมูลเป็นแถว", "Receives data rows")} status={googleConnected}
                     connectedLabel={t("เชื่อมต่อแล้ว (ผ่านบัญชี Google)", "Connected (via Google sign-in)")}
-                    disconnectedLabel={t("ยังไม่เชื่อมต่อ", "Not connected")} />
+                    disconnectedLabel={t("ยังไม่เชื่อมต่อ", "Not connected")}
+                    actions={
+                        googleConnected ? (
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={handleGoogleReconnect}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
+                                    <RefreshCw className="w-3.5 h-3.5" />{t("เชื่อมต่อใหม่", "Reconnect")}
+                                </button>
+                                <button type="button" onClick={handleGoogleDisconnect}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer shrink-0">
+                                    <Link2Off className="w-3.5 h-3.5" />{t("ตัดการเชื่อมต่อ", "Disconnect")}
+                                </button>
+                            </div>
+                        ) : (
+                            <button type="button" onClick={() => signOut({ callbackUrl: "/login" })}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-medium hover:opacity-95 transition-all shadow-sm cursor-pointer shrink-0">
+                                <Plug className="w-3.5 h-3.5" />{t("เชื่อมต่อ", "Connect")}
+                            </button>
+                        )
+                    } />
             </div>
 
             <div className="flex justify-center mb-6">
@@ -625,23 +691,25 @@ function StatusBadge({ connected, label }: { connected: boolean; label: string }
     );
 }
 
-function ConnectorCard({ iconSrc, title, subtitle, status, connectedLabel, disconnectedLabel }: {
+function ConnectorCard({ iconSrc, title, subtitle, status, connectedLabel, disconnectedLabel, actions }: {
     iconSrc: string; title: string; subtitle: string; status: boolean | null;
-    connectedLabel: string; disconnectedLabel: string;
+    connectedLabel: string; disconnectedLabel: string; actions?: React.ReactNode;
 }) {
     return (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-lg shadow-gray-200/60 dark:shadow-none p-5">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={iconSrc} alt={title} width={22} height={22} className="w-[22px] h-[22px]" />
-                </div>
-                <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{title}</p>
-                    <p className="text-sm text-gray-400 dark:text-gray-400 truncate">{subtitle}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-lg shadow-gray-200/60 dark:shadow-none p-5 flex flex-col justify-between">
+            <div>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={iconSrc} alt={title} width={22} height={22} className="w-[22px] h-[22px]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{title}</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-400 truncate">{subtitle}</p>
+                    </div>
                 </div>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
                 {status === null ? (
                     <span className="inline-flex items-center gap-2 text-xs text-gray-400">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -649,6 +717,7 @@ function ConnectorCard({ iconSrc, title, subtitle, status, connectedLabel, disco
                 ) : (
                     <StatusBadge connected={status} label={status ? connectedLabel : disconnectedLabel} />
                 )}
+                {status !== null && actions}
             </div>
         </div>
     );

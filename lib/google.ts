@@ -1006,8 +1006,21 @@ export async function cleanupPendingDriveFiles(
                     await drive.files.delete({ fileId: file.id });
                     deletedCount++;
                 } catch (err: any) {
-                    console.error(`[Cleanup] Failed to delete file ${file.name} (${file.id}):`, err);
-                    errors.push(`Failed to delete ${file.name}: ${err.message || err}`);
+                    if (err.status === 403 || err.code === 403) {
+                        try {
+                            await drive.files.update({
+                                fileId: file.id,
+                                removeParents: parentFolderId,
+                            });
+                            deletedCount++;
+                        } catch (updateErr: any) {
+                            console.warn(`[Cleanup] Insufficient permissions to delete ${file.name} (${file.id}) and failed to remove from parent folder:`, updateErr.message || updateErr);
+                            errors.push(`Failed to remove ${file.name}: ${updateErr.message || updateErr}`);
+                        }
+                    } else {
+                        console.error(`[Cleanup] Failed to delete file ${file.name} (${file.id}):`, err.message || err);
+                        errors.push(`Failed to delete ${file.name}: ${err.message || err}`);
+                    }
                 }
             }
         }

@@ -43,7 +43,7 @@ export default function Sidebar() {
     const navLinks: NavLink[] = [
         { href: "/dashboard", label: t("อัปโหลด", "Upload"), icon: Upload },
         { href: "/dashboard/review", label: t("ตรวจสอบ", "Review"), icon: AlertTriangle, badge: reviewCount > 0 ? reviewCount : undefined },
-        { href: "/dashboard/history", label: t("ประวัติ", "History"), icon: History },
+        { href: "/dashboard/history", label: t("รายการ", "Transactions"), icon: History },
         { href: "/analytics", label: t("วิเคราะห์", "Analytics"), icon: BarChart3 },
         { href: "/integrations", label: t("ตั้งค่า Sheet", "Sheet Settings"), icon: Table2 },
         { href: "/naming", label: t("กฎชื่อไฟล์", "Filename Rules"), icon: FileText },

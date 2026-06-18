@@ -5,13 +5,26 @@ import { prisma } from "@/lib/prisma";
 
 /** Scopes the app requests at login (must all be granted for Drive + Sheets to work). */
 const REQUIRED_SCOPES = [
-  "https://www.googleapis.com/auth/drive.readonly",
-  "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/drive",
   "https://www.googleapis.com/auth/spreadsheets",
 ];
 
 function scopesFromString(scopeStr: string | null | undefined): string[] {
   return (scopeStr || "").split(/\s+/).filter(Boolean);
+}
+
+function getMissingScopes(granted: string[]): string[] {
+  const missing: string[] = [];
+  const hasFullDrive = granted.includes("https://www.googleapis.com/auth/drive");
+  const hasDriveRead = hasFullDrive || granted.includes("https://www.googleapis.com/auth/drive.readonly");
+  const hasDriveFile = hasFullDrive || granted.includes("https://www.googleapis.com/auth/drive.file");
+  const hasSheets = granted.includes("https://www.googleapis.com/auth/spreadsheets");
+
+  if (!hasDriveRead) missing.push("https://www.googleapis.com/auth/drive.readonly");
+  if (!hasDriveFile) missing.push("https://www.googleapis.com/auth/drive.file");
+  if (!hasSheets) missing.push("https://www.googleapis.com/auth/spreadsheets");
+
+  return missing;
 }
 
 export async function GET(
@@ -30,7 +43,7 @@ export async function GET(
     select: { scope: true },
   });
   const grantedFromLogin = scopesFromString(dbAccount?.scope);
-  const missingFromLogin = REQUIRED_SCOPES.filter((s) => !grantedFromLogin.includes(s));
+  const missingFromLogin = getMissingScopes(grantedFromLogin);
 
   const accessToken = await getValidGoogleAccessToken(userId);
   if (!accessToken) {
@@ -73,7 +86,7 @@ export async function GET(
 
     const scopeStr = (data.scope as string) || "";
     const granted = scopesFromString(scopeStr);
-    const missing = REQUIRED_SCOPES.filter((s) => !granted.includes(s));
+    const missing = getMissingScopes(granted);
     const okScopes = missing.length === 0;
 
     return NextResponse.json({

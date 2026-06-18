@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
+import { getValidGoogleAccessToken } from "@/lib/google-auth";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -19,8 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             "openid",
             "email",
             "profile",
-            "https://www.googleapis.com/auth/drive.readonly",
-            "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/drive",
             "https://www.googleapis.com/auth/spreadsheets",
           ].join(" "),
           access_type: "offline",
@@ -104,38 +104,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (currentAccessToken && expiresAt && Date.now() > expiresAt - 5 * 60 * 1000) {
           try {
-            if (refreshToken) {
-              const response = await fetch("https://oauth2.googleapis.com/token", {
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                method: "POST",
-                body: new URLSearchParams({
-                  client_id: process.env.GOOGLE_CLIENT_ID!,
-                  client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                  grant_type: "refresh_token",
-                  refresh_token: refreshToken,
-                }),
+            const refreshedToken = await getValidGoogleAccessToken(token.userId as string);
+            if (refreshedToken) {
+              const refreshedAccount = await prisma.account.findFirst({
+                where: { userId: token.userId as string, provider: "google" },
+                select: { access_token: true, expires_at: true },
               });
-              const tokens = await response.json();
-              if (response.ok) {
-                currentAccessToken = tokens.access_token;
-                expiresAt = Date.now() + tokens.expires_in * 1000;
-                await prisma.account.updateMany({
-                  where: { userId: token.userId as string, provider: "google" },
-                  data: {
-                    access_token: currentAccessToken,
-                    expires_at: Math.floor(expiresAt / 1000),
-                    ...(tokens.refresh_token && { refresh_token: tokens.refresh_token }),
-                  },
-                });
-              } else {
-                console.error("Google token refresh failed:", tokens);
-                currentAccessToken = undefined;
+              if (refreshedAccount) {
+                currentAccessToken = refreshedAccount.access_token || undefined;
+                expiresAt = refreshedAccount.expires_at ? refreshedAccount.expires_at * 1000 : undefined;
               }
             } else {
               currentAccessToken = undefined;
             }
           } catch (error) {
-            console.error("Error refreshing Google access token", error);
+            console.error("Error refreshing Google access token in JWT callback:", error);
             currentAccessToken = undefined;
           }
         }

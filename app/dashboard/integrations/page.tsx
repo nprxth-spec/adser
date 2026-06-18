@@ -52,6 +52,8 @@ export default function IntegrationsPage() {
 
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [realigning, setRealigning] = useState(false);
+    const [realignSuccess, setRealignSuccess] = useState(false);
     const [error, setError] = useState("");
     const [sheetMenuOpen, setSheetMenuOpen] = useState(false);
     const [tabMenuOpen, setTabMenuOpen] = useState(false);
@@ -258,6 +260,22 @@ export default function IntegrationsPage() {
         setSaving(false);
     };
 
+    const handleRealignRowCounter = async () => {
+        setRealigning(true);
+        setRealignSuccess(false);
+        setError("");
+        try {
+            const res = await fetch("/api/google/sheets/realign", { method: "POST" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Failed to realign");
+            setRealignSuccess(true);
+            setTimeout(() => setRealignSuccess(false), 3000);
+        } catch (err: any) {
+            setError(err.message);
+        }
+        setRealigning(false);
+    };
+
     const updateMapping = (key: keyof typeof defaultMapping, val: string) => {
         setSheetMapping(prev => ({ ...prev, [key]: val }));
     };
@@ -270,6 +288,14 @@ export default function IntegrationsPage() {
             </div>
 
             <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-lg shadow-gray-200/60 dark:shadow-none p-6 space-y-6">
+                {realignSuccess && (
+                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-bold">
+                            ✓
+                        </span>
+                        <span>{t("ปรับตำแหน่งแถวในระบบตรงตาม Google Sheet จริงแล้ว", "Row counter successfully realigned with your actual Google Sheet")}</span>
+                    </div>
+                )}
                 {saved && (
                     <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
                         <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-bold">
@@ -424,14 +450,31 @@ export default function IntegrationsPage() {
                     <hr className="border-gray-100 dark:border-gray-800" />
 
                     <div className="flex flex-col sm:flex-row items-center gap-4 justify-between pt-2">
-                        <a
-                            href="https://sheets.google.com/create"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 transition-colors order-2 sm:order-1"
-                        >
-                            {t("สร้างไฟล์ Sheet ใหม่", "Create new Sheet")} <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 order-2 sm:order-1">
+                            <a
+                                href="https://sheets.google.com/create"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 transition-colors"
+                            >
+                                {t("สร้างไฟล์ Sheet ใหม่", "Create new Sheet")} <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                            {sheetId && (
+                                <button
+                                    type="button"
+                                    onClick={handleRealignRowCounter}
+                                    disabled={realigning}
+                                    className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                                >
+                                    {realigning ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <span>⚡</span>
+                                    )}
+                                    <span>{t("ซิงค์เลขแถวใหม่", "Re-sync Row Counter")}</span>
+                                </button>
+                            )}
+                        </div>
                         <button
                             onClick={handleSave}
                             disabled={saving || !sheetId}

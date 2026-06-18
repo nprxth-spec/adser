@@ -104,10 +104,33 @@ const LEADING_CODE_PREFIX_RE = /^\s*\([A-Z0-9]{1,4}\)\s*/i;
 function normalizeThaiText(raw: string): string {
     return (raw ?? "")
         .normalize("NFC")
+        .replace(/\uf700/g, "\u0e31")
+        .replace(/\uf701/g, "\u0e34")
+        .replace(/\uf702/g, "\u0e35")
+        .replace(/\uf703/g, "\u0e36")
+        .replace(/\uf704/g, "\u0e37")
+        .replace(/\uf705/g, "\u0e48")
+        .replace(/\uf706/g, "\u0e49")
+        .replace(/\uf707/g, "\u0e4a")
+        .replace(/\uf708/g, "\u0e4b")
+        .replace(/\uf709/g, "\u0e4c")
         .replace(/\uf70a/g, "\u0e48")
         .replace(/\uf70b/g, "\u0e49")
         .replace(/\uf70c/g, "\u0e4a")
         .replace(/\uf70d/g, "\u0e4b")
+        .replace(/\uf70e/g, "\u0e4c")
+        .replace(/\uf710/g, "\u0e31")
+        .replace(/\uf711/g, "\u0e34")
+        .replace(/\uf712/g, "\u0e35")
+        .replace(/\uf713/g, "\u0e36")
+        .replace(/\uf714/g, "\u0e37")
+        .replace(/\uf718/g, "\u0e48")
+        .replace(/\uf719/g, "\u0e49")
+        .replace(/\uf71a/g, "\u0e4a")
+        .replace(/\uf71b/g, "\u0e4b")
+        .replace(/\uf71c/g, "\u0e4c")
+        .replace(/\uf71d/g, "\u0e4d")
+        .replace(/\uf71e/g, "\u0e4d")
         .replace(/\u0e4d\u0e32/g, "\u0e33")
         .trim();
 }
@@ -576,7 +599,7 @@ function detectPaymentSuccessFromText(pdfText: string): boolean | null {
     return null;
 }
 
-export async function extractInvoiceData(pdfText: string): Promise<InvoiceData> {
+export async function extractInvoiceData(pdfText: string, pdfBuffer?: Buffer): Promise<InvoiceData> {
     const trimmedText = pdfText.slice(0, 6000);
     const hardHeaderBilledTo = billedToFromHeaderLines(
         (pdfText ?? "")
@@ -617,6 +640,17 @@ Rules:
 --- RECEIPT TEXT ---
 ${trimmedText}`;
 
+    const parts: any[] = [prompt];
+    const isScannedPdf = !pdfText.trim();
+    if (isScannedPdf && pdfBuffer) {
+        parts.push({
+            inlineData: {
+                data: pdfBuffer.toString("base64"),
+                mimeType: "application/pdf",
+            },
+        });
+    }
+
     try {
         let responseJson = "";
         let lastError: unknown;
@@ -631,7 +665,7 @@ ${trimmedText}`;
                         temperature: 0,
                     },
                 });
-                const result = await model.generateContent(prompt);
+                const result = await model.generateContent(parts);
                 responseJson = result.response.text();
                 if (responseJson) break;
             } catch (err) {

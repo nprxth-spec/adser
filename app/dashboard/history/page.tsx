@@ -76,6 +76,107 @@ export default function HistoryPage() {
   // the wrong row.
   const deleteQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
+  // Selection states
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === logs.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(logs.map((l) => l.id)));
+    }
+  };
+
+  const handleSelectRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    const idsArray = Array.from(selectedIds);
+    if (idsArray.length === 0) return;
+
+    const confirmMsg = t(
+      `คุณต้องการลบข้อมูล ${idsArray.length} รายการที่เลือกนี้ออกจากฐานข้อมูล, Google Drive และ Google Sheets (ลบแถว) หรือไม่?`,
+      `Are you sure you want to delete the ${idsArray.length} selected records from the database, Google Drive, and Google Sheets (row deletion)?`
+    );
+    if (!window.confirm(confirmMsg)) return;
+
+    setBulkDeleting(true);
+    setSelectedIds(new Set()); // clear selection immediately
+
+    let successCount = 0;
+    let failCount = 0;
+    const warnings: string[] = [];
+
+    // Run sequentially to avoid Google Sheets API rate limits and row shifting index race conditions
+    for (let i = 0; i < idsArray.length; i++) {
+      const id = idsArray[i];
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+
+      try {
+        const res = await fetch(`/api/history/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to delete");
+        
+        setLogs((prev) => prev.filter((l) => l.id !== id));
+        setTotal((prev) => Math.max(0, prev - 1));
+        if (data.warnings?.length) {
+          warnings.push(...data.warnings);
+        }
+        successCount++;
+      } catch (err: any) {
+        console.error(`Failed to delete record ${id}:`, err);
+        failCount++;
+      } finally {
+        setDeletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    }
+
+    setBulkDeleting(false);
+
+    if (failCount === 0) {
+      if (warnings.length > 0) {
+        setToast({
+          kind: "success",
+          text: t(
+            `ลบสำเร็จทั้งหมด ${successCount} รายการ แต่บางไฟล์ใน Sheet/Drive มีปัญหา`,
+            `Successfully deleted all ${successCount} records; some Drive/Sheet files had warnings`
+          ),
+        });
+      } else {
+        setToast({
+          kind: "success",
+          text: t(`ลบข้อมูลสำเร็จทั้งหมด ${successCount} รายการ`, `Successfully deleted all ${successCount} records`),
+        });
+      }
+    } else {
+      setToast({
+        kind: "error",
+        text: t(
+          `ลบสำเร็จ ${successCount} รายการ และล้มเหลว ${failCount} รายการ`,
+          `Successfully deleted ${successCount} records, failed to delete ${failCount} records`
+        ),
+      });
+    }
+  };
+
   // Edit dialog state
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [draft, setDraft] = useState<EditDraft | null>(null);
@@ -95,6 +196,7 @@ export default function HistoryPage() {
   useEffect(() => {
     const fetchLogs = async () => {
       setLoading(true);
+      setSelectedIds(new Set()); // Reset selection when parameters change
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (range && range !== "all") params.set("range", range);
       const res = await fetch(`/api/history?${params}`);
@@ -268,13 +370,31 @@ export default function HistoryPage() {
   return (
     <div className="max-w-7xl mx-auto w-full min-w-0">
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-            {t("ประวัติใบแจ้งหนี้", "Invoice History")}
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {t(`${total} รายการในช่วงเวลานี้`, `${total} invoice${total !== 1 ? "s" : ""} in this period`)}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+              {t("รายการใบแจ้งหนี้", "Invoice List")}
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              {t(`${total} รายการในช่วงเวลานี้`, `${total} invoice${total !== 1 ? "s" : ""} in this period`)}
+            </p>
+          </div>
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              disabled={bulkDeleting}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer w-fit"
+            >
+              {bulkDeleting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {t(`ลบที่เลือก (${selectedIds.size})`, `Delete Selected (${selectedIds.size})`)}
+              </span>
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-550 shrink-0" />
@@ -367,6 +487,7 @@ export default function HistoryPage() {
           <div className="scrollbar-thin">
             <table className="w-full text-sm table-fixed">
               <colgroup>
+                <col style={{ width: "36px" }} />
                 <col style={{ width: "44px" }} />
                 <col style={{ width: "118px" }} />
                 <col />
@@ -379,6 +500,14 @@ export default function HistoryPage() {
               </colgroup>
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-800">
+                  <th className="px-3 py-3 text-left w-[36px]">
+                    <input
+                      type="checkbox"
+                      checked={logs.length > 0 && selectedIds.size === logs.length}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 dark:border-gray-700 text-brand-500 focus:ring-brand-500 w-3.5 h-3.5 cursor-pointer accent-brand-500"
+                    />
+                  </th>
                   {[
                     t("#", "#"),
                     t("วันที่ประมวลผล", "Processed"),
@@ -403,10 +532,18 @@ export default function HistoryPage() {
                 {logs.map((log, i) => (
                   <tr
                     key={log.id}
-                    className={`border-b border-gray-50 dark:border-gray-800/40 hover:bg-gray-50/50 dark:hover:bg-gray-850/30 transition-colors ${
+                    className={`border-b border-gray-550 dark:border-gray-800/40 hover:bg-gray-50/50 dark:hover:bg-gray-850/30 transition-colors ${
                       i % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/30 dark:bg-gray-900/40"
                     } ${deletingIds.has(log.id) ? "opacity-40" : queuedIds.has(log.id) ? "opacity-60" : ""}`}
                   >
+                    <td className="px-3 py-2.5 w-[36px]">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(log.id)}
+                        onChange={() => handleSelectRow(log.id)}
+                        className="rounded border-gray-300 dark:border-gray-700 text-brand-500 focus:ring-brand-500 w-3.5 h-3.5 cursor-pointer accent-brand-500"
+                      />
+                    </td>
                     <td className="px-3 py-2.5 text-gray-400 dark:text-gray-500 text-xs font-mono whitespace-nowrap truncate">
                       {(page - 1) * limit + i + 1}
                     </td>

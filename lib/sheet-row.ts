@@ -47,16 +47,19 @@ export async function reserveSheetRow(
     const effectiveSeed = seed ?? 1;
 
     return await prisma.$transaction(async (tx) => {
-        const users = await tx.$queryRaw<[{ sheetWriteRow: number | null }]>`
-            SELECT sheetWriteRow FROM User WHERE id = ${userId} FOR UPDATE
+        const users = await tx.$queryRaw<[{ sheetWriteRow: number | null; updatedAt: Date }]>`
+            SELECT sheetWriteRow, updatedAt FROM User WHERE id = ${userId} FOR UPDATE
         `;
 
         const currentVal = users[0]?.sheetWriteRow;
+        const updatedAt = users[0]?.updatedAt;
         let newVal: number;
+
+        const isRecentUpdate = updatedAt && (Date.now() - new Date(updatedAt).getTime() < 10000);
 
         if (currentVal === null || currentVal === undefined) {
             newVal = effectiveSeed;
-        } else if (currentVal > effectiveSeed + SHEET_ROW_DRIFT_RESET_THRESHOLD) {
+        } else if (currentVal > effectiveSeed && !isRecentUpdate) {
             newVal = effectiveSeed;
         } else {
             newVal = Math.max(currentVal, effectiveSeed);
@@ -78,14 +81,8 @@ export async function realignSheetRowCounter(
 ): Promise<void> {
     const seed = Math.max(0, Math.floor(actualLastRow));
 
-    await prisma.user.updateMany({
-        where: {
-            id: userId,
-            OR: [
-                { sheetWriteRow: null },
-                { sheetWriteRow: { gt: seed } },
-            ],
-        },
+    await prisma.user.update({
+        where: { id: userId },
         data: { sheetWriteRow: seed },
     });
 }

@@ -15,6 +15,7 @@ type ScopeResult = {
 };
 
 const SCOPE_LABELS: Record<string, string> = {
+  "https://www.googleapis.com/auth/drive": "Drive (สิทธิ์เต็ม/แชร์)",
   "https://www.googleapis.com/auth/drive.readonly": "Drive (อ่าน)",
   "https://www.googleapis.com/auth/drive.file": "Drive (สร้าง/อัปโหลด)",
   "https://www.googleapis.com/auth/spreadsheets": "Google Sheets",

@@ -91,7 +91,7 @@ export async function POST(
     const pdfParse = await getPdfParse();
     const { text: pdfText } = await pdfParse(buffer);
     debugPdfText("review-rescan", id, pdfText);
-    const invoiceData = await extractInvoiceData(pdfText);
+    const invoiceData = await extractInvoiceData(pdfText, buffer);
 
     // Resolve card prefix from the user's CURRENT filenameMapping
     const filenameMapping = (user?.filenameMapping ?? null) as Record<string, string> | null;

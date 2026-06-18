@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { extractInvoiceData, InvoiceData } from "@/lib/openai";
 import {
     appendToSheet,
+    cleanupPendingDriveFiles,
+    deleteDriveFile,
     downloadDriveFileBuffer,
     getActualSheetLastRow,
     organizeExistingDriveFile,
@@ -138,6 +140,17 @@ export async function POST(request: Request) {
         );
     }
 
+    // Background cleanup of stale pending drive files (older than 24h)
+    cleanupPendingDriveFiles(accessToken, LOCKED_DRIVE_FOLDER_ID)
+        .then(({ deletedCount }) => {
+            if (deletedCount > 0) {
+                console.log(`[Background Cleanup] Deleted ${deletedCount} stale PENDING_ files.`);
+            }
+        })
+        .catch((err) => {
+            console.error("[Background Cleanup] Failed to cleanup pending files:", err);
+        });
+
     const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
     const contentTypeHeader = request.headers.get("content-type") ?? "";
     const isDirectDriveUpload = contentTypeHeader.includes("application/json");
@@ -243,7 +256,7 @@ export async function POST(request: Request) {
         const pdfText = textResult.text;
         debugPdfText("upload", originalFilename, pdfText);
 
-        invoiceData = await extractInvoiceData(pdfText);
+        invoiceData = await extractInvoiceData(pdfText, buffer);
         partialInvoiceData = invoiceData;
 
         const last4 = invoiceData.card_last_4;
@@ -373,20 +386,12 @@ export async function POST(request: Request) {
     } catch (err: any) {
         console.error("Processing error:", err);
         status = "error";
-        if (driveFileId && !partialDriveLink) {
+        if (driveFileId) {
             try {
-                const failedDriveResult = await organizeExistingDriveFile(
-                    driveFileId,
-                    "ERROR_" + (filename !== sanitizedOriginal ? filename : sanitizedOriginal),
-                    accessToken,
-                    partialInvoiceData?.date ?? "",
-                    LOCKED_DRIVE_FOLDER_ID,
-                    LOCKED_DRIVE_FOLDER_MODE,
-                    false,
-                );
-                partialDriveLink = failedDriveResult.driveLink;
+                await deleteDriveFile(driveFileId, accessToken);
+                console.log("Deleted failed Drive upload:", driveFileId);
             } catch (driveErr) {
-                console.error("Failed to move errored Drive upload:", driveErr);
+                console.error("Failed to delete errored Drive upload:", driveErr);
             }
         }
         // Include whatever partial data was extracted/uploaded for traceability
@@ -403,11 +408,26 @@ export async function POST(request: Request) {
                 currency: partialInvoiceData?.currency ?? null,
             },
         });
-        const safeMessage =
-            err.message?.includes("Google") || err.message?.includes("Sheet") || err.message?.includes("Drive")
-                ? "Failed to sync to Google services. Please check your integration settings."
-                : "Processing failed. Please try again or contact support.";
-        return NextResponse.json({ error: safeMessage }, { status: 500 });
+        const isGeminiError =
+            err.message?.includes("GoogleGenerativeAI") ||
+            err.message?.includes("generativelanguage") ||
+            err.message?.includes("API key");
+
+        let safeMessage = "Processing failed. Please try again or contact support.";
+        let errorTh = "การประมวลผลล้มเหลว กรุณาลองใหม่อีกครั้งหรือติดต่อฝ่ายสนับสนุน";
+        let errorEn = safeMessage;
+
+        if (isGeminiError) {
+            safeMessage = "AI parsing failed. Please check your GOOGLE_AI_API_KEY in your .env file.";
+            errorTh = "การประมวลผลด้วย AI ล้มเหลว กรุณาตรวจสอบการตั้งค่า GOOGLE_AI_API_KEY ในไฟล์ .env ของคุณ";
+            errorEn = "AI parsing failed. Please check your GOOGLE_AI_API_KEY in your .env file.";
+        } else if (err.message?.includes("Google") || err.message?.includes("Sheet") || err.message?.includes("Drive")) {
+            safeMessage = "Failed to sync to Google services. Please check your integration settings.";
+            errorTh = "ไม่สามารถซิงค์ไปยังบริการของ Google ได้ กรุณาตรวจสอบการตั้งค่าการเชื่อมต่อของคุณ";
+            errorEn = "Failed to sync to Google services. Please check your integration settings.";
+        }
+
+        return NextResponse.json({ error: safeMessage, errorTh, errorEn }, { status: 500 });
     }
 
     await prisma.processingLog.create({

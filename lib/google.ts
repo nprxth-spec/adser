@@ -555,6 +555,18 @@ export async function renameDriveFile(
     });
 }
 
+/** Delete an existing Drive file. */
+export async function deleteDriveFile(
+    fileId: string,
+    accessToken: string,
+): Promise<void> {
+    const auth = getOAuth2Client(accessToken);
+    const drive = google.drive({ version: "v3", auth });
+    await drive.files.delete({
+        fileId,
+    });
+}
+
 /** Append a single row to Sheets (used when approving a review item). */
 export async function appendToSheet(
     data: InvoiceData,
@@ -807,136 +819,203 @@ export async function syncToGoogle(
         fields: "id, webViewLink",
     });
 
+    const driveFileId = uploadRes.data.id ?? "";
     const driveLink = uploadRes.data.webViewLink ?? "";
 
-    const mapping: SheetMapping | null =
-        sheetMapping && typeof sheetMapping === "object" ? (sheetMapping as SheetMapping) : null;
+    try {
+        const mapping: SheetMapping | null =
+            sheetMapping && typeof sheetMapping === "object" ? (sheetMapping as SheetMapping) : null;
 
-    let nextRow = 0;
+        let nextRow = 0;
 
-    const cellMap: Record<string, any> = {};
-    // Only add the cell if both the column letter and the value are non-empty.
-    // Skipping empty strings prevents overwriting formulas in cells that have no
-    // corresponding invoice data (e.g. reference_number on a failed payment).
-    // Numeric 0 is intentionally kept so a zero-amount row is still written.
-    const addCell = (col: string | undefined | null, value: any) => {
-        if (!col || col.trim() === "") return;
-        if (value === "" || value === null || value === undefined) return;
-        cellMap[col.toUpperCase()] = value;
-    };
+        const cellMap: Record<string, any> = {};
+        // Only add the cell if both the column letter and the value are non-empty.
+        // Skipping empty strings prevents overwriting formulas in cells that have no
+        // corresponding invoice data (e.g. reference_number on a failed payment).
+        // Numeric 0 is intentionally kept so a zero-amount row is still written.
+        const addCell = (col: string | undefined | null, value: any) => {
+            if (!col || col.trim() === "") return;
+            if (value === "" || value === null || value === undefined) return;
+            cellMap[col.toUpperCase()] = value;
+        };
 
-    if (mapping) {
-        addCell(mapping.date, data.date);
-        addCell(mapping.billed_to, data.billed_to);
-        addCell(mapping.card_last_4, data.card_last_4);
-        if (data.paymentSuccess) {
-            addCell(mapping.amount, data.amount ?? 0);
-        } else {
-            // Only write to amountFailed column if the user explicitly configured it.
-            // Do NOT fall back to a hardcoded column — that would overwrite formulas
-            // in cells the user never intended to be written by FilesGo.
-            addCell(mapping.amountFailed, data.amount ?? 0);
-        }
-        addCell(mapping.currency, data.currency);
-        addCell(mapping.filename, filename || null);
-        addCell(mapping.driveLink, driveLink || null);
-        addCell(mapping.reference, data.reference_number);
-    }
-
-    if (mapping) {
-        const entries = Object.entries(cellMap);
-        if (entries.length > 0) {
-            if (targetRow && targetRow > 0) {
-                // ── Preferred path: write directly to pre-allocated row ───────────
-                await ensureSheetCapacity(sheets, sheetId, sheetName, targetRow);
-                const batchData = entries.map(([col, val]) => ({
-                    range: sheetName ? `'${sheetName}'!${col}${targetRow}` : `${col}${targetRow}`,
-                    values: [[val]],
-                }));
-                await sheets.spreadsheets.values.batchUpdate({
-                    spreadsheetId: sheetId,
-                    requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
-                });
-                nextRow = targetRow;
+        if (mapping) {
+            addCell(mapping.date, data.date);
+            addCell(mapping.billed_to, data.billed_to);
+            addCell(mapping.card_last_4, data.card_last_4);
+            if (data.paymentSuccess) {
+                addCell(mapping.amount, data.amount ?? 0);
             } else {
-                // ── Fallback: 2-step OVERWRITE append ────────────────────────────
-                const sortedEntries = [...entries].sort(
-                    (a, b) => colLetterToIndex(a[0]) - colLetterToIndex(b[0])
-                );
-                const [anchorCol, anchorVal] = sortedEntries[0];
-                const anchorRange = sheetName
-                    ? `'${sheetName}'!${anchorCol}:${anchorCol}`
-                    : `${anchorCol}:${anchorCol}`;
+                // Only write to amountFailed column if the user explicitly configured it.
+                // Do NOT fall back to a hardcoded column — that would overwrite formulas
+                // in cells the user never intended to be written by FilesGo.
+                addCell(mapping.amountFailed, data.amount ?? 0);
+            }
+            addCell(mapping.currency, data.currency);
+            addCell(mapping.filename, filename || null);
+            addCell(mapping.driveLink, driveLink || null);
+            addCell(mapping.reference, data.reference_number);
+        }
 
-                const appendRes = await sheets.spreadsheets.values.append({
-                    spreadsheetId: sheetId,
-                    range: anchorRange,
-                    valueInputOption: "USER_ENTERED",
-                    insertDataOption: "OVERWRITE",
-                    requestBody: { values: [[anchorVal]] },
-                });
-
-                const updatedRange = appendRes.data.updates?.updatedRange ?? "";
-                const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
-                nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
-                if (nextRow === 0) {
-                    console.warn("[syncToGoogle] Could not parse row number from updatedRange:", updatedRange);
-                }
-
-                const remaining = sortedEntries.slice(1);
-                if (nextRow > 0 && remaining.length > 0) {
-                    const batchData = remaining.map(([col, val]) => ({
-                        range: sheetName ? `'${sheetName}'!${col}${nextRow}` : `${col}${nextRow}`,
+        if (mapping) {
+            const entries = Object.entries(cellMap);
+            if (entries.length > 0) {
+                if (targetRow && targetRow > 0) {
+                    // ── Preferred path: write directly to pre-allocated row ───────────
+                    await ensureSheetCapacity(sheets, sheetId, sheetName, targetRow);
+                    const batchData = entries.map(([col, val]) => ({
+                        range: sheetName ? `'${sheetName}'!${col}${targetRow}` : `${col}${targetRow}`,
                         values: [[val]],
                     }));
                     await sheets.spreadsheets.values.batchUpdate({
                         spreadsheetId: sheetId,
                         requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
                     });
+                    nextRow = targetRow;
+                } else {
+                    // ── Fallback: 2-step OVERWRITE append ────────────────────────────
+                    const sortedEntries = [...entries].sort(
+                        (a, b) => colLetterToIndex(a[0]) - colLetterToIndex(b[0])
+                    );
+                    const [anchorCol, anchorVal] = sortedEntries[0];
+                    const anchorRange = sheetName
+                        ? `'${sheetName}'!${anchorCol}:${anchorCol}`
+                        : `${anchorCol}:${anchorCol}`;
+
+                    const appendRes = await sheets.spreadsheets.values.append({
+                        spreadsheetId: sheetId,
+                        range: anchorRange,
+                        valueInputOption: "USER_ENTERED",
+                        insertDataOption: "OVERWRITE",
+                        requestBody: { values: [[anchorVal]] },
+                    });
+
+                    const updatedRange = appendRes.data.updates?.updatedRange ?? "";
+                    const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
+                    nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
+                    if (nextRow === 0) {
+                        console.warn("[syncToGoogle] Could not parse row number from updatedRange:", updatedRange);
+                    }
+
+                    const remaining = sortedEntries.slice(1);
+                    if (nextRow > 0 && remaining.length > 0) {
+                        const batchData = remaining.map(([col, val]) => ({
+                            range: sheetName ? `'${sheetName}'!${col}${nextRow}` : `${col}${nextRow}`,
+                            values: [[val]],
+                        }));
+                        await sheets.spreadsheets.values.batchUpdate({
+                            spreadsheetId: sheetId,
+                            requestBody: { valueInputOption: "USER_ENTERED", data: batchData },
+                        });
+                    }
+                }
+            }
+        } else {
+            // No mapping — fixed A:G layout
+            const valuesArray = [
+                data.date ?? "",
+                data.billed_to ?? "",
+                data.card_last_4 ?? "",
+                data.amount ?? 0,
+                data.currency ?? "",
+                filename,
+                driveLink,
+            ];
+
+            if (targetRow && targetRow > 0) {
+                await ensureSheetCapacity(sheets, sheetId, sheetName, targetRow);
+                const range = sheetName ? `'${sheetName}'!A${targetRow}:G${targetRow}` : `A${targetRow}:G${targetRow}`;
+                await sheets.spreadsheets.values.batchUpdate({
+                    spreadsheetId: sheetId,
+                    requestBody: {
+                        valueInputOption: "USER_ENTERED",
+                        data: [{ range, values: [valuesArray] }],
+                    },
+                });
+                nextRow = targetRow;
+            } else {
+                // Fallback OVERWRITE append
+                const range = sheetName ? `'${sheetName}'!A:G` : "A:G";
+                const appendRes = await sheets.spreadsheets.values.append({
+                    spreadsheetId: sheetId,
+                    range,
+                    valueInputOption: "USER_ENTERED",
+                    insertDataOption: "OVERWRITE",
+                    requestBody: { values: [valuesArray] },
+                });
+                const updatedRange = appendRes.data.updates?.updatedRange ?? "";
+                const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
+                nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
+                if (nextRow === 0) {
+                    console.warn("[syncToGoogle] Could not parse row number from updatedRange:", updatedRange);
                 }
             }
         }
-    } else {
-        // No mapping — fixed A:G layout
-        const valuesArray = [
-            data.date ?? "",
-            data.billed_to ?? "",
-            data.card_last_4 ?? "",
-            data.amount ?? 0,
-            data.currency ?? "",
-            filename,
-            driveLink,
-        ];
 
-        if (targetRow && targetRow > 0) {
-            await ensureSheetCapacity(sheets, sheetId, sheetName, targetRow);
-            const range = sheetName ? `'${sheetName}'!A${targetRow}:G${targetRow}` : `A${targetRow}:G${targetRow}`;
-            await sheets.spreadsheets.values.batchUpdate({
-                spreadsheetId: sheetId,
-                requestBody: {
-                    valueInputOption: "USER_ENTERED",
-                    data: [{ range, values: [valuesArray] }],
-                },
-            });
-            nextRow = targetRow;
-        } else {
-            // Fallback OVERWRITE append
-            const range = sheetName ? `'${sheetName}'!A:G` : "A:G";
-            const appendRes = await sheets.spreadsheets.values.append({
-                spreadsheetId: sheetId,
-                range,
-                valueInputOption: "USER_ENTERED",
-                insertDataOption: "OVERWRITE",
-                requestBody: { values: [valuesArray] },
-            });
-            const updatedRange = appendRes.data.updates?.updatedRange ?? "";
-            const rowMatch = updatedRange.match(/:?[A-Z]+(\d+)$/i);
-            nextRow = rowMatch ? parseInt(rowMatch[1], 10) : 0;
-            if (nextRow === 0) {
-                console.warn("[syncToGoogle] Could not parse row number from updatedRange:", updatedRange);
+        return { driveLink, sheetRow: nextRow };
+    } catch (err) {
+        if (driveFileId) {
+            try {
+                await drive.files.delete({ fileId: driveFileId });
+                console.log("[syncToGoogle] Deleted Drive file after Sheets sync failed:", driveFileId);
+            } catch (delErr) {
+                console.error("[syncToGoogle] Failed to delete file on error:", delErr);
             }
         }
+        throw err;
     }
-
-    return { driveLink, sheetRow: nextRow };
 }
+
+/**
+ * Search for and delete any files starting with "PENDING_" in the target folder
+ * that were created more than 24 hours ago.
+ */
+export async function cleanupPendingDriveFiles(
+    accessToken: string,
+    parentFolderId: string
+): Promise<{ deletedCount: number; errors: string[] }> {
+    const auth = getOAuth2Client(accessToken);
+    const drive = google.drive({ version: "v3", auth });
+
+    // 24 hours ago
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const isoString = oneDayAgo.toISOString();
+
+    const escapedParent = escapeDriveQuery(parentFolderId);
+
+    try {
+        const searchRes = await drive.files.list({
+            q: [
+                "name contains 'PENDING_'",
+                "mimeType != 'application/vnd.google-apps.folder'",
+                "trashed = false",
+                `'${escapedParent}' in parents`,
+                `createdTime < '${isoString}'`
+            ].join(" and "),
+            fields: "files(id, name, createdTime)",
+            spaces: "drive",
+        });
+
+        const files = searchRes.data.files ?? [];
+        let deletedCount = 0;
+        const errors: string[] = [];
+
+        for (const file of files) {
+            if (file.name && file.name.startsWith("PENDING_") && file.id) {
+                try {
+                    await drive.files.delete({ fileId: file.id });
+                    deletedCount++;
+                } catch (err: any) {
+                    console.error(`[Cleanup] Failed to delete file ${file.name} (${file.id}):`, err);
+                    errors.push(`Failed to delete ${file.name}: ${err.message || err}`);
+                }
+            }
+        }
+
+        return { deletedCount, errors };
+    } catch (err: any) {
+        console.error("[Cleanup] Failed to list pending files:", err);
+        throw err;
+    }
+}
+

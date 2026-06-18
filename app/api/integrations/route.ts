@@ -110,6 +110,7 @@ export async function POST(request: Request) {
         sheetName: activeProfile ? activeProfile.sheetName ?? null : null,
         sheetGid: activeProfile ? (activeProfile.sheetGid ?? null) : null,
         sheetMapping: activeProfile ? activeProfile.sheetMapping ?? null : null,
+        sheetWriteRow: null, // Reset counter so it realigns on next upload!
       },
     });
     await createAuditLog(

@@ -247,6 +247,8 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
             const ctrl = new AbortController();
             abortControllersRef.current.set(fileIndex, ctrl);
 
+            let uploadedFileIdToDelete: string | null = null;
+
             try {
                 const sheetId = (sessionRef.current?.user as { sheetId?: string })?.sheetId ?? "";
 
@@ -258,6 +260,10 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                     console.warn("Direct Google Drive upload failed; falling back to server upload.", directUploadError);
                     return null;
                 });
+
+                if (uploaded) {
+                    uploadedFileIdToDelete = uploaded.id;
+                }
 
                 let res: Response;
                 setFileStageById(fileIndex, "extracting");
@@ -303,6 +309,9 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                     throw err;
                 }
 
+                // Successfully processed; do not delete the file
+                uploadedFileIdToDelete = null;
+
                 if (!data?.data) throw new Error("Upload response is not valid JSON data");
 
                 const newResult: InvoiceResult = {
@@ -319,6 +328,22 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
                 }
 
             } catch (err: unknown) {
+                if (uploadedFileIdToDelete) {
+                    try {
+                        const tokenRes = await fetch("/api/google/access-token").catch(() => null);
+                        const tokenData = tokenRes && tokenRes.ok ? await tokenRes.json() as UploadSessionResponse : null;
+                        const token = tokenData?.data?.accessToken;
+                        if (token) {
+                            await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(uploadedFileIdToDelete)}`, {
+                                method: "DELETE",
+                                headers: { Authorization: `Bearer ${token}` },
+                            }).catch((e) => console.warn("Failed to delete orphaned pending file:", e));
+                        }
+                    } catch (delErr) {
+                        console.warn("Failed to delete orphaned pending file during error recovery:", delErr);
+                    }
+                }
+
                 if (isCancelledRef.current) return;
                 const richErr = err as UploadFlowError;
                 if (richErr?.status === 409 || richErr?.code === "DUPLICATE_FILE") {

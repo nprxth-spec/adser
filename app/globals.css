@@ -193,7 +193,7 @@
     transition: background-color 0.2s ease, color 0.2s ease;
   }
   .dark body {
-    @apply bg-gray-900;
+    @apply bg-gray-950;
     color: var(--color-gray-100);
   }
 }

@@ -25,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="th">
-      <body className={`${outfit.className} min-h-screen antialiased dark:bg-gray-900`}>
+      <body className={`${outfit.className} min-h-screen antialiased dark:bg-gray-950`}>
         <Providers>{children}</Providers>
       </body>
     </html>

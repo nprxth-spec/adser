@@ -220,7 +220,7 @@ export default function NamingRulesPage() {
             <p className="font-semibold text-gray-900 dark:text-gray-100">{t("ชื่อบัตรตามเลข 4 ตัวท้าย", "Card name by last 4 digits")}</p>
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {t("ตัวอย่าง:", "Example:")}{" "}
-              <span className="font-mono text-gray-600">5991=WF-0004-1;</span>
+              <span className="font-mono text-gray-600 dark:text-gray-400">5991=WF-0004-1;</span>
             </p>
           </div>
         </div>
@@ -229,10 +229,10 @@ export default function NamingRulesPage() {
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
           rows={5}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm font-mono text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-y"
+          className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-mono text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-y"
           placeholder={"5991=WF-0004-1;\n5821=WF-0004-2;\n9649=WF-0004-9;"}
         />
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-400 dark:text-gray-500">
           {t(
             "โทเค็น «ชื่อบัตร» ในรูปแบบด้านบนจะใช้ค่าจากตารางนี้",
             "The «Card name» token uses values from this table."

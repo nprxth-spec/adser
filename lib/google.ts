@@ -990,7 +990,8 @@ export async function cleanupPendingDriveFiles(
                 "mimeType != 'application/vnd.google-apps.folder'",
                 "trashed = false",
                 `'${escapedParent}' in parents`,
-                `createdTime < '${isoString}'`
+                `createdTime < '${isoString}'`,
+                "'me' in owners"
             ].join(" and "),
             fields: "files(id, name, createdTime)",
             spaces: "drive",

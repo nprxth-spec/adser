@@ -141,15 +141,18 @@ export async function POST(request: Request) {
     }
 
     // Background cleanup of stale pending drive files (older than 24h)
-    cleanupPendingDriveFiles(accessToken, LOCKED_DRIVE_FOLDER_ID)
-        .then(({ deletedCount }) => {
-            if (deletedCount > 0) {
-                console.log(`[Background Cleanup] Deleted ${deletedCount} stale PENDING_ files.`);
-            }
-        })
-        .catch((err) => {
-            console.error("[Background Cleanup] Failed to cleanup pending files:", err);
-        });
+    // Run with 2% probability to avoid hitting Google Drive list API rate limits
+    if (Math.random() < 0.02) {
+        cleanupPendingDriveFiles(accessToken, LOCKED_DRIVE_FOLDER_ID)
+            .then(({ deletedCount }) => {
+                if (deletedCount > 0) {
+                    console.log(`[Background Cleanup] Deleted ${deletedCount} stale PENDING_ files.`);
+                }
+            })
+            .catch((err) => {
+                console.error("[Background Cleanup] Failed to cleanup pending files:", err.message || err);
+            });
+    }
 
     const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
     const contentTypeHeader = request.headers.get("content-type") ?? "";

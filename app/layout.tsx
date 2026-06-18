@@ -12,7 +12,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Files Go – Automate Facebook Ads Invoices",
+  title: "Adser – Automate Facebook Ads Invoices",
   description:
     "Upload Facebook Ads PDF invoices. AI extracts the data and syncs it to your Google Sheets automatically.",
   keywords: ["Facebook Ads", "Invoice", "Google Sheets", "Automation", "AI"],

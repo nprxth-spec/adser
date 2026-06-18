@@ -133,7 +133,7 @@ export function DashboardHeader({
               {t("ออกจากระบบ?", "Sign out?")}
             </p>
             <p className="text-theme-sm text-gray-500 mb-5 dark:text-gray-400">
-              {t("คุณจะออกจากระบบ Files Go และต้องเข้าสู่ระบบใหม่เพื่อใช้งานต่อ", "You will be signed out of Files Go and need to sign in again to continue.")}
+              {t("คุณจะออกจากระบบ Adser และต้องเข้าสู่ระบบใหม่เพื่อใช้งานต่อ", "You will be signed out of Adser and need to sign in again to continue.")}
             </p>
             <div className="flex justify-end gap-2">
               <button

@@ -299,13 +299,17 @@ function ReviewRow({
   const missingFields = pending?.missingFields ?? [];
 
   return (
-    <tr className={`border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors group ${selected ? "bg-brand-50/40 dark:bg-brand-950/20" : ""}`}>
+    <tr
+      onClick={() => onToggleSelect(item.id)}
+      className={`cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors group ${selected ? "bg-brand-50/40 dark:bg-brand-950/20" : ""}`}
+    >
       {/* Checkbox */}
       <td className="py-3 pl-4 pr-2 w-10">
         <input
           type="checkbox"
           checked={selected}
           onChange={() => onToggleSelect(item.id)}
+          onClick={(e) => e.stopPropagation()}
           className="w-4 h-4 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-850 text-brand-600 focus:ring-brand-500 cursor-pointer"
           aria-label={t("เลือกรายการ", "Select item")}
         />
@@ -365,6 +369,7 @@ function ReviewRow({
             href={item.driveLink}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="inline-flex items-center gap-1 text-xs text-brand-600 dark:text-brand-400 hover:underline"
           >
             <ExternalLink className="w-3 h-3" />
@@ -379,14 +384,20 @@ function ReviewRow({
       <td className="py-3 pl-3 pr-4 text-right">
         <div className="flex items-center justify-end gap-1.5">
           <button
-            onClick={() => onReview(item)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onReview(item);
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md landing-accent-bg text-white text-xs font-medium hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Eye className="w-3 h-3" />
             {t("ตรวจสอบ", "Review")}
           </button>
           <button
-            onClick={() => onRequestDelete(item)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestDelete(item);
+            }}
             disabled={discarding}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-200 dark:hover:border-red-900/50 hover:text-red-650 dark:hover:text-red-400 disabled:opacity-50 transition-colors cursor-pointer"
           >
@@ -456,7 +467,7 @@ export default function ReviewPage() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "Failed to approve");
     setItems((prev) => prev.filter((i) => i.id !== id));
-    window.dispatchEvent(new Event("filesgo:review-update"));
+    window.dispatchEvent(new Event("adser:review-update"));
   };
 
   const toggleSelect = useCallback((id: string) => {
@@ -508,7 +519,7 @@ export default function ReviewPage() {
           for (const id of deletedIds) next.delete(id);
           return next;
         });
-        window.dispatchEvent(new Event("filesgo:review-update"));
+        window.dispatchEvent(new Event("adser:review-update"));
       }
       if (warnings.length > 0) setDeleteWarnings(warnings);
       if (failed.length > 0) {
@@ -535,7 +546,7 @@ export default function ReviewPage() {
       setDeleteConfirmItem(null);
       setSelectedItem(null);
       if (data.warnings?.length) setDeleteWarnings(data.warnings);
-      window.dispatchEvent(new Event("filesgo:review-update"));
+      window.dispatchEvent(new Event("adser:review-update"));
     } catch (e: any) {
       setDeleteError(e?.message ?? t("ลบรายการไม่สำเร็จ", "Failed to delete record"));
     } finally {
@@ -544,7 +555,7 @@ export default function ReviewPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto w-full space-y-6">
+    <div className="max-w-[1600px] mx-auto w-full px-6 sm:px-12 lg:px-16 space-y-6">
 
       {/* Page header */}
       <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">

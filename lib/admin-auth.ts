@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 
-const ADMIN_COOKIE_NAME = "filesgo_admin";
+const ADMIN_COOKIE_NAME = "adser_admin";
 const MAX_AGE_SEC = 60 * 60 * 24; // 24 hours
 
 function getSecret(): string {

@@ -25,7 +25,7 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
       <div className="h-14 border-b border-gray-800 px-4 flex items-center">
         {isOpen ? (
           <div>
-            <p className="font-semibold text-white text-theme-sm">Files Go Admin</p>
+            <p className="font-semibold text-white text-theme-sm">Adser Admin</p>
             <p className="text-xs text-gray-400 mt-0.5">Admin panel</p>
           </div>
         ) : null}

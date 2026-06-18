@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Zap } from "lucide-react";
 
 export const metadata = {
-  title: "Terms of Service – Files Go",
-  description: "Terms of service for using Files Go.",
+  title: "Terms of Service – Adser",
+  description: "Terms of service for using Adser.",
 };
 
 export default function TermsPage() {
@@ -18,7 +18,7 @@ export default function TermsPage() {
             <div className="w-8 h-8 rounded-md landing-accent-bg flex items-center justify-center shrink-0">
               <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-lg">Files Go</span>
+            <span className="font-bold text-lg">Adser</span>
           </Link>
           <Link
             href="/"
@@ -43,7 +43,7 @@ export default function TermsPage() {
               1. Acceptance of terms
             </h2>
             <p>
-              By accessing or using Files Go, you agree to be bound by these Terms of Service.
+              By accessing or using Adser, you agree to be bound by these Terms of Service.
               If you do not agree, do not use the service.
             </p>
           </section>
@@ -53,7 +53,7 @@ export default function TermsPage() {
               2. Description of service
             </h2>
             <p>
-              Files Go allows you to upload Facebook Ads PDF invoices, extract data using
+              Adser allows you to upload Facebook Ads PDF invoices, extract data using
               AI, and sync the results to your Google Sheets and Google Drive. The service
               is provided &quot;as is&quot; and we reserve the right to modify or discontinue
               features with notice where appropriate.
@@ -78,7 +78,7 @@ export default function TermsPage() {
               4. Acceptable use
             </h2>
             <p>
-              You may not use Files Go to violate any law, infringe others&apos; rights, transmit
+              You may not use Adser to violate any law, infringe others&apos; rights, transmit
               malware, or abuse our or third-party systems (including Google APIs). We may
               suspend or terminate access for breach of these terms.
             </p>
@@ -89,7 +89,7 @@ export default function TermsPage() {
               5. Subscription and payment
             </h2>
             <p>
-              Paid plans (e.g. Files Go Pro) are subject to the pricing and billing terms
+              Paid plans (e.g. Adser Pro) are subject to the pricing and billing terms
               presented at the time of purchase. Fees are non-refundable except where
               required by law or as stated in our refund policy. We may change pricing with
               reasonable notice.
@@ -101,7 +101,7 @@ export default function TermsPage() {
               6. Limitation of liability
             </h2>
             <p>
-              To the maximum extent permitted by law, Files Go and its providers shall not
+              To the maximum extent permitted by law, Adser and its providers shall not
               be liable for any indirect, incidental, special, or consequential damages
               arising from your use of the service. Our total liability is limited to the
               amount you paid us in the twelve months before the claim.

@@ -38,7 +38,7 @@ export default function AdminHeader({
           </button>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Files Go Admin
+              Adser Admin
             </p>
             <h1 className="text-theme-sm font-semibold text-gray-900 dark:text-white">{title}</h1>
           </div>

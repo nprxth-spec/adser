@@ -95,12 +95,12 @@ export default function Sidebar() {
         fetchCount();
         const interval = setInterval(fetchCount, 30_000);
         const handleReviewUpdate = () => { void fetchCount(); };
-        window.addEventListener("filesgo:review-update", handleReviewUpdate);
+        window.addEventListener("adser:review-update", handleReviewUpdate);
 
         return () => {
             cancelled = true;
             clearInterval(interval);
-            window.removeEventListener("filesgo:review-update", handleReviewUpdate);
+            window.removeEventListener("adser:review-update", handleReviewUpdate);
         };
     }, [pathname]);
 
@@ -146,7 +146,7 @@ export default function Sidebar() {
                     </div>
                     {!collapsed && (
                         <div className="min-w-0 whitespace-nowrap overflow-hidden">
-                            <p className="font-semibold text-base truncate text-white">Files Go</p>
+                            <p className="font-semibold text-base truncate text-white">Adser</p>
                             <p className="text-xs text-gray-400 truncate">{t("แปลงใบแจ้งหนี้เข้า Google Sheets", "Invoices to Google Sheets")}</p>
                         </div>
                     )}

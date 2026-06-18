@@ -86,7 +86,7 @@ async function uploadFileDirectToDrive(file: File, signal: AbortSignal) {
         throw err;
     }
 
-    const boundary = `filesgo_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const boundary = `adser_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const safeName = file.name.replace(/[<>:"\\|?*\x00-\x1f]/g, "_");
     const metadata = {
         name: `PENDING_${Date.now()}_${safeName}`,
@@ -324,7 +324,7 @@ export function DashboardUploadProvider({ children }: { children: React.ReactNod
 
                 // Notify sidebar badge to refresh if this file needs review
                 if (data.requiresReview) {
-                    window.dispatchEvent(new Event("filesgo:review-update"));
+                    window.dispatchEvent(new Event("adser:review-update"));
                 }
 
             } catch (err: unknown) {

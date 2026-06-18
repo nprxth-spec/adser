@@ -606,7 +606,7 @@ export async function appendToSheet(
         } else {
             // Only write to amountFailed column if the user explicitly configured it.
             // Do NOT fall back to a hardcoded column — that would overwrite formulas
-            // in cells the user never intended to be written by FilesGo.
+            // in cells the user never intended to be written by Adser.
             addCell(mapping.amountFailed, data.amount ?? 0);
         }
         addCell(mapping.currency, data.currency);
@@ -848,7 +848,7 @@ export async function syncToGoogle(
             } else {
                 // Only write to amountFailed column if the user explicitly configured it.
                 // Do NOT fall back to a hardcoded column — that would overwrite formulas
-                // in cells the user never intended to be written by FilesGo.
+                // in cells the user never intended to be written by Adser.
                 addCell(mapping.amountFailed, data.amount ?? 0);
             }
             addCell(mapping.currency, data.currency);

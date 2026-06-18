@@ -18,6 +18,37 @@ export type ChangelogEntry = {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.0",
+    date: "2026-06-18",
+    items: [
+      {
+        type: "feature",
+        th: "เปลี่ยนชื่อแอปพลิเคชันอย่างเป็นทางการจาก 'Files Go' เป็น 'Adser' ทั่วทั้งระบบ",
+        en: "Officially renamed the application system-wide from 'Files Go' to 'Adser'",
+      },
+      {
+        type: "feature",
+        th: "เพิ่มการเลือกแถวในตาราง — กดคลิกแถวใดๆ เพื่อสลับการเลือกเช็คบ็อกซ์ในหน้ารายการและหน้าตรวจสอบ สะดวกในการทำงานมากขึ้น",
+        en: "Row-click selection — click anywhere on a table row to toggle checkboxes on the Invoice List and Review pages",
+      },
+      {
+        type: "improvement",
+        th: "ปรับเลย์เอาต์ช่องไฟใหม่บนจอภาพหน้ากว้าง ขยับเนื้อหาห่างขอบบราวเซอร์และเมนูด้านข้างเพื่อความสมดุลสบายตา",
+        en: "Optimized widescreen layout spacing and increased horizontal margins to prevent content from touching screen edges",
+      },
+      {
+        type: "improvement",
+        th: "เพิ่มปุ่มลัดตั้งค่าปลายทางบนหน้าแดชบอร์ดหลัก เพื่อให้เปลี่ยนไฟล์ Google Sheet ได้โดยตรง",
+        en: "Added a quick settings shortcut link to edit/change Sheet configurations directly from the main Dashboard",
+      },
+      {
+        type: "fix",
+        th: "แก้ไขปัญหาการเชื่อมต่อฐานข้อมูลล้มเหลว เมื่อใช้รหัสผ่านที่มีอักขระพิเศษ (เช่น &) ร่วมกับตัวเลือกพารามิเตอร์ต่อท้าย",
+        en: "Fixed database connection failures when the password contains special characters like '&' by utilizing URL encoding",
+      },
+    ],
+  },
+  {
     version: "1.4.0",
     date: "2026-05-08",
     items: [

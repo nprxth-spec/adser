@@ -15,8 +15,8 @@ import {
     X,
     Zap,
     TrendingUp,
-    DollarSign,
     ExternalLink,
+    Settings,
 } from "lucide-react";
 import { useDashboardUpload, type UploadStage, type ActiveFile } from "@/components/DashboardUploadContext";
 import Link from "next/link";
@@ -420,7 +420,7 @@ export default function DashboardPage() {
         });
 
     return (
-        <div className="max-w-7xl mx-auto w-full space-y-6">
+        <div className="max-w-[1600px] mx-auto w-full px-6 sm:px-12 lg:px-16 space-y-6">
                 {/* ── Duplicate Alert ── */}
                 {duplicateAlertFilename && (
                     <div className="flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-amber-800 dark:text-amber-300">
@@ -473,7 +473,16 @@ export default function DashboardPage() {
 
                     {/* Drive destination — locked */}
                     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
-                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{t("ปลายทาง Drive", "Drive destination")}</p>
+                        <div className="flex items-center justify-between mb-1">
+                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t("ปลายทาง Drive", "Drive destination")}</p>
+                            <Link
+                                href="/dashboard/integrations"
+                                className="inline-flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 hover:text-brand-850 dark:hover:text-brand-300 font-semibold transition-colors cursor-pointer"
+                            >
+                                <Settings className="w-3.5 h-3.5" />
+                                <span>{t("แก้ไข / เปลี่ยนชีต", "Edit / Change Sheet")}</span>
+                            </Link>
+                        </div>
 
                         <div className="mt-2 rounded-md bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-850 px-3.5 py-2.5 space-y-1.5">
                             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{t("ปลายทางซิงก์", "Sync destination")}</p>

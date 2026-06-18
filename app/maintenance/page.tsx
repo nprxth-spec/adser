@@ -19,7 +19,7 @@ export default function MaintenancePage() {
         </div>
 
         <p className="text-sm text-brand-300 font-semibold tracking-wide uppercase animate-fade-in-up">
-          Files Go
+          Adser
         </p>
         <h1 className="mt-3 text-3xl font-bold leading-tight animate-fade-in-up-delay-1">
           ระบบอยู่ระหว่างปรับปรุง

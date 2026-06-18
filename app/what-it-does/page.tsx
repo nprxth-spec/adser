@@ -3,8 +3,8 @@ import { ArrowRight } from "lucide-react";
 import PublicNav from "@/components/PublicNav";
 
 export const metadata = {
-  title: "What it does – Files Go",
-  description: "Files Go automates your Facebook Ads invoice workflow from PDF to Google Sheets and Drive.",
+  title: "What it does – Adser",
+  description: "Adser automates your Facebook Ads invoice workflow from PDF to Google Sheets and Drive.",
 };
 
 const features = [
@@ -27,7 +27,7 @@ export default function WhatItDoesPage() {
               What it does
             </h1>
             <p className="text-gray-500 text-base sm:text-lg max-w-2xl mx-auto">
-              Files Go automates your Facebook Ads invoice workflow from PDF to spreadsheet.
+              Adser automates your Facebook Ads invoice workflow from PDF to spreadsheet.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

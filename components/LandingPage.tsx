@@ -202,9 +202,9 @@ export default function LandingPage() {
             <div className="w-7 h-7 rounded-md landing-accent-bg flex items-center justify-center shrink-0">
               <Zap className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-outfit font-bold text-neutral-900">Files Go</span>
+            <span className="font-outfit font-bold text-neutral-900">Adser</span>
           </Link>
-          <p className="text-neutral-400 text-sm">© 2026 Files Go</p>
+          <p className="text-neutral-400 text-sm">© 2026 Adser</p>
           <div className="flex gap-6 text-sm text-neutral-500">
             <Link href="/privacy" className="hover:text-brand-600 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-brand-600 transition-colors">Terms</Link>

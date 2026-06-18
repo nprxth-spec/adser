@@ -3,7 +3,7 @@ import { Upload, Sparkles, Sheet, ArrowRight } from "lucide-react";
 import PublicNav from "@/components/PublicNav";
 
 export const metadata = {
-  title: "How it works – Files Go",
+  title: "How it works – Adser",
   description: "Three simple steps: upload PDF, AI extracts data, sync to Google Drive and Sheets.",
 };
 

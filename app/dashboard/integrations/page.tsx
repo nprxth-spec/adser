@@ -449,36 +449,11 @@ export default function IntegrationsPage() {
 
                     <hr className="border-gray-100 dark:border-gray-800" />
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 justify-between pt-2">
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 order-2 sm:order-1">
-                            <a
-                                href="https://sheets.google.com/create"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 transition-colors"
-                            >
-                                {t("สร้างไฟล์ Sheet ใหม่", "Create new Sheet")} <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                            {sheetId && (
-                                <button
-                                    type="button"
-                                    onClick={handleRealignRowCounter}
-                                    disabled={realigning}
-                                    className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                                >
-                                    {realigning ? (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                        <span>⚡</span>
-                                    )}
-                                    <span>{t("ซิงค์เลขแถวใหม่", "Re-sync Row Counter")}</span>
-                                </button>
-                            )}
-                        </div>
+                    <div className="flex items-center justify-end pt-2">
                         <button
                             onClick={handleSave}
                             disabled={saving || !sheetId}
-                            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg landing-accent-bg text-white text-sm font-medium hover:opacity-95 disabled:opacity-50 transition-all shadow-sm order-1 sm:order-2 w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed"
+                            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg landing-accent-bg text-white text-sm font-medium hover:opacity-95 disabled:opacity-50 transition-all shadow-sm w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed"
                         >
                             {saving ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />

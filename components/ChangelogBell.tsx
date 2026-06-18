@@ -6,7 +6,7 @@ import { Bell, Sparkles, Wrench, Bug, X } from "lucide-react";
 import { CHANGELOG, LATEST_VERSION, type ChangelogEntryType } from "@/lib/changelog";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 
-const STORAGE_KEY = "filesgo:lastSeenChangelogVersion";
+const STORAGE_KEY = "adser:lastSeenChangelogVersion";
 
 function compareVersions(a: string, b: string): number {
   const pa = a.split(".").map((n) => parseInt(n, 10) || 0);
@@ -129,7 +129,7 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-base font-semibold text-gray-900">
-                  {t("มีอะไรใหม่ใน Files Go", "What's new in Files Go")}
+                  {t("มีอะไรใหม่ใน Adser", "What's new in Adser")}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {t(

@@ -22,7 +22,7 @@ export default function LoginPage() {
                         <div className="w-10 h-10 rounded-lg landing-accent-bg flex items-center justify-center shadow-lg shrink-0">
                             <Zap className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white">Files Go</span>
+                        <span className="text-xl font-bold text-white">Adser</span>
                     </div>
 
                     {/* Heading */}
@@ -110,7 +110,7 @@ export default function LoginPage() {
                         <a href="#" className="text-brand-500 hover:underline">
                             {t("นโยบายความเป็นส่วนตัว", "Privacy Policy")}
                         </a>
-                        {t("เราเข้าถึงเฉพาะไฟล์ Drive และ Sheets ที่สร้างโดย Files Go เท่านั้น", ". We only access Drive and Sheets files created by Files Go.")}
+                        {t("เราเข้าถึงเฉพาะไฟล์ Drive และ Sheets ที่สร้างโดย Adser เท่านั้น", ". We only access Drive and Sheets files created by Adser.")}
                     </p>
                 </div>
             </div>

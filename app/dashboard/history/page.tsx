@@ -378,7 +378,7 @@ export default function HistoryPage() {
   const rangeLabelTh = RANGE_OPTIONS.find((o) => o.value === range)?.labelTh ?? "ทั้งหมด";
 
   return (
-    <div className="max-w-7xl mx-auto w-full min-w-0">
+    <div className="max-w-[1600px] mx-auto w-full min-w-0 px-6 sm:px-12 lg:px-16">
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
@@ -500,15 +500,15 @@ export default function HistoryPage() {
             <table className="w-full text-sm table-fixed">
               <colgroup>
                 <col style={{ width: "36px" }} />
-                <col style={{ width: "44px" }} />
-                <col style={{ width: "118px" }} />
+                <col style={{ width: "48px" }} />
+                <col style={{ width: "140px" }} />
                 <col />
-                <col style={{ width: "108px" }} />
-                <col style={{ width: "72px" }} />
-                <col style={{ width: "112px" }} />
-                <col style={{ width: "84px" }} />
-                <col style={{ width: "62px" }} />
-                <col style={{ width: "76px" }} />
+                <col style={{ width: "115px" }} />
+                <col style={{ width: "80px" }} />
+                <col style={{ width: "120px" }} />
+                <col style={{ width: "95px" }} />
+                <col style={{ width: "70px" }} />
+                <col style={{ width: "80px" }} />
               </colgroup>
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -544,7 +544,8 @@ export default function HistoryPage() {
                 {logs.map((log, i) => (
                   <tr
                     key={log.id}
-                    className={`border-b border-gray-550 dark:border-gray-800/40 hover:bg-gray-50/50 dark:hover:bg-gray-850/30 transition-colors ${
+                    onClick={() => handleSelectRow(log.id)}
+                    className={`cursor-pointer border-b border-gray-550 dark:border-gray-800/40 hover:bg-gray-50/50 dark:hover:bg-gray-850/30 transition-colors ${
                       i % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/30 dark:bg-gray-900/40"
                     } ${deletingIds.has(log.id) ? "opacity-40" : queuedIds.has(log.id) ? "opacity-60" : ""}`}
                   >
@@ -553,6 +554,7 @@ export default function HistoryPage() {
                         type="checkbox"
                         checked={selectedIds.has(log.id)}
                         onChange={() => handleSelectRow(log.id)}
+                        onClick={(e) => e.stopPropagation()}
                         className="rounded border-gray-300 dark:border-gray-700 text-brand-500 focus:ring-brand-500 w-3.5 h-3.5 cursor-pointer accent-brand-500"
                       />
                     </td>
@@ -625,6 +627,7 @@ export default function HistoryPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={t("เปิดใน Drive", "Open in Drive")}
+                          onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 font-medium transition-colors text-xs"
                         >
                           {t("เปิด", "View")} <ExternalLink className="w-3 h-3" />
@@ -638,7 +641,10 @@ export default function HistoryPage() {
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-0.5">
                         <button
-                          onClick={() => openEdit(log)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(log);
+                          }}
                           disabled={deletingIds.has(log.id) || queuedIds.has(log.id)}
                           title={t("แก้ไขรายการนี้", "Edit this record")}
                           className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-colors disabled:opacity-40 cursor-pointer"
@@ -646,7 +652,10 @@ export default function HistoryPage() {
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setConfirmLog(log)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmLog(log);
+                          }}
                           disabled={deletingIds.has(log.id) || queuedIds.has(log.id)}
                           title={t(
                             "ลบรายการ ไฟล์ใน Drive และแถวใน Sheets",

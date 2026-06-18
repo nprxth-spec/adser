@@ -143,6 +143,9 @@ export default function ConnectorsPage() {
     const [togglingId, setTogglingId] = useState<string | null>(null);
     const [showMore, setShowMore] = useState(false);
 
+    const [confirmGoogleOpen, setConfirmGoogleOpen] = useState(false);
+    const [confirmGoogleType, setConfirmGoogleType] = useState<"disconnect" | "reconnect" | null>(null);
+
     const isExpired = meta?.connection?.tokenExpiresAt
         ? new Date(meta.connection.tokenExpiresAt) < new Date()
         : false;
@@ -225,29 +228,25 @@ export default function ConnectorsPage() {
         } finally { setTogglingId(null); }
     };
 
-    const handleGoogleDisconnect = async () => {
-        if (!window.confirm(t("การตัดการเชื่อมต่อ Google จะทำการออกจากระบบ คุณต้องการดำเนินการต่อหรือไม่?", "Disconnecting Google will log you out. Do you want to continue?"))) {
-            return;
-        }
-        setLoading(true);
-        try {
-            const res = await fetch("/api/google/connection-status", { method: "DELETE" });
-            if (!res.ok) throw new Error("Failed to disconnect Google");
-            await signOut({ callbackUrl: "/login" });
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Disconnect failed");
-            setLoading(false);
-        }
+    const handleGoogleDisconnectClick = () => {
+        setConfirmGoogleType("disconnect");
+        setConfirmGoogleOpen(true);
     };
 
-    const handleGoogleReconnect = async () => {
+    const handleGoogleReconnectClick = () => {
+        setConfirmGoogleType("reconnect");
+        setConfirmGoogleOpen(true);
+    };
+
+    const handleGoogleConfirm = async () => {
+        setConfirmGoogleOpen(false);
         setLoading(true);
         try {
             const res = await fetch("/api/google/connection-status", { method: "DELETE" });
-            if (!res.ok) throw new Error("Failed to clear Google connection");
+            if (!res.ok) throw new Error("Failed to update Google connection");
             await signOut({ callbackUrl: "/login" });
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Reconnect failed");
+            setError(err instanceof Error ? err.message : "Action failed");
             setLoading(false);
         }
     };
@@ -278,11 +277,11 @@ export default function ConnectorsPage() {
                     actions={
                         googleConnected ? (
                             <div className="flex items-center gap-2">
-                                <button type="button" onClick={handleGoogleReconnect}
+                                <button type="button" onClick={handleGoogleReconnectClick}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
                                     <RefreshCw className="w-3.5 h-3.5" />{t("เชื่อมต่อใหม่", "Reconnect")}
                                 </button>
-                                <button type="button" onClick={handleGoogleDisconnect}
+                                <button type="button" onClick={handleGoogleDisconnectClick}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer shrink-0">
                                     <Link2Off className="w-3.5 h-3.5" />{t("ตัดการเชื่อมต่อ", "Disconnect")}
                                 </button>
@@ -301,11 +300,11 @@ export default function ConnectorsPage() {
                     actions={
                         googleConnected ? (
                             <div className="flex items-center gap-2">
-                                <button type="button" onClick={handleGoogleReconnect}
+                                <button type="button" onClick={handleGoogleReconnectClick}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
                                     <RefreshCw className="w-3.5 h-3.5" />{t("เชื่อมต่อใหม่", "Reconnect")}
                                 </button>
-                                <button type="button" onClick={handleGoogleDisconnect}
+                                <button type="button" onClick={handleGoogleDisconnectClick}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer shrink-0">
                                     <Link2Off className="w-3.5 h-3.5" />{t("ตัดการเชื่อมต่อ", "Disconnect")}
                                 </button>
@@ -385,6 +384,9 @@ export default function ConnectorsPage() {
                     togglingId={togglingId} onSync={handleSync} onDisconnect={handleDisconnect}
                     onToggleAccount={handleToggleAccount} onClose={() => setDialogOpen(false)} t={t} />
             )}
+
+            <GoogleConfirmDialog open={confirmGoogleOpen} type={confirmGoogleType}
+                onConfirm={handleGoogleConfirm} onClose={() => setConfirmGoogleOpen(false)} t={t} />
         </div>
     );
 }
@@ -718,6 +720,62 @@ function ConnectorCard({ iconSrc, title, subtitle, status, connectedLabel, disco
                     <StatusBadge connected={status} label={status ? connectedLabel : disconnectedLabel} />
                 )}
                 {status !== null && actions}
+            </div>
+        </div>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/* Google Confirm Dialog                                              */
+/* ------------------------------------------------------------------ */
+function GoogleConfirmDialog({ open, type, onConfirm, onClose, t }: {
+    open: boolean; type: "disconnect" | "reconnect" | null;
+    onConfirm: () => void; onClose: () => void;
+    t: (th: string, en: string) => string;
+}) {
+    const overlayRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+        document.addEventListener("keydown", handler);
+        return () => document.removeEventListener("keydown", handler);
+    }, [onClose]);
+
+    if (!open || !type) return null;
+
+    const isDisconnect = type === "disconnect";
+
+    return (
+        <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+            onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}>
+            <div className="bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-theme-xl w-full max-w-md p-6">
+                <div className="flex items-start gap-3 mb-5">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isDisconnect ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400" : "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400"}`}>
+                        <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                            {isDisconnect ? t("ยืนยันตัดการเชื่อมต่อ Google", "Confirm Disconnect Google") : t("ยืนยันเชื่อมต่อใหม่ Google", "Confirm Reconnect Google")}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
+                            {isDisconnect
+                                ? t("การตัดการเชื่อมต่อ Google (ทั้ง Drive และ Sheets) จะทำการออกจากระบบเพื่อเคลียร์โทเค่น คุณต้องการดำเนินการต่อหรือไม่?",
+                                    "Disconnecting Google (both Drive & Sheets) will sign you out to clear all tokens. Do you want to continue?")
+                                : t("การเชื่อมต่อใหม่จะเข้าสู่ระบบ Google อีกครั้งเพื่อรับสิทธิ์และโทเค่นชุดใหม่ ระบบจะทำการออกจากระบบก่อน คุณต้องการดำเนินการต่อหรือไม่?",
+                                    "Reconnecting will sign you out first to initiate a fresh Google sign-in. Do you want to continue?")}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-2 shrink-0">
+                    <button type="button" onClick={onClose}
+                        className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                        {t("ยกเลิก", "Cancel")}
+                    </button>
+                    <button type="button" onClick={onConfirm}
+                        className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all cursor-pointer ${isDisconnect ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}`}>
+                        {t("ยืนยัน", "Confirm")}
+                    </button>
+                </div>
             </div>
         </div>
     );

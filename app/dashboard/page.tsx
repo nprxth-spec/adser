@@ -736,10 +736,23 @@ export default function DashboardPage() {
                                 </div>
                             )}
                             <div className="flex justify-end gap-2">
+                                {batchSummary.review > 0 && (
+                                    <Link
+                                        href="/dashboard/review"
+                                        onClick={acknowledgeBatchComplete}
+                                        className="px-4 py-2 rounded-lg landing-accent-bg text-white text-sm font-medium hover:opacity-95 transition-opacity cursor-pointer"
+                                    >
+                                        {t("ตรวจสอบเดี๋ยวนี้", "Review Now")}
+                                    </Link>
+                                )}
                                 <button
                                     type="button"
                                     onClick={acknowledgeBatchComplete}
-                                    className="px-4 py-2 rounded-lg landing-accent-bg text-white text-sm font-medium hover:opacity-95 cursor-pointer"
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                                        batchSummary.review > 0
+                                            ? "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                                            : "landing-accent-bg text-white hover:opacity-95"
+                                    }`}
                                 >
                                     {t("ตกลง", "OK")}
                                 </button>

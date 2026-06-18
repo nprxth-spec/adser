@@ -79,6 +79,7 @@ export default function HistoryPage() {
   // Selection states
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const handleSelectAll = () => {
     if (selectedIds.size === logs.length) {
@@ -100,15 +101,14 @@ export default function HistoryPage() {
     });
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const runBulkDelete = async () => {
     const idsArray = Array.from(selectedIds);
     if (idsArray.length === 0) return;
-
-    const confirmMsg = t(
-      `คุณต้องการลบข้อมูล ${idsArray.length} รายการที่เลือกนี้ออกจากฐานข้อมูล, Google Drive และ Google Sheets (ลบแถว) หรือไม่?`,
-      `Are you sure you want to delete the ${idsArray.length} selected records from the database, Google Drive, and Google Sheets (row deletion)?`
-    );
-    if (!window.confirm(confirmMsg)) return;
 
     setBulkDeleting(true);
     setSelectedIds(new Set()); // clear selection immediately
@@ -228,6 +228,16 @@ export default function HistoryPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [confirmLog]);
+
+  // Close bulk-delete-confirm dialog on Escape
+  useEffect(() => {
+    if (!showBulkDeleteConfirm) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowBulkDeleteConfirm(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showBulkDeleteConfirm]);
 
   const enqueueDelete = (log: LogEntry) => {
     const id = log.id;
@@ -704,6 +714,65 @@ export default function HistoryPage() {
           </div>
         )}
       </div>
+
+      {/* ── Bulk Delete Confirmation Dialog ─────────────────────────────────── */}
+      {showBulkDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 dark:bg-black/60 px-4"
+          onClick={() => setShowBulkDeleteConfirm(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-transparent dark:border-gray-800 w-full max-w-md mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 sm:px-6 pt-5 pb-3 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/20 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-500 dark:text-red-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                  {t("ยืนยันการลบรายการที่เลือก", "Delete selected records?")}
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                  {t(
+                    `ระบบจะลบข้อมูลที่เลือกทั้งหมด ${selectedIds.size} รายการ ออกจากฐานข้อมูล รวมถึงลบไฟล์ใน Google Drive และลบแถวที่ตรงกันใน Google Sheets ของคุณ การลบนี้ไม่สามารถย้อนกลับได้`,
+                    `We will remove the ${selectedIds.size} selected records from the database, Google Drive, and the matching rows in your Google Sheets. This cannot be undone.`
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="p-1 rounded-md text-gray-450 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-5 sm:px-6 pb-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+              >
+                {t("ยกเลิก", "Cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  runBulkDelete();
+                  setShowBulkDeleteConfirm(false);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                {t("ยืนยันลบรายการ", "Delete records")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Delete Confirmation Dialog ──────────────────────────────────────── */}
       {confirmLog && (

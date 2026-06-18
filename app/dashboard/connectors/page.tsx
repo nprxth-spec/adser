@@ -278,7 +278,7 @@ export default function ConnectorsPage() {
                         googleConnected ? (
                             <div className="flex items-center gap-2">
                                 <button type="button" onClick={handleGoogleReconnectClick}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors shadow-sm cursor-pointer shrink-0">
                                     <RefreshCw className="w-3.5 h-3.5" />{t("เชื่อมต่อใหม่", "Reconnect")}
                                 </button>
                                 <button type="button" onClick={handleGoogleDisconnectClick}
@@ -301,7 +301,7 @@ export default function ConnectorsPage() {
                         googleConnected ? (
                             <div className="flex items-center gap-2">
                                 <button type="button" onClick={handleGoogleReconnectClick}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors shadow-sm cursor-pointer shrink-0">
                                     <RefreshCw className="w-3.5 h-3.5" />{t("เชื่อมต่อใหม่", "Reconnect")}
                                 </button>
                                 <button type="button" onClick={handleGoogleDisconnectClick}
@@ -360,7 +360,7 @@ export default function ConnectorsPage() {
                                     <StatusBadge connected={true} label={t("เชื่อมต่อแล้ว", "Connected")} />
                                 )}
                                 <a href="/api/connectors/meta/connect"
-                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm cursor-pointer shrink-0">
                                     <RefreshCw className="w-3.5 h-3.5" />{t("เชื่อมต่อใหม่", "Reconnect")}
                                 </a>
                                 <button type="button" onClick={() => setDialogOpen(true)}
@@ -473,7 +473,7 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
                             {t("ดึงข้อมูล", "Sync")}
                         </button>
                         <a href="/api/connectors/meta/connect"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-all cursor-pointer shrink-0">
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-all cursor-pointer shrink-0">
                             <RefreshCw className="w-3.5 h-3.5" />
                             {t("เชื่อมต่อใหม่", "Reconnect")}
                         </a>
@@ -750,7 +750,7 @@ function GoogleConfirmDialog({ open, type, onConfirm, onClose, t }: {
             onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}>
             <div className="bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-theme-xl w-full max-w-md p-6">
                 <div className="flex items-start gap-3 mb-5">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isDisconnect ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400" : "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400"}`}>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isDisconnect ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400" : "bg-brand-50 dark:bg-brand-950/20 text-brand-600 dark:text-brand-400"}`}>
                         <AlertTriangle className="w-5 h-5" />
                     </div>
                     <div>
@@ -772,7 +772,7 @@ function GoogleConfirmDialog({ open, type, onConfirm, onClose, t }: {
                         {t("ยกเลิก", "Cancel")}
                     </button>
                     <button type="button" onClick={onConfirm}
-                        className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all cursor-pointer ${isDisconnect ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}`}>
+                        className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-all cursor-pointer ${isDisconnect ? "bg-red-600 hover:bg-red-700" : "bg-brand-500 hover:bg-brand-600"}`}>
                         {t("ยืนยัน", "Confirm")}
                     </button>
                 </div>

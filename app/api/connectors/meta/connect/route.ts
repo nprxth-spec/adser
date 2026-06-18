@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import {
     buildMetaAuthUrl,
     getAppOriginFromRequest,
@@ -19,6 +20,9 @@ export async function GET(request: Request) {
     if (!isMetaConfigured()) {
         return NextResponse.redirect(new URL("/connectors?meta_error=not_configured", origin));
     }
+
+    // Delete any existing connection to ensure we start clean and discard old/expired tokens
+    await prisma.metaConnection.deleteMany({ where: { userId: session.user.id } });
 
     const state = randomBytes(16).toString("hex");
     const redirectUri = getMetaRedirectUri(origin);

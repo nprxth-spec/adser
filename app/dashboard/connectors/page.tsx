@@ -142,6 +142,10 @@ export default function ConnectorsPage() {
     const [togglingId, setTogglingId] = useState<string | null>(null);
     const [showMore, setShowMore] = useState(false);
 
+    const isExpired = meta?.connection?.tokenExpiresAt
+        ? new Date(meta.connection.tokenExpiresAt) < new Date()
+        : false;
+
     const loadMeta = async () => {
         const res = await fetch("/api/connectors/meta");
         const data = await res.json();
@@ -282,7 +286,18 @@ export default function ConnectorsPage() {
                             </a>
                         ) : (
                             <div className="flex items-center gap-2 shrink-0">
-                                <StatusBadge connected={true} label={t("เชื่อมต่อแล้ว", "Connected")} />
+                                {isExpired ? (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-950/20 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400 shrink-0">
+                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                        {t("หมดอายุ", "Expired")}
+                                    </span>
+                                ) : (
+                                    <StatusBadge connected={true} label={t("เชื่อมต่อแล้ว", "Connected")} />
+                                )}
+                                <a href="/api/connectors/meta/connect"
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
+                                    <RefreshCw className="w-3.5 h-3.5" />{t("เชื่อมต่อใหม่", "Reconnect")}
+                                </a>
                                 <button type="button" onClick={() => setDialogOpen(true)}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                                     <Settings2 className="w-4 h-4" />{t("จัดการ", "Manage")}
@@ -389,6 +404,11 @@ function MetaManageDialog({ meta, syncing, disconnecting, togglingId, onSync, on
                             {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                             {t("ดึงข้อมูล", "Sync")}
                         </button>
+                        <a href="/api/connectors/meta/connect"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-all cursor-pointer shrink-0">
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            {t("เชื่อมต่อใหม่", "Reconnect")}
+                        </a>
                         <button type="button" onClick={onDisconnect} disabled={disconnecting}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed">
                             {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />}

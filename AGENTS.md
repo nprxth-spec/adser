@@ -25,7 +25,8 @@ review moderation).
 ## Tech stack
 
 - **Next.js 16** (App Router) + **React 19**, **TypeScript** (`strict: true`)
-- **Prisma 5** ORM over **MySQL**
+- **Prisma 5** ORM over **PostgreSQL or MySQL** (selectable per deploy — see
+  "Database provider" below; default PostgreSQL)
 - **NextAuth v5 (beta)** — Google OAuth, JWT session strategy, Prisma adapter
 - **Tailwind CSS v4** + shadcn-style UI (`components/ui`), `lucide-react`
 - **AI:** `@google/generative-ai` (Gemini). Note: `lib/openai.ts` is the AI
@@ -36,14 +37,17 @@ review moderation).
 ## Commands
 
 ```bash
-npm run dev      # next dev (local development)
-npm run build    # prisma generate && next build
-npm run start    # next start (production)
-npm run lint     # eslint
-npx prisma generate          # regenerate client after schema edits
-npx prisma migrate dev       # create/apply a migration locally
-npx prisma db push           # push schema without a migration
+npm run dev             # next dev (local development)
+npm run build           # set DB provider -> prisma generate -> next build
+npm run start           # next start (production)
+npm run lint            # eslint
+npm run db:set-provider # rewrite schema provider from DB_PROVIDER
+npm run db:push         # set provider -> prisma db push
+npx prisma generate     # regenerate client after schema edits
 ```
+
+This project uses `prisma db push` (no migrations folder), so there is no
+per-provider migration history to maintain.
 
 There is **no test suite**. Verify changes by running `npm run build` and
 `npm run lint`, and by exercising the relevant flow in `npm run dev`.
@@ -115,11 +119,34 @@ lib/auth.ts          Full NextAuth setup (Prisma adapter, callbacks)
 
 After editing the schema, run `npx prisma generate` (the build does this too).
 
+The schema is provider-agnostic: the only DB-specific type used is `@db.Text`,
+which is valid on both PostgreSQL and MySQL. Keep it that way — avoid
+provider-specific native types or features.
+
+## Database provider (PostgreSQL / MySQL)
+
+This project runs on **either PostgreSQL or MySQL**, chosen **per deployment**
+(the two production deploys use different databases). Prisma does not support
+`env()` for `datasource.provider`, so `scripts/set-db-provider.mjs` rewrites the
+`provider` line in `prisma/schema.prisma` at build time from the `DB_PROVIDER`
+env var.
+
+- `DB_PROVIDER=postgresql` (default if unset) or `DB_PROVIDER=mysql`.
+- `DATABASE_URL` **must match** `DB_PROVIDER` (postgres URL with a postgres
+  provider, etc.) or Prisma will fail to connect.
+- `npm run build`, `npm run db:push`, and `postinstall` all run the swap script
+  first, so deploys just need the two env vars set correctly.
+- The committed schema keeps `provider = "postgresql"` (the default). The swap
+  script may show `prisma/schema.prisma` as locally modified on a MySQL build —
+  that is expected on the build host; don't commit that change.
+- To switch locally: `DB_PROVIDER=mysql npm run db:set-provider && npx prisma generate`.
+
 ## Environment
 
-Copy `.env.example` → `.env` and fill in. Required groups: `DATABASE_URL`
-(MySQL), NextAuth secrets + URLs, admin password/secret, Google OAuth client,
-`GOOGLE_AI_API_KEY` (Gemini). Optional: Facebook app id/secret.
+Copy `.env.example` → `.env` and fill in. Required groups: `DB_PROVIDER` +
+`DATABASE_URL` (matching pair — see "Database provider"), NextAuth secrets +
+URLs, admin password/secret, Google OAuth client, `GOOGLE_AI_API_KEY` (Gemini).
+Optional: Facebook app id/secret.
 
 Operational env flags:
 - `MAINTENANCE_MODE=true` — all pages redirect to `/maintenance`, APIs return
@@ -131,6 +158,6 @@ Operational env flags:
 1. `npm run lint` and `npm run build` pass.
 2. No Prisma/Node imports leaked into Edge files (`middleware.ts`,
    `auth.config.ts`).
-3. Schema changes are accompanied by a migration or `db push`, and
-   `prisma generate` was run.
+3. Schema changes stay provider-agnostic, are applied with `db push`, and
+   `prisma generate` was run. Don't commit the provider line flipped to `mysql`.
 4. Secrets stay in `.env` (never commit) — `.env.example` documents new vars.

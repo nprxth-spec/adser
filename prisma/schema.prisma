@@ -5,8 +5,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// NOTE: `provider` is rewritten at build time by scripts/set-db-provider.mjs
+// based on the DB_PROVIDER env var (default: postgresql). Prisma does not
+// support env() for `provider`, so do not rely on this literal in deploys —
+// set DB_PROVIDER per environment instead. Supported: postgresql | mysql.
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

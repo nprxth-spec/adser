@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Upload, Sparkles, Sheet, ArrowRight } from "lucide-react";
 import PublicNav from "@/components/PublicNav";
+import { APP_NAME } from "@/lib/app-config";
 
 export const metadata = {
-  title: "How it works – Adser",
+  title: `How it works – ${APP_NAME}`,
   description: "Three simple steps: upload PDF, AI extracts data, sync to Google Drive and Sheets.",
 };
 

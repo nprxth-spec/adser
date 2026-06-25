@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Zap } from "lucide-react";
+import { APP_NAME } from "@/lib/app-config";
 
 export const metadata = {
-  title: "Privacy Policy – Adser",
-  description: "Privacy policy for Adser – how we collect, use, and protect your data.",
+  title: `Privacy Policy – ${APP_NAME}`,
+  description: `Privacy policy for ${APP_NAME} – how we collect, use, and protect your data.`,
 };
 
 export default function PrivacyPage() {
@@ -18,7 +19,7 @@ export default function PrivacyPage() {
             <div className="w-8 h-8 rounded-md landing-accent-bg flex items-center justify-center shrink-0">
               <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-lg">Adser</span>
+            <span className="font-bold text-lg">{APP_NAME}</span>
           </Link>
           <Link
             href="/"
@@ -43,7 +44,7 @@ export default function PrivacyPage() {
               1. Introduction
             </h2>
             <p>
-              Adser (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy.
+              {APP_NAME} (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy.
               This Privacy Policy explains how we collect, use, disclose, and safeguard your
               information when you use our service to upload Facebook Ads invoices, extract
               data, and sync to Google Sheets and Drive.
@@ -67,7 +68,7 @@ export default function PrivacyPage() {
               3. How we use your information
             </h2>
             <p>
-              We use your information to provide and improve Adser, to sync invoice data
+              We use your information to provide and improve {APP_NAME}, to sync invoice data
               to your chosen Google Sheets and Drive, to communicate with you, and to comply
               with legal obligations. We do not sell your personal information.
             </p>

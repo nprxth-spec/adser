@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Cog, Wrench } from "lucide-react";
+import { APP_NAME } from "@/lib/app-config";
 
 export default function MaintenancePage() {
   return (
@@ -19,7 +20,7 @@ export default function MaintenancePage() {
         </div>
 
         <p className="text-sm text-brand-300 font-semibold tracking-wide uppercase animate-fade-in-up">
-          Adser
+          {APP_NAME}
         </p>
         <h1 className="mt-3 text-3xl font-bold leading-tight animate-fade-in-up-delay-1">
           ระบบอยู่ระหว่างปรับปรุง

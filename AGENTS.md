@@ -101,6 +101,13 @@ lib/auth.ts          Full NextAuth setup (Prisma adapter, callbacks)
 - **Locked config:** the Drive folder ID, folder mode (`year-month-day`), and
   filename template are intentionally hard-coded in `app/api/upload/route.ts`
   (`LOCKED_*` constants). Don't make them user-configurable without explicit ask.
+- **App name / branding:** never hard-code the product name in UI. Import
+  `APP_NAME` from `@/lib/app-config` (driven by `NEXT_PUBLIC_APP_NAME`, default
+  `"Adser"`). Inside `t(th, en)` i18n calls use template literals, e.g.
+  ``t(`...${APP_NAME}...`, `...${APP_NAME}...`)``. The literal `"Adser"` should
+  only remain in `lib/app-config.ts` (the fallback), `lib/changelog.ts`
+  (historical entries), code comments, and static assets (`icon.svg`,
+  `globals.css`).
 - **i18n:** UI supports Thai (th) and English (uk); some comments and AI prompt
   text are in Thai. Preserve Thai strings exactly (esp. the billed-to label
   variants in `lib/openai.ts` — they match real document headers).
@@ -146,7 +153,8 @@ env var.
 Copy `.env.example` → `.env` and fill in. Required groups: `DB_PROVIDER` +
 `DATABASE_URL` (matching pair — see "Database provider"), NextAuth secrets +
 URLs, admin password/secret, Google OAuth client, `GOOGLE_AI_API_KEY` (Gemini).
-Optional: Facebook app id/secret.
+Optional: `NEXT_PUBLIC_APP_NAME` (per-deploy app name, default "Adser"; inlined
+at build time) and Facebook app id/secret.
 
 Operational env flags:
 - `MAINTENANCE_MODE=true` — all pages redirect to `/maintenance`, APIs return

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Zap } from "lucide-react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
+import { APP_NAME } from "@/lib/app-config";
 
 export default function PublicNav() {
   const { t } = useAppPreferences();
@@ -14,7 +15,7 @@ export default function PublicNav() {
           <div className="w-8 h-8 rounded-md landing-accent-bg flex items-center justify-center shrink-0">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="font-outfit font-bold text-lg">Adser</span>
+          <span className="font-outfit font-bold text-lg">{APP_NAME}</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm text-neutral-600">
           <Link href="/what-it-does" className="hover:text-brand-600 transition-colors font-medium">

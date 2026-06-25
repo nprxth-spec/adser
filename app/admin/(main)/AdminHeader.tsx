@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { APP_NAME } from "@/lib/app-config";
 
 const TITLE_BY_PATH: Array<{ prefix: string; title: string }> = [
   { prefix: "/admin/logs", title: "ประมวลผลใบแจ้งหนี้" },
@@ -38,7 +39,7 @@ export default function AdminHeader({
           </button>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Adser Admin
+              {APP_NAME} Admin
             </p>
             <h1 className="text-theme-sm font-semibold text-gray-900 dark:text-white">{title}</h1>
           </div>

@@ -21,6 +21,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
 import ChangelogBell from "@/components/ChangelogBell";
+import { APP_NAME } from "@/lib/app-config";
 
 type NavLink = {
     href: string;
@@ -146,7 +147,7 @@ export default function Sidebar() {
                     </div>
                     {!collapsed && (
                         <div className="min-w-0 whitespace-nowrap overflow-hidden">
-                            <p className="font-semibold text-base truncate text-white">Adser</p>
+                            <p className="font-semibold text-base truncate text-white">{APP_NAME}</p>
                             <p className="text-xs text-gray-400 truncate">{t("แปลงใบแจ้งหนี้เข้า Google Sheets", "Invoices to Google Sheets")}</p>
                         </div>
                     )}

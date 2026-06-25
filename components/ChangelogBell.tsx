@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Bell, Sparkles, Wrench, Bug, X } from "lucide-react";
 import { CHANGELOG, LATEST_VERSION, type ChangelogEntryType } from "@/lib/changelog";
 import { useAppPreferences } from "@/components/AppPreferencesProvider";
+import { APP_NAME } from "@/lib/app-config";
 
 const STORAGE_KEY = "adser:lastSeenChangelogVersion";
 
@@ -129,7 +130,7 @@ export default function ChangelogBell({ collapsed }: { collapsed: boolean }) {
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-base font-semibold text-gray-900">
-                  {t("มีอะไรใหม่ใน Adser", "What's new in Adser")}
+                  {t(`มีอะไรใหม่ใน ${APP_NAME}`, `What's new in ${APP_NAME}`)}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {t(

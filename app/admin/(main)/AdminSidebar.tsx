@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, ScrollText, Users, LogOut, ClipboardList, BarChart3, ClipboardCheck } from "lucide-react";
+import { APP_NAME } from "@/lib/app-config";
 
 const navLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -25,7 +26,7 @@ export default function AdminSidebar({ isOpen }: { isOpen: boolean }) {
       <div className="h-14 border-b border-gray-800 px-4 flex items-center">
         {isOpen ? (
           <div>
-            <p className="font-semibold text-white text-theme-sm">Adser Admin</p>
+            <p className="font-semibold text-white text-theme-sm">{APP_NAME} Admin</p>
             <p className="text-xs text-gray-400 mt-0.5">Admin panel</p>
           </div>
         ) : null}

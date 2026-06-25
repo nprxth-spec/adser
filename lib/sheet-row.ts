@@ -1,4 +1,12 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, Prisma, DB_PROVIDER } from "@/lib/prisma";
+
+// Provider-aware identifier quoting for raw SQL. PostgreSQL folds unquoted
+// identifiers to lowercase (so `sheetWriteRow` -> `sheetwriterow` and fails);
+// MySQL uses backticks. `q()` wraps a column/table name accordingly.
+const q = (ident: string): Prisma.Sql =>
+    DB_PROVIDER === "mysql"
+        ? Prisma.raw(`\`${ident}\``)
+        : Prisma.raw(`"${ident}"`);
 
 const userSheetWriteLock = new Map<string, Promise<void>>();
 const SHEET_ROW_DRIFT_RESET_THRESHOLD = 5;
@@ -48,7 +56,7 @@ export async function reserveSheetRow(
 
     return await prisma.$transaction(async (tx) => {
         const users = await tx.$queryRaw<[{ sheetWriteRow: number | null; updatedAt: Date }]>`
-            SELECT sheetWriteRow, updatedAt FROM User WHERE id = ${userId} FOR UPDATE
+            SELECT ${q("sheetWriteRow")}, ${q("updatedAt")} FROM ${q("User")} WHERE ${q("id")} = ${userId} FOR UPDATE
         `;
 
         const currentVal = users[0]?.sheetWriteRow;

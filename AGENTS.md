@@ -147,6 +147,13 @@ env var.
   script may show `prisma/schema.prisma` as locally modified on a MySQL build —
   that is expected on the build host; don't commit that change.
 - To switch locally: `DB_PROVIDER=mysql npm run db:set-provider && npx prisma generate`.
+- **Raw SQL must be provider-aware.** PostgreSQL folds unquoted identifiers to
+  lowercase (so `SELECT sheetWriteRow` looks for `sheetwriterow` and fails),
+  while MySQL uses backticks. For `$queryRaw`/`$executeRaw`, quote identifiers
+  per provider — use the `q()` helper / `DB_PROVIDER` from `@/lib/prisma`
+  (see `lib/sheet-row.ts`). Prefer the Prisma Client API over raw SQL when
+  possible; it is provider-agnostic. The MySQL deploy must therefore have
+  `DB_PROVIDER=mysql` set at **runtime** too, not just at build.
 
 ## Environment
 
